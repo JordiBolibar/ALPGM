@@ -2,6 +2,7 @@
 
 ![ALPGM](https://www.dropbox.com/s/8zycrf67lloppr5/algpm_logo2.png?raw=1)
 
+[![DOI](https://zenodo.org/badge/195388796.svg)](https://zenodo.org/badge/latestdoi/195388796)
 
 #### Author 
 <p><b>Jordi Bolíbar</b></p>
