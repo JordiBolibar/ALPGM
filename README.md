@@ -72,3 +72,7 @@
 	With the exception of the SAFRAN (Durand et al. 2009) climate data preprocessed files, which can be [downloaded here](https://www.dropbox.com/s/2kisbxk2ajaunh2/SAFRAN_meteo_data.rar?raw=1) separately due to their size.
 	
 </p>
+
+## Dependencies
+<p>
+	Dependencies are specified in the dependency graph of this repository: https://github.com/JordiBolibar/ALPGM/network/dependencies
