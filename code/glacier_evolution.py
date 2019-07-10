@@ -81,7 +81,8 @@ global path_smb_function_adamont
 path_smb_function_adamont = path_smb + 'smb_function\\ADAMONT\\'
 # Path to be updated with ADAMONT forcings local path
 #path_adamont_forcings = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\treated\\'
-path_adamont_forcings = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\\FORCING_ADAMONT_IGE_BERGER\\subset_AGU\\projections\\'
+#path_adamont_forcings = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\\FORCING_ADAMONT_IGE_BERGER\\subset_AGU\\projections\\'
+path_adamont_forcings = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\\FORCING_ADAMONT_IGE_BERGER\\projections\\'
 # SMB simulation files
 path_smb_simulations = path_smb + 'smb_simulations\\'
 path_smb_function = path_smb + 'smb_function\\'
@@ -164,15 +165,11 @@ def clipRaster_with_polygon(output_cropped_raster, input_raster, shapefile_mask)
         except subprocess.CalledProcessError as e:
             raise RuntimeError("command '{}' return with error (code {}): {}".format(e.cmd, e.returncode, e.output))
 
-def normalize_dh(dh, dh_ref):
-    dh_n = dh.copy()
-    dh_n = abs(dh_n - dh_ref.max())/abs(dh_ref.min() - dh_ref.max())
-    dh_n = np.where(dh_n > 1, 1, dh_n)
-    return dh_n
-
-def normalize_dem(dem):
+def normalize_dem(dem, dem_init):
+#    print("dem.max(): " + str(dem.max()) + "  -  dem.min(): " + str(dem.min()))
+#    print("dem_init.max(): " + str(dem_init.max()) + "  -  dem_init.min(): " + str(dem_init.min()))
     dem_n = dem.copy()
-    dem_n = (float(dem.max()) - dem)/(float(dem.max()) - float(dem.min()))
+    dem_n = (float(dem_init.max()) - dem)/(float(dem_init.max()) - float(dem_init.min()))
     return dem_n
 
 def find_nearest(array, value):
@@ -316,8 +313,14 @@ def crop_inital_rasters_to_GLIMS(path_glacier_ID_rasters, path_glacier_DEM_raste
         path_glacier_ID_GLIMS = path_glacier_ID_rasters + "thick_0" + str(glacierID) + "_GLIMS2003.tif"
         path_glacier_DEM_GLIMS = current_glacier_DEM
         
+        path_glacier_DEM_2003 = path_glacier_DEM_GLIMS
+        path_glacier_ID_2003 = current_glacier_ice_depth
+        
         print("Clipping raster to GLIMS 2003 extent... ")
         clipRaster_with_polygon(path_glacier_ID_GLIMS, current_glacier_ice_depth, path_glacier_outline)
+        
+        # TODO: Check if raster really needs to be cropped or not
+        path_glacier_ID_GLIMS = current_glacier_ice_depth
 #        clipRaster_with_polygon(path_glacier_DEM_GLIMS, current_glacier_DEM, path_glacier_outline)
     
     elif(year_start == 2015):
@@ -325,11 +328,15 @@ def crop_inital_rasters_to_GLIMS(path_glacier_ID_rasters, path_glacier_DEM_raste
         path_glacier_ID_GLIMS = path_glacier_ID_rasters + "glacier_evolution\\SAFRAN\\1\\" + "IceDepth_Glacier_0" + str(glacierID) + "_2014.tif"
         path_glacier_DEM_GLIMS = path_glacier_DEM_rasters + "glacier_evolution\\SAFRAN\\1\\" + "DEM_Glacier_0" + str(glacierID) + "_2014.tif"
         
+        path_glacier_DEM_2003 = path_glacier_DEM_rasters + "dem_0" + str(glacierID) + ".asc.tif"
+        path_glacier_ID_2003 = path_glacier_ID_rasters + "RGI60-11.0" + str(glacierID) + "_thickness.tif"
+#        path_glacier_ID_2003 = path_glacier_ID_rasters + "thick_0" + str(glacierID) + "_GLIMS2003.tif"
+        
 #        print("Clipping raster to GLIMS extent... ")
 #        clipRaster_with_polygon(path_glacier_ID_GLIMS, current_glacier_ice_depth, path_glacier_outline)
 #        clipRaster_with_polygon(path_glacier_DEM_GLIMS, current_glacier_DEM, path_glacier_outline)
         
-    return path_glacier_ID_GLIMS, path_glacier_DEM_GLIMS
+    return path_glacier_ID_GLIMS, path_glacier_DEM_GLIMS, path_glacier_DEM_2003, path_glacier_ID_2003
 
 # Get points from flowline 
 def get_point_values(flowline_feature, dem_raster):
@@ -527,12 +534,11 @@ def get_monthly_snow(daily_data, daily_datetimes):
     
     return monthly_avg_data[:12]
 
-def compute_local_anomalies(glacier_CPDD, glacier_winter_snow, glacier_summer_snow,
-                            CPDD_ref, w_snow_ref, s_snow_ref):
+def compute_local_anomalies(glacier_CPDD, glacier_winter_snow, glacier_summer_snow, meteo_anomalies):
     
-    local_CPDD_anomaly = glacier_CPDD - CPDD_ref
-    local_w_snow_anomaly = glacier_winter_snow - w_snow_ref
-    local_s_snow_anomaly = glacier_summer_snow - s_snow_ref
+    local_CPDD_anomaly = glacier_CPDD - meteo_anomalies['CPDD']
+    local_w_snow_anomaly = glacier_winter_snow - meteo_anomalies['w_snow']
+    local_s_snow_anomaly = glacier_summer_snow - meteo_anomalies['s_snow']
         
     return local_CPDD_anomaly, local_w_snow_anomaly, local_s_snow_anomaly
 
@@ -578,7 +584,7 @@ def get_default_SAFRAN_forcings(year_start, year_end):
     return daily_meteo_data
 
 # Adjusts the daily SAFRAN data for each glacier
-def get_adjusted_glacier_SAFRAN_forcings(year, year_start, glacier_mean_altitude, SAFRAN_idx, daily_meteo_data, CPDD_ref, w_snow_ref, s_snow_ref, mon_temp_ref, mon_snow_ref):
+def get_adjusted_glacier_SAFRAN_forcings(year, year_start, glacier_mean_altitude, SAFRAN_idx, daily_meteo_data, meteo_anomalies):
     # We also need to fetch the previous year since data goes from 1st of August to 31st of July
     idx = year - year_start -1
     glacier_idx = int(SAFRAN_idx)
@@ -686,10 +692,10 @@ def get_adjusted_glacier_SAFRAN_forcings(year, year_start, glacier_mean_altitude
     
     # We compute the seasonal anomalies
     CPDD_LocalAnomaly, winter_snow_LocalAnomaly, summer_snow_LocalAnomaly = compute_local_anomalies(glacier_CPDD, glacier_winter_snow, glacier_summer_snow,
-                                                                                                    CPDD_ref, w_snow_ref, s_snow_ref)
+                                                                                                    meteo_anomalies)
 
     # We compute the monthly anomalies
-    mon_temp_anomaly, mon_snow_anomaly = compute_monthly_anomalies(mon_temp_year, mon_snow_year, mon_temp_ref, mon_snow_ref)
+    mon_temp_anomaly, mon_snow_anomaly = compute_monthly_anomalies(mon_temp_year, mon_snow_year, meteo_anomalies['mon_temp'], meteo_anomalies['mon_snow'])
     
     
     season_anomalies_y = {'CPDD': CPDD_LocalAnomaly, 'winter_snow':winter_snow_LocalAnomaly, 'summer_snow': summer_snow_LocalAnomaly}
@@ -818,7 +824,7 @@ def get_default_ADAMONT_forcings(year_start, year_end, midfolder):
     
     return daily_meteo_data, massif_number, aspects, year_end
 
-def get_adjusted_glacier_ADAMONT_forcings(year, year_start, glacier_mean_altitude, ADAMONT_idx, daily_meteo_data, CPDD_ref, w_snow_ref, s_snow_ref, mon_temp_ref, mon_snow_ref):
+def get_adjusted_glacier_ADAMONT_forcings(year, year_start, glacier_mean_altitude, ADAMONT_idx, daily_meteo_data, meteo_anomalies):
     # We also need to fetch the previous year since data goes from 1st of August to 31st of July
     idx = year - year_start -1
 #    print("ADAMONT_idx: " + str(ADAMONT_idx))
@@ -956,11 +962,10 @@ def get_adjusted_glacier_ADAMONT_forcings(year, year_start, glacier_mean_altitud
     
     # Seasonal anomalies
     CPDD_LocalAnomaly, winter_snow_LocalAnomaly, summer_snow_LocalAnomaly = compute_local_anomalies(glacier_CPDD, glacier_winter_snow, glacier_summer_snow,
-                                                                                                    CPDD_ref, w_snow_ref, s_snow_ref)                                                         
-    
+                                                                                                    meteo_anomalies)                                                         
     
     # Monthly anomalies
-    mon_temp_anomaly, mon_snow_anomaly = compute_monthly_anomalies(mon_temp_year, mon_snow_year, mon_temp_ref, mon_snow_ref)
+    mon_temp_anomaly, mon_snow_anomaly = compute_monthly_anomalies(mon_temp_year, mon_snow_year, meteo_anomalies['mon_temp'], meteo_anomalies['mon_snow'])
          
     season_anomalies_y = {'CPDD': CPDD_LocalAnomaly, 'winter_snow':winter_snow_LocalAnomaly, 'summer_snow': summer_snow_LocalAnomaly}
     monthly_anomalies_y = {'temps': mon_temp_anomaly, 'snow': mon_snow_anomaly}
@@ -975,6 +980,7 @@ def get_meteo_references(season_meteo_SMB, monthly_meteo_SMB, glimsID, glacierNa
     glacier_summer_snow = season_meteo_SMB['summer_snow']
     glacier_mon_temps = monthly_meteo_SMB['temp']
     glacier_mon_snow = monthly_meteo_SMB['snow']
+    
     
     for cpdd, w_snow, s_snow, mon_temps, mon_snow in zip(glacier_CPDDs, glacier_winter_snow, glacier_summer_snow, glacier_mon_temps, glacier_mon_snow):
         if(cpdd['GLIMS_ID'] == glimsID):
@@ -1071,8 +1077,8 @@ def store_rasters(masked_DEM_current_glacier_u, masked_ID_current_glacier_u, mid
         
 def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier, 
                       delta_h_dh_current_glacier, delta_h_DEM_current_glacier, 
-                      DEM_sorted_current_glacier, DEM_sorted_CG_n, 
-                      daily_meteo_data, season_meteo, monthly_meteo,
+                      DEM_sorted_current_glacier, DEM_sorted_current_glacier_init, 
+                      daily_meteo_data, meteo_anomalies,
                       flowline, raster_current_DEM, store_plots, 
                       glacierName, glacierID, glimsID, massif, lat, lon, aspect,
                       midfolder, pixel_area, glaciers_with_errors, 
@@ -1080,9 +1086,6 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
                       year_range, SAFRAN_idx, overwrite):
     
     print("Applying glacier evolution...")
-    
-    # We get the glacier's reference meteorological values ( [()] in order to access the dictionaries)
-    CPDD_ref, w_snow_ref, s_snow_ref, mon_temp_ref, mon_snow_ref = get_meteo_references(season_meteo, monthly_meteo, glimsID, glacierName)
     
     # We make deep copies of the original DEM and ice depth distribution to start updating them
     masked_ID_current_glacier_u = copy.deepcopy(masked_ID_current_glacier)
@@ -1092,7 +1095,8 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
     # We sort the DEM by altitude in order to have the altitudinal range ready for iteration
     DEM_sorted_current_glacier_u = np.sort(masked_DEM_current_glacier_u.compressed(), axis=None)
     DEM_sorted_current_glacier_u = np.unique(DEM_sorted_current_glacier_u[DEM_sorted_current_glacier_u > 0])
-    DEM_sorted_CG_n_u = normalize_dem(DEM_sorted_current_glacier_u)
+    
+    DEM_sorted_CG_n_u = normalize_dem(DEM_sorted_current_glacier_u, DEM_sorted_current_glacier_init)
     
     nfigure = 1
     isNotFirst = False
@@ -1139,13 +1143,11 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
             if(settings.projection_forcing == "SAFRAN"):
                 season_anomalies_y,  monthly_anomalies_y = get_adjusted_glacier_SAFRAN_forcings(year, year_start, 
                                                                                              masked_DEM_current_glacier_u.compressed().mean(), SAFRAN_idx, 
-                                                                                             daily_meteo_data, CPDD_ref, w_snow_ref, s_snow_ref,
-                                                                                             mon_temp_ref, mon_snow_ref)
+                                                                                             daily_meteo_data, meteo_anomalies)
             elif(settings.projection_forcing == "ADAMONT"):
                 season_anomalies_y, monthly_anomalies_y = get_adjusted_glacier_ADAMONT_forcings(year, year_start, 
                                                                                              masked_DEM_current_glacier_u.compressed().mean(), SAFRAN_idx, 
-                                                                                             daily_meteo_data, CPDD_ref, w_snow_ref, s_snow_ref,
-                                                                                             mon_temp_ref, mon_snow_ref)
+                                                                                             daily_meteo_data, meteo_anomalies)
             
             
             ####  CREATION OF THE MODEL TEST DATASET  ####
@@ -1169,6 +1171,8 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
             # We generate each year's fs constant relying on the updated glacier area
             year_fs = generate_fs(SMB_y, year_start, DEM_sorted_current_glacier_u, DEM_sorted_CG_n_u, delta_h_DEM_current_glacier,
                                   masked_DEM_current_glacier_u, delta_h_dh_current_glacier, masked_ID_current_glacier_u, pixel_area, current_glacierArea)
+            
+#            print("\nalt_band_n max: " + str(DEM_sorted_CG_n_u.max()))
             
             ####  ANNUAL ICE THICKNESS UPDATE  ####
             for alt_band, alt_band_n in zip(DEM_sorted_current_glacier_u, DEM_sorted_CG_n_u):
@@ -1219,7 +1223,7 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
                 masked_DEM_current_glacier_u.mask = np.ma.make_mask(np.where(masked_ID_current_glacier_u > 0, 0, 1))
                 DEM_sorted_current_glacier_u = np.sort(masked_DEM_current_glacier_u.compressed(), axis=None)
                 DEM_sorted_current_glacier_u = np.unique(DEM_sorted_current_glacier_u[DEM_sorted_current_glacier_u > 0])
-                DEM_sorted_CG_n_u = normalize_dem(DEM_sorted_current_glacier_u)
+                DEM_sorted_CG_n_u = normalize_dem(DEM_sorted_current_glacier_u, DEM_sorted_current_glacier_init)
             else:
                 print("\n ------  Glacier completely melted  ------")
                 DEM_sorted_current_glacier_u = np.array([0])
@@ -1273,6 +1277,7 @@ def main(compute, overwrite_flag, counter_threshold, thickness_idx):
         path_smb_function = path_smb + 'smb_function\\'
         path_glacier_outlines_shapefile = path_glacier_2003_shapefiles + 'GLIMS_glaciers_2003_ID_massif' + '.shp' 
         path_ann = settings.path_ann
+        path_safran_forcings = path_smb_function + 'SAFRAN\\'
         
         ### We detect the forcing between SPAZM, SAFRAN or ADAMONT
         forcing = settings.projection_forcing
@@ -1311,9 +1316,9 @@ def main(compute, overwrite_flag, counter_threshold, thickness_idx):
         
         #### ONLY HISTORICAL SAFRAN DATA FOR REFS  ####
         # We load the compacted seasonal and monthly meteo forcings
-        with open(path_smb_function_forcing+'season_meteo.txt', 'rb') as season_f:
+        with open(path_safran_forcings+'season_meteo.txt', 'rb') as season_f:
             season_meteo = np.load(season_f)[()]
-        with open(path_smb_function_forcing+'monthly_meteo.txt', 'rb') as mon_f:
+        with open(path_safran_forcings+'monthly_meteo.txt', 'rb') as mon_f:
             monthly_meteo = np.load(mon_f)[()]
             
         ###  We load the SMB models  ###
@@ -1387,15 +1392,16 @@ def main(compute, overwrite_flag, counter_threshold, thickness_idx):
                 glacier_length = glacier.GetField("Length")
                 print("GLIMS ID: " + str(glimsID))
                 # We process only the non-discarded glaciers with a delta h function and those greater than 0.5 km2
-                if(True):
+#                if(True):
 #                if(glacierName == "Mer de Glace"):
+                if(glacierName == "d'Argentiere" or glacierName == "Mer de Glace"):
 #                if(massif == "Ubaye"):
                     print ("\n-------   Processing glacier: " + glacierName + " -------")
                     print("GLIMS ID: " + str(glimsID))
                     
                     # We crop the initial rasters to the extent of the GLIMS 2003 or 2015 database
                     path_outline_current_glacier = path_glacier_2003_shapefiles + 'individual_GLIMS_2003\\' +  'GLIMS_ID_' + str(glimsID) + '.shp'
-                    current_glacier_ice_depth, current_glacier_DEM = crop_inital_rasters_to_GLIMS(path_glacier_ID_rasters, path_glacier_DEM_rasters, path_outline_current_glacier, 
+                    current_glacier_ice_depth, current_glacier_DEM, path_glacier_DEM_2003, path_glacier_ID_2003 = crop_inital_rasters_to_GLIMS(path_glacier_ID_rasters, path_glacier_DEM_rasters, path_outline_current_glacier, 
                                                                                              glacier, glacierID, midfolder_base, year_start)
                     
                     # We fetch every time the flowlines shapefile to avoid strange issues
@@ -1425,6 +1431,8 @@ def main(compute, overwrite_flag, counter_threshold, thickness_idx):
                              print("/!\ Ice depth raster coordinates not aligned with GLIMS database for Glacier " + str(glacierName) + " with area = " + str(glacierArea) + " km2\n")
                              glaciers_with_errors.append(glacierName)
                              continue
+                        raster_F19_2003 = gdal.Open(path_glacier_ID_2003) 
+                        ice_depth_glacier_2003 = raster_F19_2003.ReadAsArray()
                         
                         ### We modify the ice depth in order to compute the effects of the uncertainties ###
                         if(thickness_idx == 1):
@@ -1451,19 +1459,27 @@ def main(compute, overwrite_flag, counter_threshold, thickness_idx):
                     if os.path.exists(current_glacier_DEM):
                         raster_current_DEM = gdal.Open(current_glacier_DEM) 
                         DEM_current_glacier = np.round(raster_current_DEM.ReadAsArray())
+                        
+                        raster_DEM_2003 = gdal.Open(path_glacier_DEM_2003) 
+                        DEM_glacier_2003 = np.round(raster_DEM_2003.ReadAsArray())
+                        
                     else:
                         print("/!\ DEM raster doesn't exist for Glacier " + str(glacierName) + " with area = " + str(glacierArea) + " km2")
                         break
                     
                     # We get the flattened versions of the ID and the DEM of the current glacier
                     masked_ID_current_glacier = np.ma.masked_values(np.float64(ice_depth_current_glacier), 0.0)
+                    masked_ID_glacier_2003 = np.ma.masked_values(np.float64(ice_depth_glacier_2003), 0.0)
                     masked_DEM_current_glacier = np.ma.array(DEM_current_glacier, mask = masked_ID_current_glacier.mask)
-                    flat_DEM_current_glacier = masked_DEM_current_glacier.compressed()
+                    masked_DEM_glacier_2003 = np.ma.array(DEM_glacier_2003, mask = masked_ID_glacier_2003.mask)
                     
                     # We sort the DEM by altitude in order to have the altitudinal range ready for iteration
-                    DEM_sorted_current_glacier = np.sort(flat_DEM_current_glacier, axis=None)
-                    DEM_sorted_current_glacier = np.unique(DEM_sorted_current_glacier[DEM_sorted_current_glacier > 0])
-                    DEM_sorted_CG_n = normalize_dem(DEM_sorted_current_glacier)
+                    masked_DEM_current_glacier = np.ma.array(np.ma.getdata(masked_DEM_current_glacier), mask = np.ma.make_mask(np.where(masked_ID_current_glacier > 0, 0, 1)))
+                    DEM_sorted_current_glacier = np.sort(masked_DEM_current_glacier.compressed(), axis=None)
+                    masked_DEM_glacier_2003 = np.ma.array(np.ma.getdata(masked_DEM_glacier_2003), mask = np.ma.make_mask(np.where(masked_ID_glacier_2003 > 0, 0, 1)))
+                    DEM_sorted_glacier_2003 = np.sort(masked_DEM_glacier_2003.compressed(), axis=None)
+                    
+                    DEM_sorted_current_glacier_init = np.unique(DEM_sorted_glacier_2003[DEM_sorted_glacier_2003 > 0])
                     
                     if(forcing == 'ADAMONT'):
                         SAFRAN_idx = get_ADAMONT_idx(massif_idx, masked_DEM_current_glacier.compressed().mean(), massif_number, daily_meteo_data['zs'])
@@ -1471,14 +1487,18 @@ def main(compute, overwrite_flag, counter_threshold, thickness_idx):
                         SAFRAN_idx = all_glacier_coordinates[np.where(all_glacier_coordinates[:,3] == glimsID)[0]][0][1]
                         print("SAFRAN_idx: " + str(SAFRAN_idx))
                         
+                    # We get the glacier's reference meteorological values ( [()] in order to access the dictionaries)
+                    CPDD_ref, w_snow_ref, s_snow_ref, mon_temp_ref, mon_snow_ref = get_meteo_references(season_meteo, monthly_meteo, glimsID, glacierName)
+                    meteo_anomalies = {'CPDD': CPDD_ref, 'w_snow': w_snow_ref, 's_snow': s_snow_ref, 'mon_temp': mon_temp_ref, 'mon_snow': mon_snow_ref}
+                        
                     # We compute the glacier retreat, updating the DEM and ID matrixes and storing the rasters for every year
                     masked_DEM_current_glacier_u, masked_ID_current_glacier_u = glacier_evolution(masked_DEM_current_glacier, 
                                                                                                 masked_ID_current_glacier, 
                                                                                                 delta_h_dh_current_glacier,
                                                                                                 delta_h_DEM_current_glacier, 
                                                                                                 DEM_sorted_current_glacier, 
-                                                                                                DEM_sorted_CG_n, 
-                                                                                                daily_meteo_data, season_meteo, monthly_meteo,
+                                                                                                DEM_sorted_current_glacier_init, 
+                                                                                                daily_meteo_data, meteo_anomalies,
                                                                                                 flowline, raster_current_DEM, 
                                                                                                 store_plots, glacierName, 
                                                                                                 glacierID, glimsID, massif, lat, lon, aspect,

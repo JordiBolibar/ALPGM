@@ -32,7 +32,7 @@ print("-----------------------------------------------")
 #########    SETTINGS      ##############################################################################
 # projection == True -> Projections with ADAMONT for the 21st century
 # projection == False -> Historical simulations for the 1984 - 2015 period with SAFRAN
-historical_forcing, projection_forcing, simulation_type = settings.simulation_settings(projection = False)
+historical_forcing, projection_forcing, simulation_type = settings.simulation_settings(projection = True)
 
 ### Global variables  ###
 # Set the glacier index to start the simulations
