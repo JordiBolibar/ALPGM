@@ -342,8 +342,8 @@ def main(compute):
         path_smb_function_safran = path_smb + 'smb_function\\SAFRAN\\'
         path_glims = workspace + 'glacier_data\\GLIMS\\' 
         
-#        year_start = 1984
-        year_start = 1959
+        year_start = 1984
+#        year_start = 1959
         year_end = 2015
         
         path_temps = path_smb_function_safran +'daily_temps_years_' + str(year_start) + '-' + str(year_end) + '.txt'

@@ -22,8 +22,8 @@ import glacier_evolution
 from pathlib import Path
 
 workspace = str(Path(os.getcwd()).parent) + '\\'
-#path_adamont = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\FORCING_ADAMONT_IGE_BERGER\\projections\\'
-path_adamont = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\FORCING_ADAMONT_IGE_BERGER\\subset_AGU\\projections\\'
+path_adamont = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\FORCING_ADAMONT_IGE_BERGER\\projections\\'
+#path_adamont = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\FORCING_ADAMONT_IGE_BERGER\\subset_AGU\\projections\\'
 path_smb = workspace + 'glacier_data\\smb\\'
 
 def init(hist_forcing, proj_forcing, simu_type, smb_model):
