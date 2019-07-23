@@ -56,6 +56,7 @@ SMB_raw = genfromtxt(path_smb + 'SMB_raw_temporal.csv', delimiter=';', dtype=flo
 path_ann_LOGO = path_smb + 'ANN\\LOGO\\'
 path_ann_LOYO = path_smb + 'ANN\\LOYO\\'
 path_ann_LSYGO = path_smb + 'ANN\\LSYGO\\'
+path_ann_LSYGO_past = path_smb + 'ANN\\LSYGO_past\\'
 
 
 ######################################
@@ -63,7 +64,8 @@ path_ann_LSYGO = path_smb + 'ANN\\LSYGO\\'
 w_weights = False
 #cross_validation = "LOGO"
 #cross_validation = "LOYO"
-cross_validation = "LSYGO"
+#cross_validation = "LSYGO"
+cross_validation = "LSYGO_past"
 #######  Flag to switch between training with a         ###############
 #######  single group of glaciers or cross-validation   ###############
 training = False
@@ -77,6 +79,9 @@ elif(cross_validation == 'LOYO'):
     path_cv_ann = path_ann + 'CV\\'
 elif(cross_validation == 'LSYGO'):
     path_ann = path_ann_LSYGO
+    path_cv_ann = path_ann + 'CV\\'
+elif(cross_validation == 'LSYGO_past'):
+    path_ann = path_ann_LSYGO_past
     path_cv_ann = path_ann + 'CV\\'
 
 
@@ -357,6 +362,34 @@ logo_splits = logo.split(X, groups=groups)
 # Leave-One-Year-Out
 loyo_splits = loyo.split(X, groups=year_groups)
 
+# 1967-1985 validation
+past_test_matrix, past_train_matrix = np.zeros((32, 57), dtype=np.int8), np.ones((32, 57), dtype=np.int8)
+
+
+#past_test_matrix[:,:26] = 1
+#past_train_matrix[:,:26] = 0
+
+past_test_int_matrix = past_test_matrix.flatten()[finite_mask]
+past_test_matrix = np.array(past_test_int_matrix, dtype=bool)
+past_train_int_matrix = past_train_matrix.flatten()[finite_mask]
+past_train_matrix = np.array(past_train_int_matrix, dtype=bool)
+
+past_glaciers = np.array([1, 3, 31, 32])
+past_folds_test, past_folds_train = [],[]
+for past_glacier in past_glaciers:
+    past_glacier_test_idx = np.intersect1d(np.where(groups == past_glacier)[0], np.where(year_groups == 0)[0])
+    current_past_fold_test = copy.deepcopy(past_test_matrix)
+    current_past_fold_test[past_glacier_test_idx] = True
+    past_folds_test.append(current_past_fold_test)
+    current_past_fold_train = copy.deepcopy(past_train_matrix)
+    past_glacier_train_idx = np.where(groups == past_glacier)[0]
+    current_past_fold_train[past_glacier_train_idx] = False
+    past_folds_train.append(current_past_fold_train)
+
+past_folds_test = np.asarray(past_folds_test)
+past_folds_train = np.asarray(past_folds_train)
+
+#import pdb; pdb.set_trace()
 
 #######################
 glacier_subset_idx = 2
@@ -370,7 +403,7 @@ elif(cross_validation == 'LOYO'):
 # LOYO
     test_idx = np.where(year_groups == glacier_subset_idx)
     train_idx = np.where(year_groups != glacier_subset_idx)
-elif(cross_validation == "LSYGO"):
+elif(cross_validation == "LSYGO" or cross_validation == "LSYGO_past"):
     test_idx = lsygo_test_folds[glacier_subset_idx]
     train_idx = lsygo_train_folds[glacier_subset_idx]
 
@@ -403,7 +436,7 @@ if(training):
         model = create_loyo_model(n_features)
     elif(cross_validation == 'LOGO'):
         model = create_logo_model(n_features)
-    elif(cross_validation == 'LSYGO'):
+    elif(cross_validation == 'LSYGO' or cross_validation == 'LSYGO_past'):
         model = create_lsygo_model(n_features)
         
 #    train_idx = np.asarray(train_idx)
@@ -496,8 +529,6 @@ else:
     # Set training sample weights and epochs
     weights_full = compute_sample_weight(class_weight='balanced', y=y)
     
-#    import pdb; pdb.set_trace()
-    
     SMB_nn_all = []
     RMSE_nn_all, RMSE_nn_all_w = [],[]
     r2_nn_all, r2_nn_all_w = [],[]
@@ -521,6 +552,11 @@ else:
         full_model = create_lsygo_model(n_features)
         fold_filter = -1
         n_epochs = 2000
+    elif(cross_validation == 'LSYGO_past'):
+        splits = zip(past_folds_train, past_folds_test)
+        full_model = create_lsygo_model(n_features)
+        fold_filter = -1
+        n_epochs = 2000
      
     fold_count = 0
     
@@ -530,16 +566,18 @@ else:
         
             print("\nFold " + str(fold_idx))
             
-            print("train_idx: " + str(train_idx))
-            print("test_idx: " + str(test_idx))
+            print("train_idx: " + str(train_idx) + "  -   " + str(np.count_nonzero(train_idx)) + " values")
+            print("test_idx: " + str(test_idx) + "  -   " + str(np.count_nonzero(test_idx)) + " values")
+            
+#            import pdb; pdb.set_trace()
     #        
             X_test = X[test_idx]
             y_test = y[test_idx]
             X_train = X[train_idx]
             y_train = y[train_idx]
             
-            if(cross_validation == 'LSYGO'):
-                print("test_idx: " + str(np.where(test_idx == True)))
+#            if(cross_validation == 'LSYGO'):
+#                print("test_idx: " + str(np.where(test_idx == True)))
                 
 #                print("\nglaciers test: " + str(groups[test_idx]))
 #                print("years test: " + str(year_groups[test_idx]))
@@ -563,6 +601,9 @@ else:
             elif(cross_validation == "LSYGO"):
                 model = create_lsygo_model(n_features)
                 file_name = 'best_model_LSYGO.h5'
+            elif(cross_validation == "LSYGO_past"):
+                model = create_lsygo_model(n_features)
+                file_name = 'best_model_LSYGO_past.h5'
             
             es = EarlyStopping(monitor='val_loss', mode='min', min_delta=0.01, patience=1000)
             mc = ModelCheckpoint(path_ann + str(file_name), monitor='val_loss', mode='min', save_best_only=True, verbose=1)
@@ -644,6 +685,8 @@ else:
         
     print("\nRMSE per fold: " + str(RMSE_nn_all))
     
+    import pdb; pdb.set_trace()
+    
     # Calculate the point density
     xy = np.vstack([SMB_ref_all,SMB_nn_all])
     z = gaussian_kde(xy)(xy)
@@ -652,12 +695,13 @@ else:
     y_plt, ann_plt, z = SMB_ref_all[idx], SMB_nn_all[idx], z[idx]
     
     plt.figure(figsize=(6,6))
-    plt.title("Artificial Neural Network glacier-wide SMB simulation", fontsize=16)
+    plt.title("Deep learning glacier-wide SMB simulation (1959-1983)", fontsize=16)
     plt.ylabel('SMB modeled by ANN', fontsize=14)
     plt.xlabel('SMB from remote sensing (ground truth)', fontsize=14)
     lineStart = SMB_ref_all.min() 
     lineEnd = SMB_ref_all.max()  
-    plt.scatter(y_plt, ann_plt, c=z, s=50)
+    sc = plt.scatter(y_plt, ann_plt, c=z, s=50)
+    cbar = plt.colorbar(sc, label="Kernel density estimation")
     plt.plot([lineStart, lineEnd], [lineStart, lineEnd], 'k-', color = 'black')
     plt.xlim(lineStart, lineEnd)
     plt.ylim(lineStart, lineEnd)
@@ -666,7 +710,7 @@ else:
     
     #### We train the model with the full dataset and we store it
     
-    import pdb; pdb.set_trace()
+#    import pdb; pdb.set_trace()
     
     es = EarlyStopping(monitor='val_loss', mode='min', min_delta=0.01, patience=1000)
     mc = ModelCheckpoint(path_ann + str(file_name), monitor='val_loss', mode='min', save_best_only=True, verbose=1)

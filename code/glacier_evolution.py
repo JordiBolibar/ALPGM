@@ -81,8 +81,11 @@ global path_smb_function_adamont
 path_smb_function_adamont = path_smb + 'smb_function\\ADAMONT\\'
 # Path to be updated with ADAMONT forcings local path
 #path_adamont_forcings = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\treated\\'
+#path_adamont_forcings = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\FORCING_ADAMONT_IGE_BERGER\\HIRHAM5\\'
+path_adamont_forcings = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\FORCING_ADAMONT_IGE_BERGER\\normal\\'
+#path_adamont_forcings = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\FORCING_ADAMONT_IGE_BERGER\\INERIS\\'
 #path_adamont_forcings = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\\FORCING_ADAMONT_IGE_BERGER\\subset_AGU\\projections\\'
-path_adamont_forcings = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\\FORCING_ADAMONT_IGE_BERGER\\projections\\'
+#path_adamont_forcings = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\\FORCING_ADAMONT_IGE_BERGER\\projections\\'
 # SMB simulation files
 path_smb_simulations = path_smb + 'smb_simulations\\'
 path_smb_function = path_smb + 'smb_function\\'
@@ -107,16 +110,18 @@ def shorten_name(glacierName):
 
 def store_file(data, path, midfolder, file_description, glimsID, year_start, year):
     stored = False
-    data =  np.asarray(data)
+    year_range = np.asarray(range(year_start, year))
+    data =  np.asarray(data).reshape(-1,1)
+    data_w_years = np.column_stack((year_range, data))
     path_midfolder = path + midfolder
     if not os.path.exists(path_midfolder):
         os.makedirs(path_midfolder)
-    file_name = path + midfolder + glimsID + "_" + str(file_description) + "_" + str(year_start)+ "_" + str(year) + '.csv'
+    file_name = path + midfolder + glimsID + "_" + str(file_description) + '.csv'
     appendix = 2
     while not stored:
         if not os.path.exists(file_name):
             try:
-                np.savetxt(file_name, data, delimiter=";", fmt="%.7f")
+                np.savetxt(file_name, data_w_years, delimiter=";", fmt="%.7f")
                 stored = True
             except IOError:
                 print("File currently opened. Please close it to proceed.")
@@ -124,12 +129,12 @@ def store_file(data, path, midfolder, file_description, glimsID, year_start, yea
                 # We try again
                 try:
                     print("\nRetrying storing " + str(file_name))
-                    np.savetxt(file_name, data, delimiter=";", fmt="%.7f")
+                    np.savetxt(file_name, data_w_years, delimiter=";", fmt="%.7f")
                     stored = True
                 except IOError:
                     print("File still not available. Aborting simulations.")
         else:
-            file_name = path + midfolder + glimsID + "_" + str(appendix) + "_" + str(file_description) + "_" + str(year_start)+ "_" + str(year) + '.csv'
+            file_name = path + midfolder + glimsID + "_" + str(appendix) + "_" + str(file_description) + '.csv'
             appendix = appendix+1
 
 @jit
@@ -169,7 +174,7 @@ def normalize_dem(dem, dem_init):
 #    print("dem.max(): " + str(dem.max()) + "  -  dem.min(): " + str(dem.min()))
 #    print("dem_init.max(): " + str(dem_init.max()) + "  -  dem_init.min(): " + str(dem_init.min()))
     dem_n = dem.copy()
-    dem_n = (float(dem_init.max()) - dem)/(float(dem_init.max()) - float(dem_init.min()))
+    dem_n = (float(dem.max()) - dem)/(float(dem.max()) - float(dem.min()))
     return dem_n
 
 def find_nearest(array, value):
@@ -243,6 +248,11 @@ def generate_fs(year_smb, year_start, DEM_sorted_current_glacier_u, DEM_sorted_C
                 masked_DEM_current_glacier_u, delta_h_dh_current_glacier, masked_ID_current_glacier_u, pixel_area, glacierArea):
     # We compute the fs factor in order to scale the normalized delta h parameters
     vol_distrib = 0
+    
+    # If delta-h function is all 0, swap for a flat function 
+    if(not np.any(delta_h_dh_current_glacier)):
+        delta_h_dh_current_glacier = np.ones(delta_h_dh_current_glacier.shape)
+    
     for alt_band, alt_band_n in zip(DEM_sorted_current_glacier_u, DEM_sorted_CG_n_u):
         band_flat_idx = np.where(masked_DEM_current_glacier_u == alt_band)[0]
         area_band = pixel_area*band_flat_idx.size
@@ -254,7 +264,7 @@ def generate_fs(year_smb, year_start, DEM_sorted_current_glacier_u, DEM_sorted_C
     
     fs_id = year_smb*(glacierArea*1000) / (ice_density * vol_distrib) 
     
-    return fs_id
+    return fs_id, delta_h_dh_current_glacier
 
 
 #####################  TOPOGRAPHICAL ADJUSTMENT  #####################################
@@ -423,6 +433,9 @@ def get_slope20(masked_DEM_current_glacier_u, DEM_sorted_current_glacier_u, glac
         slope20 = 50 # Standard value for few steep glaciers whose slope cannot be computed
     else:
         slope20 = np.rad2deg(np.arcsin((alt_20_threshold - min_flowline_alt)/flowline_20_length))
+    
+    if(slope20 > 55):
+        slope20 = 55 # Limit slope at 55º to avoid unrealistic slopes
     
     return slope20
     
@@ -701,6 +714,7 @@ def get_adjusted_glacier_SAFRAN_forcings(year, year_start, glacier_mean_altitude
     season_anomalies_y = {'CPDD': CPDD_LocalAnomaly, 'winter_snow':winter_snow_LocalAnomaly, 'summer_snow': summer_snow_LocalAnomaly}
     monthly_anomalies_y = {'temps': mon_temp_anomaly, 'snow': mon_snow_anomaly}
     
+    
     return season_anomalies_y,  monthly_anomalies_y
 
 
@@ -725,7 +739,10 @@ def get_default_ADAMONT_forcings(year_start, year_end, midfolder):
     path_rain = path_smb_function_adamont + midfolder + 'daily_rain_years_' + str(year_start) + '-' + str(year_end) + '.txt'
     path_dates = path_smb_function_adamont + midfolder + 'daily_datetimes_' + str(year_start) + '-' + str(year_end) + '.txt'
     path_zs = path_smb_function_adamont + midfolder + 'zs_' + str(year_start) + '-' + str(year_end) + '.txt'
-    if(os.path.exists(path_temps) & os.path.exists(path_snow) & os.path.exists(path_rain) & os.path.exists(path_dates) & os.path.exists(path_zs)):
+    path_massif = path_smb_function_adamont + midfolder + 'massif_number.txt'
+    path_aspect = path_smb_function_adamont + midfolder + 'aspects.txt'
+    
+    if(os.path.exists(path_temps) & os.path.exists(path_snow) & os.path.exists(path_rain) & os.path.exists(path_dates) & os.path.exists(path_zs) & os.path.exists(path_massif) & os.path.exists(path_aspect)):
         print("Fetching ADAMONT forcings...")
         with open(path_temps, 'rb') as temps_f:
             daily_temps_years = np.load(temps_f)
@@ -737,6 +754,12 @@ def get_default_ADAMONT_forcings(year_start, year_end, midfolder):
             daily_datetimes = np.load(dates_f)
         with open(path_zs, 'rb') as zs_f:
             zs = np.load(zs_f)
+        with open(path_massif, 'rb') as massif_f:
+            massif_number = np.load(massif_f)
+        with open(path_aspect, 'rb') as aspects_f:
+            aspects = np.load(aspects_f)
+            
+        daily_meteo_data = {'temps':daily_temps_years, 'snow': daily_snow_years, 'rain': daily_rain_years, 'dates': daily_datetimes, 'zs': zs}
     else:
         # We read all the files
         print("Re-computing ADAMONT forcings...")
@@ -809,19 +832,26 @@ def get_default_ADAMONT_forcings(year_start, year_end, midfolder):
         zs  = np.asarray(zs)
         
         daily_meteo_data = {'temps':daily_temps_years, 'snow': daily_snow_years, 'rain': daily_rain_years, 'dates': daily_datetimes, 'zs': zs}
-    
+        
+        # We create the folder if it's not there
+        if(not os.path.exists(path_smb_function_adamont+midfolder)):
+            os.makedirs(path_smb_function_adamont+midfolder)
      
-        with open(path_smb_function_adamont+'daily_temps_years_' + str(year_start) + '-' + str(year_end) + '.txt', 'wb') as dtemp_f:
+        with open(path_smb_function_adamont+midfolder+'daily_temps_years_' + str(year_start) + '-' + str(year_end) + '.txt', 'wb') as dtemp_f:
                             np.save(dtemp_f, daily_temps_years)
-        with open(path_smb_function_adamont+'daily_snow_years_' + str(year_start) + '-' + str(year_end) + '.txt', 'wb') as dsnow_f:
+        with open(path_smb_function_adamont+midfolder+'daily_snow_years_' + str(year_start) + '-' + str(year_end) + '.txt', 'wb') as dsnow_f:
                             np.save(dsnow_f, daily_snow_years)
-        with open(path_smb_function_adamont+'daily_rain_years_' + str(year_start) + '-' + str(year_end) + '.txt', 'wb') as drain_f:
+        with open(path_smb_function_adamont+midfolder+'daily_rain_years_' + str(year_start) + '-' + str(year_end) + '.txt', 'wb') as drain_f:
                             np.save(drain_f, daily_rain_years)
-        with open(path_smb_function_adamont+'daily_datetimes_' + str(year_start) + '-' + str(year_end) + '.txt', 'wb') as ddates_f:
+        with open(path_smb_function_adamont+midfolder+'daily_datetimes_' + str(year_start) + '-' + str(year_end) + '.txt', 'wb') as ddates_f:
                             np.save(ddates_f, daily_datetimes)
-        with open(path_smb_function_adamont+'zs_' + str(year_start) + '-' + str(year_end) + '.txt', 'wb') as dzs_f:
+        with open(path_smb_function_adamont+midfolder+'zs_' + str(year_start) + '-' + str(year_end) + '.txt', 'wb') as dzs_f:
                             np.save(dzs_f, zs)
-    
+        with open(path_smb_function_adamont+midfolder+'massif_number.txt', 'wb') as massif_f:
+                            np.save(massif_f, massif_number.data)
+        with open(path_smb_function_adamont+midfolder+'aspects.txt', 'wb') as aspects_f:
+                            np.save(aspects_f, aspects.data)
+                            
     return daily_meteo_data, massif_number, aspects, year_end
 
 def get_adjusted_glacier_ADAMONT_forcings(year, year_start, glacier_mean_altitude, ADAMONT_idx, daily_meteo_data, meteo_anomalies):
@@ -970,6 +1000,12 @@ def get_adjusted_glacier_ADAMONT_forcings(year, year_start, glacier_mean_altitud
     season_anomalies_y = {'CPDD': CPDD_LocalAnomaly, 'winter_snow':winter_snow_LocalAnomaly, 'summer_snow': summer_snow_LocalAnomaly}
     monthly_anomalies_y = {'temps': mon_temp_anomaly, 'snow': mon_snow_anomaly}
     
+    print("glacier_CPDD: " + str(glacier_CPDD))
+    print("glacier_winter_snow: " + str(glacier_winter_snow))
+    print("glacier_summer_snow: " + str(glacier_summer_snow))
+    
+#    import pdb; pdb.set_trace()
+    
     return season_anomalies_y, monthly_anomalies_y
 
 # Retrieves the mean meteo values to compute the anomalies
@@ -1100,8 +1136,8 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
     
     nfigure = 1
     isNotFirst = False
-#    glacier_melted_flag = False
-#    glacier_melt_year = 0
+    glacier_melted_flag = False
+    glacier_melt_year = []
     
     # We get the glacier meteorological references
     year_start = year_range[0]   
@@ -1117,11 +1153,13 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
         if not os.path.exists(newpath):
             os.makedirs(newpath)
         current_glacierArea = pixel_area*(masked_ID_current_glacier_u.compressed().size)
-        yearly_glacier_area, yearly_glacier_volume = [copy.deepcopy(current_glacierArea)], [current_glacierArea*(np.sum(masked_ID_current_glacier_u))]
-        yearly_glacier_zmean, yearly_glacier_slope20 = [copy.deepcopy(masked_DEM_current_glacier_u.compressed().mean())], []
+        yearly_glacier_area, yearly_glacier_volume = [], []
+        yearly_glacier_zmean, yearly_glacier_slope20 = [], []
         
         yearly_simulated_SMB = []
         year_range = np.asarray(year_range)
+        
+        mean_CPDD, mean_w_snow, mean_s_snow = [] , [] ,[]
         
         for year in year_range:
 #        for CPDD_Anomaly, winter_snow_Anomaly, summer_snow_Anomaly in zip(raw_CPDD_LocalAnomaly, raw_winter_snow_LocalAnomaly, raw_summer_snow_LocalAnomaly):
@@ -1149,6 +1187,19 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
                                                                                              masked_DEM_current_glacier_u.compressed().mean(), SAFRAN_idx, 
                                                                                              daily_meteo_data, meteo_anomalies)
             
+            mean_CPDD.append(season_anomalies_y['CPDD'])
+            mean_w_snow.append(season_anomalies_y['winter_snow'])
+            mean_s_snow.append(season_anomalies_y['summer_snow'])
+            
+            if(year == 2025):
+                mean_CPDD = np.asarray(mean_CPDD)
+                mean_w_snow = np.asarray(mean_w_snow)
+                mean_s_snow = np.asarray(mean_s_snow)
+                print("Mean CPDD: " + str(mean_CPDD.mean()))
+                print("Mean winter snow: " + str(mean_w_snow.mean()))
+                print("Mean summer snow: " + str(mean_s_snow.mean()))
+                
+                import pdb; pdb.set_trace()
             
             ####  CREATION OF THE MODEL TEST DATASET  ####
             x_lasso, x_ann = create_input_array(season_anomalies_y, monthly_anomalies_y, mean_glacier_alt, max_glacier_alt, slope20, current_glacierArea, lat, lon, aspect)
@@ -1169,14 +1220,11 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
                 delta_h_DEM_current_glacier = np.ones(50)
                 delta_h_dh_current_glacier = np.ones(50)
             # We generate each year's fs constant relying on the updated glacier area
-            year_fs = generate_fs(SMB_y, year_start, DEM_sorted_current_glacier_u, DEM_sorted_CG_n_u, delta_h_DEM_current_glacier,
+            year_fs, delta_h_dh_current_glacier = generate_fs(SMB_y, year_start, DEM_sorted_current_glacier_u, DEM_sorted_CG_n_u, delta_h_DEM_current_glacier,
                                   masked_DEM_current_glacier_u, delta_h_dh_current_glacier, masked_ID_current_glacier_u, pixel_area, current_glacierArea)
-            
-#            print("\nalt_band_n max: " + str(DEM_sorted_CG_n_u.max()))
             
             ####  ANNUAL ICE THICKNESS UPDATE  ####
             for alt_band, alt_band_n in zip(DEM_sorted_current_glacier_u, DEM_sorted_CG_n_u):
-    #                band_sorted_idx = np.where(flat_DEM_current_glacier == alt_band)[0]
                 band_full_idx = np.where(masked_DEM_current_glacier_u == alt_band)
                 # We choose the delta h function depending on the SMB (positive or negative)
                 delta_h_idx, dh_diff = find_nearest(delta_h_DEM_current_glacier, alt_band_n)
@@ -1202,7 +1250,9 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
             
             if(len(masked_DEM_current_glacier_u.compressed()) > 0):
                 yearly_glacier_zmean.append(masked_DEM_current_glacier_u.compressed().mean())
-            
+            else:
+                yearly_glacier_zmean.append(yearly_glacier_zmean[-1])
+                
             print("Slope 20%: " + str(slope20))
             print("Area: " + str(current_glacierArea))
             print("Zmean: " + str(yearly_glacier_zmean[-1]))
@@ -1228,8 +1278,9 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
                 print("\n ------  Glacier completely melted  ------")
                 DEM_sorted_current_glacier_u = np.array([0])
                 DEM_sorted_CG_n_u = np.array([0])
-#                glacier_melted_flag = True
-#                glacier_melt_year = year
+                glacier_melted_flag = True
+                glacier_melt_year.append(year)
+                year = year+1
                 break
                 
             year = year+1  
@@ -1249,6 +1300,12 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
         store_file(yearly_glacier_zmean, path_glacier_zmean, midfolder, "zmean", glimsID, year_start, year)
         # Slope 20%
         store_file(yearly_glacier_slope20, path_glacier_slope20, midfolder, "slope20", glimsID, year_start, year)
+        # Melt year (if available)
+        if(glacier_melted_flag):
+            if not os.path.exists(path_glacier_melt_years):
+                os.makedirs(path_glacier_melt_years)
+            glacier_melt_year = np.asarray(glacier_melt_year)
+            np.savetxt(path_glacier_melt_years + glimsID + '_melt_year.csv', glacier_melt_year, delimiter=";", fmt="%.7f")
         
     else:
         print("Glacier previously processed. Skipping...")
@@ -1348,7 +1405,7 @@ def main(compute, overwrite_flag, counter_threshold, thickness_idx):
             os.makedirs(path_glacier_volume)
             
         if(forcing == 'ADAMONT'):
-            midfolder_base = str(settings.current_ADAMONT_forcing_mean[:-37]) + "\\"
+            midfolder_base = str(settings.current_ADAMONT_forcing_mean[:-11]) + "\\"
             daily_meteo_data, massif_number, aspects, year_end = get_default_ADAMONT_forcings(year_start, year_end, midfolder_base)
 #            all_glacier_coordinates = get_ADAMONT_glacier_coordinates(glims_2015, massif_number, zs_years)
         else:

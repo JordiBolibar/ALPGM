@@ -60,10 +60,11 @@ settings.glacier_parameterized_functions(compute = False,
 
 ##########     SMB PROJECTION + GLACIER GEOMETRY EVOLUTION    #######
 settings.glacier_simulation(simulation_type, counter_threshold,
-                                           validate_SMB = True,
-                            compute_projection_forcings = False,
-                                      compute_evolution = False,
-                                              overwrite = True)
+                                           validate_SMB = True, # SMB LOGO validation
+                            compute_projection_forcings = False, # Compute projection climate forcings
+                                      compute_evolution = False, # Compute glacier evolution
+                                             reconstruct = True, # Reconstruct glacier-wide SMB timeseries
+                                               overwrite = True)
 
 
 #############################################################################################################

@@ -67,6 +67,7 @@ def find_nearest(array,value):
 
 def interpolate_extended_glims_variable(variable_name, glims_rabatel, glims_2003, glims_1985, glims_1967):
     # In case there are multiple results, we choose the one with the most similar area
+    
     interpolated_var = []
     for glims_glacier in glims_rabatel:
         idx_2003 = np.where(glims_2003['GLIMS_ID'] == glims_glacier['GLIMS_ID'])[0]

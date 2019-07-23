@@ -22,7 +22,10 @@ import glacier_evolution
 from pathlib import Path
 
 workspace = str(Path(os.getcwd()).parent) + '\\'
-path_adamont = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\FORCING_ADAMONT_IGE_BERGER\\projections\\'
+path_adamont = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\FORCING_ADAMONT_IGE_BERGER\\normal\\'
+#path_adamont = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\FORCING_ADAMONT_IGE_BERGER\\INERIS\\'
+#path_adamont = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\FORCING_ADAMONT_IGE_BERGER\\HIRHAM5\\'
+#path_adamont = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\FORCING_ADAMONT_IGE_BERGER\\projections\\'
 #path_adamont = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\FORCING_ADAMONT_IGE_BERGER\\subset_AGU\\projections\\'
 path_smb = workspace + 'glacier_data\\smb\\'
 
@@ -79,20 +82,20 @@ def adamont_simulation(simulation_type, compute_projection_forcings, compute_evo
     counter = 0
     forcing_threshold = 0
     if(simulation_type == 'future'):
-        for thickness_idx in range(0,3):
-#        thickness_idx = 2
+#        for thickness_idx in range(0,3):
+        thickness_idx = 0
 #        for thickness_idx in range(0,2):
-            for i in range(0, ADAMONT_proj_filepaths.size, 2):
-                if(forcing_threshold <= counter):
-                    current_ADAMONT_model_daymean = str(ADAMONT_proj_filepaths[i])
-                    current_ADAMONT_model_daysum = str(ADAMONT_proj_filepaths[i+1])
-                    current_ADAMONT_forcing_mean = 'projections\\' + ADAMONT_proj_filepaths[i]
-                    current_ADAMONT_forcing_sum =  'projections\\' + ADAMONT_proj_filepaths[i+1]
-                    adamont_forcings.main(compute_projection_forcings)
-                    glacier_evolution.main(compute_evolution, overwrite, counter_threshold, thickness_idx)
-                counter = counter+1
+        for i in range(0, ADAMONT_proj_filepaths.size, 2):
+            if(forcing_threshold <= counter):
+                current_ADAMONT_model_daymean = str(ADAMONT_proj_filepaths[i])
+                current_ADAMONT_model_daysum = str(ADAMONT_proj_filepaths[i+1])
+                current_ADAMONT_forcing_mean = 'projections\\' + ADAMONT_proj_filepaths[i][8:]
+                current_ADAMONT_forcing_sum =  'projections\\' + ADAMONT_proj_filepaths[i+1][8:]
+                adamont_forcings.main(compute_projection_forcings)
+                glacier_evolution.main(compute_evolution, overwrite, counter_threshold, thickness_idx)
+            counter = counter+1
 
-def glacier_simulation(simulation_type, counter_threshold, validate_SMB, compute_projection_forcings, compute_evolution, overwrite):
+def glacier_simulation(simulation_type, counter_threshold, validate_SMB, compute_projection_forcings, compute_evolution, reconstruct, overwrite):
     imp.reload(adamont_forcings)
     imp.reload(smb_validation)
     imp.reload(glacier_evolution)
@@ -100,7 +103,7 @@ def glacier_simulation(simulation_type, counter_threshold, validate_SMB, compute
     if(simulation_type == "future"):
         adamont_simulation(simulation_type, compute_projection_forcings, compute_evolution, counter_threshold, overwrite)
     elif(simulation_type == "historical"):
-        smb_validation.main(validate_SMB)
+        smb_validation.main(validate_SMB, reconstruct)
 #        for thickness_idx in range(0,3):
         # 0 = original ice thickness / 1 = 0.7*ice thickness / 2 = 1.3*ice thickness
         glacier_evolution.main(compute_evolution, overwrite, counter_threshold, 0) # thickness idx = 0 by default
