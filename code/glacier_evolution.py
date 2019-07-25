@@ -81,7 +81,7 @@ global path_smb_function_adamont
 path_smb_function_adamont = path_smb + 'smb_function\\ADAMONT\\'
 # Path to be updated with ADAMONT forcings local path
 #path_adamont_forcings = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\treated\\'
-path_adamont_forcings = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\\FORCING_ADAMONT_IGE_BERGER\\subset_AGU\\projections\\'
+path_adamont_forcings = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\\FORCING_ADAMONT_IGE_BERGER\\projections\\'
 # SMB simulation files
 path_smb_simulations = path_smb + 'smb_simulations\\'
 path_smb_function = path_smb + 'smb_function\\'
@@ -163,12 +163,6 @@ def clipRaster_with_polygon(output_cropped_raster, input_raster, shapefile_mask)
                                          shell=True)
         except subprocess.CalledProcessError as e:
             raise RuntimeError("command '{}' return with error (code {}): {}".format(e.cmd, e.returncode, e.output))
-
-def normalize_dh(dh, dh_ref):
-    dh_n = dh.copy()
-    dh_n = abs(dh_n - dh_ref.max())/abs(dh_ref.min() - dh_ref.max())
-    dh_n = np.where(dh_n > 1, 1, dh_n)
-    return dh_n
 
 def normalize_dem(dem):
     dem_n = dem.copy()
@@ -319,6 +313,8 @@ def crop_inital_rasters_to_GLIMS(path_glacier_ID_rasters, path_glacier_DEM_raste
         print("Clipping raster to GLIMS 2003 extent... ")
         clipRaster_with_polygon(path_glacier_ID_GLIMS, current_glacier_ice_depth, path_glacier_outline)
 #        clipRaster_with_polygon(path_glacier_DEM_GLIMS, current_glacier_DEM, path_glacier_outline)
+        
+        path_glacier_ID_GLIMS = current_glacier_ice_depth
     
     elif(year_start == 2015):
         # We open the 2015 projected F19 files
@@ -527,12 +523,11 @@ def get_monthly_snow(daily_data, daily_datetimes):
     
     return monthly_avg_data[:12]
 
-def compute_local_anomalies(glacier_CPDD, glacier_winter_snow, glacier_summer_snow,
-                            CPDD_ref, w_snow_ref, s_snow_ref):
+def compute_local_anomalies(glacier_CPDD, glacier_winter_snow, glacier_summer_snow, meteo_anomalies):
     
-    local_CPDD_anomaly = glacier_CPDD - CPDD_ref
-    local_w_snow_anomaly = glacier_winter_snow - w_snow_ref
-    local_s_snow_anomaly = glacier_summer_snow - s_snow_ref
+    local_CPDD_anomaly = glacier_CPDD - meteo_anomalies['CPDD']
+    local_w_snow_anomaly = glacier_winter_snow - meteo_anomalies['w_snow']
+    local_s_snow_anomaly = glacier_summer_snow - meteo_anomalies['s_snow']
         
     return local_CPDD_anomaly, local_w_snow_anomaly, local_s_snow_anomaly
 
@@ -578,7 +573,7 @@ def get_default_SAFRAN_forcings(year_start, year_end):
     return daily_meteo_data
 
 # Adjusts the daily SAFRAN data for each glacier
-def get_adjusted_glacier_SAFRAN_forcings(year, year_start, glacier_mean_altitude, SAFRAN_idx, daily_meteo_data, CPDD_ref, w_snow_ref, s_snow_ref, mon_temp_ref, mon_snow_ref):
+def get_adjusted_glacier_SAFRAN_forcings(year, year_start, glacier_mean_altitude, SAFRAN_idx, daily_meteo_data, meteo_anomalies):
     # We also need to fetch the previous year since data goes from 1st of August to 31st of July
     idx = year - year_start -1
     glacier_idx = int(SAFRAN_idx)
@@ -686,10 +681,10 @@ def get_adjusted_glacier_SAFRAN_forcings(year, year_start, glacier_mean_altitude
     
     # We compute the seasonal anomalies
     CPDD_LocalAnomaly, winter_snow_LocalAnomaly, summer_snow_LocalAnomaly = compute_local_anomalies(glacier_CPDD, glacier_winter_snow, glacier_summer_snow,
-                                                                                                    CPDD_ref, w_snow_ref, s_snow_ref)
+                                                                                                    meteo_anomalies)
 
     # We compute the monthly anomalies
-    mon_temp_anomaly, mon_snow_anomaly = compute_monthly_anomalies(mon_temp_year, mon_snow_year, mon_temp_ref, mon_snow_ref)
+    mon_temp_anomaly, mon_snow_anomaly = compute_monthly_anomalies(mon_temp_year, mon_snow_year, meteo_anomalies['mon_temp'], meteo_anomalies['mon_snow'])
     
     
     season_anomalies_y = {'CPDD': CPDD_LocalAnomaly, 'winter_snow':winter_snow_LocalAnomaly, 'summer_snow': summer_snow_LocalAnomaly}
@@ -818,7 +813,7 @@ def get_default_ADAMONT_forcings(year_start, year_end, midfolder):
     
     return daily_meteo_data, massif_number, aspects, year_end
 
-def get_adjusted_glacier_ADAMONT_forcings(year, year_start, glacier_mean_altitude, ADAMONT_idx, daily_meteo_data, CPDD_ref, w_snow_ref, s_snow_ref, mon_temp_ref, mon_snow_ref):
+def get_adjusted_glacier_ADAMONT_forcings(year, year_start, glacier_mean_altitude, ADAMONT_idx, daily_meteo_data, meteo_anomalies):
     # We also need to fetch the previous year since data goes from 1st of August to 31st of July
     idx = year - year_start -1
 #    print("ADAMONT_idx: " + str(ADAMONT_idx))
@@ -956,11 +951,11 @@ def get_adjusted_glacier_ADAMONT_forcings(year, year_start, glacier_mean_altitud
     
     # Seasonal anomalies
     CPDD_LocalAnomaly, winter_snow_LocalAnomaly, summer_snow_LocalAnomaly = compute_local_anomalies(glacier_CPDD, glacier_winter_snow, glacier_summer_snow,
-                                                                                                    CPDD_ref, w_snow_ref, s_snow_ref)                                                         
+                                                                                                    meteo_anomalies)                                                         
     
     
     # Monthly anomalies
-    mon_temp_anomaly, mon_snow_anomaly = compute_monthly_anomalies(mon_temp_year, mon_snow_year, mon_temp_ref, mon_snow_ref)
+    mon_temp_anomaly, mon_snow_anomaly = compute_monthly_anomalies(mon_temp_year, mon_snow_year, meteo_anomalies['mon_temp'], meteo_anomalies['mon_snow'])
          
     season_anomalies_y = {'CPDD': CPDD_LocalAnomaly, 'winter_snow':winter_snow_LocalAnomaly, 'summer_snow': summer_snow_LocalAnomaly}
     monthly_anomalies_y = {'temps': mon_temp_anomaly, 'snow': mon_snow_anomaly}
@@ -1071,8 +1066,8 @@ def store_rasters(masked_DEM_current_glacier_u, masked_ID_current_glacier_u, mid
         
 def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier, 
                       delta_h_dh_current_glacier, delta_h_DEM_current_glacier, 
-                      DEM_sorted_current_glacier, DEM_sorted_CG_n, 
-                      daily_meteo_data, season_meteo, monthly_meteo,
+                      DEM_sorted_current_glacier, DEM_sorted_current_glacier_init, 
+                      daily_meteo_data, meteo_anomalies,
                       flowline, raster_current_DEM, store_plots, 
                       glacierName, glacierID, glimsID, massif, lat, lon, aspect,
                       midfolder, pixel_area, glaciers_with_errors, 
@@ -1080,9 +1075,6 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
                       year_range, SAFRAN_idx, overwrite):
     
     print("Applying glacier evolution...")
-    
-    # We get the glacier's reference meteorological values ( [()] in order to access the dictionaries)
-    CPDD_ref, w_snow_ref, s_snow_ref, mon_temp_ref, mon_snow_ref = get_meteo_references(season_meteo, monthly_meteo, glimsID, glacierName)
     
     # We make deep copies of the original DEM and ice depth distribution to start updating them
     masked_ID_current_glacier_u = copy.deepcopy(masked_ID_current_glacier)
@@ -1139,13 +1131,11 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
             if(settings.projection_forcing == "SAFRAN"):
                 season_anomalies_y,  monthly_anomalies_y = get_adjusted_glacier_SAFRAN_forcings(year, year_start, 
                                                                                              masked_DEM_current_glacier_u.compressed().mean(), SAFRAN_idx, 
-                                                                                             daily_meteo_data, CPDD_ref, w_snow_ref, s_snow_ref,
-                                                                                             mon_temp_ref, mon_snow_ref)
+                                                                                             daily_meteo_data, meteo_anomalies)
             elif(settings.projection_forcing == "ADAMONT"):
                 season_anomalies_y, monthly_anomalies_y = get_adjusted_glacier_ADAMONT_forcings(year, year_start, 
                                                                                              masked_DEM_current_glacier_u.compressed().mean(), SAFRAN_idx, 
-                                                                                             daily_meteo_data, CPDD_ref, w_snow_ref, s_snow_ref,
-                                                                                             mon_temp_ref, mon_snow_ref)
+                                                                                             daily_meteo_data, meteo_anomalies)
             
             
             ####  CREATION OF THE MODEL TEST DATASET  ####
@@ -1273,6 +1263,7 @@ def main(compute, overwrite_flag, counter_threshold, thickness_idx):
         path_smb_function = path_smb + 'smb_function\\'
         path_glacier_outlines_shapefile = path_glacier_2003_shapefiles + 'GLIMS_glaciers_2003_ID_massif' + '.shp' 
         path_ann = settings.path_ann
+        path_safran_forcings = path_smb_function + 'SAFRAN\\'
         
         ### We detect the forcing between SPAZM, SAFRAN or ADAMONT
         forcing = settings.projection_forcing
@@ -1311,9 +1302,9 @@ def main(compute, overwrite_flag, counter_threshold, thickness_idx):
         
         #### ONLY HISTORICAL SAFRAN DATA FOR REFS  ####
         # We load the compacted seasonal and monthly meteo forcings
-        with open(path_smb_function_forcing+'season_meteo.txt', 'rb') as season_f:
+        with open(path_safran_forcings+'season_meteo.txt', 'rb') as season_f:
             season_meteo = np.load(season_f)[()]
-        with open(path_smb_function_forcing+'monthly_meteo.txt', 'rb') as mon_f:
+        with open(path_safran_forcings+'monthly_meteo.txt', 'rb') as mon_f:
             monthly_meteo = np.load(mon_f)[()]
             
         ###  We load the SMB models  ###
