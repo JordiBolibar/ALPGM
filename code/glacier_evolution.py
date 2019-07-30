@@ -1066,7 +1066,7 @@ def store_rasters(masked_DEM_current_glacier_u, masked_ID_current_glacier_u, mid
         
 def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier, 
                       delta_h_dh_current_glacier, delta_h_DEM_current_glacier, 
-                      DEM_sorted_current_glacier, DEM_sorted_current_glacier_init, 
+                      DEM_sorted_current_glacier,  
                       daily_meteo_data, meteo_anomalies,
                       flowline, raster_current_DEM, store_plots, 
                       glacierName, glacierID, glimsID, massif, lat, lon, aspect,
@@ -1454,13 +1454,16 @@ def main(compute, overwrite_flag, counter_threshold, thickness_idx):
                     # We sort the DEM by altitude in order to have the altitudinal range ready for iteration
                     DEM_sorted_current_glacier = np.sort(flat_DEM_current_glacier, axis=None)
                     DEM_sorted_current_glacier = np.unique(DEM_sorted_current_glacier[DEM_sorted_current_glacier > 0])
-                    DEM_sorted_CG_n = normalize_dem(DEM_sorted_current_glacier)
                     
                     if(forcing == 'ADAMONT'):
                         SAFRAN_idx = get_ADAMONT_idx(massif_idx, masked_DEM_current_glacier.compressed().mean(), massif_number, daily_meteo_data['zs'])
                     else:
                         SAFRAN_idx = all_glacier_coordinates[np.where(all_glacier_coordinates[:,3] == glimsID)[0]][0][1]
-                        print("SAFRAN_idx: " + str(SAFRAN_idx))
+#                        print("SAFRAN_idx: " + str(SAFRAN_idx))
+                        
+                    # We get the glacier's reference meteorological values ( [()] in order to access the dictionaries)
+                    CPDD_ref, w_snow_ref, s_snow_ref, mon_temp_ref, mon_snow_ref = get_meteo_references(season_meteo, monthly_meteo, glimsID, glacierName)
+                    meteo_anomalies = {'CPDD': CPDD_ref, 'w_snow': w_snow_ref, 's_snow': s_snow_ref, 'mon_temp': mon_temp_ref, 'mon_snow': mon_snow_ref}
                         
                     # We compute the glacier retreat, updating the DEM and ID matrixes and storing the rasters for every year
                     masked_DEM_current_glacier_u, masked_ID_current_glacier_u = glacier_evolution(masked_DEM_current_glacier, 
@@ -1468,14 +1471,14 @@ def main(compute, overwrite_flag, counter_threshold, thickness_idx):
                                                                                                 delta_h_dh_current_glacier,
                                                                                                 delta_h_DEM_current_glacier, 
                                                                                                 DEM_sorted_current_glacier, 
-                                                                                                DEM_sorted_CG_n, 
-                                                                                                daily_meteo_data, season_meteo, monthly_meteo,
+                                                                                                daily_meteo_data, meteo_anomalies,
                                                                                                 flowline, raster_current_DEM, 
                                                                                                 store_plots, glacierName, 
                                                                                                 glacierID, glimsID, massif, lat, lon, aspect,
                                                                                                 midfolder, pixel_area, glaciers_with_errors,
                                                                                                 lasso_scaler, lasso_model, ann_model,
                                                                                                 year_range, SAFRAN_idx, overwrite) 
+                    
                     if(glacier_melted_flag):
                         melted_glaciers.append([glacierName, glacier_melt_year])
                 else:
