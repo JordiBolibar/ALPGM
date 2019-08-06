@@ -58,6 +58,7 @@ path_smb_function_safran = path_smb + 'smb_function\\SAFRAN\\'
 path_smb_all_glaciers = path_smb + 'smb_simulations\\SAFRAN\\1\\all_glaciers_1967_2015\\'
 path_smb_all_glaciers_smb = path_smb + 'smb_simulations\\SAFRAN\\1\\all_glaciers_1967_2015\\smb\\'
 path_smb_all_glaciers_area = path_smb + 'smb_simulations\\SAFRAN\\1\\all_glaciers_1967_2015\\area\\'
+path_smb_all_glaciers_slope = path_smb + 'smb_simulations\\SAFRAN\\1\\all_glaciers_1967_2015\\slope\\'
 global path_slope20
 path_slope20 = workspace + 'glacier_data\\glacier_evolution\\glacier_slope20\\SAFRAN\\1\\'
 
@@ -199,32 +200,34 @@ def get_slope20(glims_glacier):
     alt_max = glims_glacier['MAX_Pixel']
     alt_min = glims_glacier['MIN_Pixel']
     length = glims_glacier['Length']
-#    # Load the file
-#    if(str(glacier_name[-1]).isdigit() and str(glacier_name[-1]) != '1'):
-#        appendix = str(glacier_name[-1])
-#        if(os.path.isfile(path_slope20 + glimsID + '_' + appendix + '_slope20.csv')):
-#            slope20_array = genfromtxt(path_slope20 + glimsID + '_' + appendix + '_slope20.csv', delimiter=';', dtype=np.dtype('float32'))
-#        elif(os.path.isfile(path_slope20 + glimsID + '_slope20.csv')):
-#            slope20_array = genfromtxt(path_slope20 + glimsID + '_slope20.csv', delimiter=';', dtype=np.dtype('float32'))
-#        else:
-#            slope20_array = np.array([])
-#    elif(os.path.isfile(path_slope20 + glimsID + '_slope20.csv')):
-#        slope20_array = genfromtxt(path_slope20 + glimsID + '_slope20.csv', delimiter=';', dtype=np.dtype('float32'))
-#    else:
-#        slope20_array = np.array([])
-    # Retrieve the 20% slope
-#    if(slope20_array.size == 0):
-    
-    slope20 = np.rad2deg(np.arcsin((alt_max - alt_min)/length))
+    # Load the file
+    if(str(glacier_name[-1]).isdigit() and str(glacier_name[-1]) != '1'):
+        appendix = str(glacier_name[-1])
+        if(os.path.isfile(path_slope20 + glimsID + '_' + appendix + '_slope20.csv')):
+            slope20_array = genfromtxt(path_slope20 + glimsID + '_' + appendix + '_slope20.csv', delimiter=';', dtype=np.dtype('float32'))
+        elif(os.path.isfile(path_slope20 + glimsID + '_slope20.csv')):
+            slope20_array = genfromtxt(path_slope20 + glimsID + '_slope20.csv', delimiter=';', dtype=np.dtype('float32'))
+        else:
+            slope20_array = np.array([])
+    elif(os.path.isfile(path_slope20 + glimsID + '_slope20.csv')):
+        slope20_array = genfromtxt(path_slope20 + glimsID + '_slope20.csv', delimiter=';', dtype=np.dtype('float32'))
+    else:
+        slope20_array = np.array([])
+    ### Retrieve the 20% slope
+    if(slope20_array.size == 0):
+        slope20 = np.rad2deg(np.arcsin((alt_max - alt_min)/length))
 #    print("Manual slope: " + str(slope20))
-        
-#    else:
-#        slope20 = slope20_array[0][1]
-#        print("Retrieved slope: " + str(slope20))
-#        print("Manual slope: " + str(np.rad2deg(np.arcsin((alt_max - alt_min)/length))))
+    elif(slope20_array[:,1].mean() > 55):
+        slope20 = np.rad2deg(np.arcsin((alt_max - alt_min)/length))
+    else:
+        slope20 = slope20_array[:,1].mean()
+        print("Retrieved slope: " + str(slope20_array[:,1].mean()))
+        print("Manual slope: " + str(np.rad2deg(np.arcsin((alt_max - alt_min)/length))))
 #    
-#    if(slope20 > 55):
-#        slope20 = 55 # Limit slope at 55º to avoid unrealistic slopes
+    if(slope20 > 55 or np.isnan(slope20)):
+        slope20 = 55 # Limit slope at 55º to avoid unrealistic slopes
+    
+#    print("slope20: " + str(slope20))
     
     return slope20
 
@@ -232,8 +235,7 @@ def create_spatiotemporal_matrix(season_anomalies, mon_anomalies, glims_glacier,
     x_reg_array = []
     
     max_alt = glims_glacier['MAX_Pixel']
-#    slope20 = get_slope20(glims_glacier)
-    slope20 = 20
+    slope20 = get_slope20(glims_glacier)
     lon = glims_glacier['x_coord']
     lat = glims_glacier['y_coord']
     aspect = np.cos(get_aspect_deg(glims_glacier['Aspect'].decode('ascii')))
@@ -720,12 +722,12 @@ def main(compute, reconstruct):
                 
                 for glims_glacier in glims_2003:
     #                if(glacier_name == "d'Argentiere"):
-#                    if(glacier_idx == 28):
+#                    if(glacier_idx == 39):
                     if(True):
                         glimsID = glims_glacier['GLIMS_ID'].decode('ascii')
 #                    if(glimsID == 'G006985E45538N'):
                         glacier_name = glims_glacier['Glacier'].decode('ascii')
-                        print("\nSimulating Glacier: " + str(glacier_name))
+#                        print("\nSimulating Glacier: " + str(glacier_name))
                         print("# " + str(glacier_idx))
     #                    print("Glacier GLIMS ID: " + str(glimsID))
                         
@@ -746,12 +748,14 @@ def main(compute, reconstruct):
                         SMB_nn = ann_model.predict(x_reg_nn, batch_size = 34)
                         SMB_nn = np.asarray(SMB_nn)[:,0].flatten()
                         
-                        print("SMB: " + str(SMB_nn))
+#                        print("SMB: " + str(SMB_nn))
                         print("# years: " + str(SMB_nn.size))
                         print("Cumulative SMB: " + str(np.sum(SMB_nn)))
+                        print("Area: " + str(glacier_area[-1]))
                         
                         # We reduce the year range if the glacier disappeared before 2015
                         if(glacier_area.size < 49):
+                            print("Glacier not in 2015: " + str(glacier_name))
                             year_end_file = 2003
                         else:
                             year_end_file = year_end
@@ -759,6 +763,11 @@ def main(compute, reconstruct):
                         # We store the simulated SMB 
                         store_file(SMB_nn, path_smb_all_glaciers_smb, "", "SMB", glimsID, year_start, year_end_file+1)
                         store_file(glacier_area, path_smb_all_glaciers_area, "", "Area", glimsID, year_start, year_end_file+1)
+                        
+                        glacier_slope = np.repeat(x_reg_nn[0][5], year_end_file+1-year_start)
+#                        import pdb; pdb.set_trace()
+                        store_file(glacier_slope, path_smb_all_glaciers_slope, "", "Slope_20", glimsID, year_start, year_end_file+1)
+
                         
                     glacier_idx = glacier_idx+1
             else:

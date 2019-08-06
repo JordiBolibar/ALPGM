@@ -552,6 +552,9 @@ def generate_SMB_models(SMB_raw, season_raw_meteo_anomalies_SMB, mon_temp_anomal
     print("Lasso r2: " + str(r2_score(y_ref_lasso, SMB_lasso_all)))
     
     rmse_ann = np.asarray(rmse_ann)
+    mae_ann = np.asarray(mae_ann)
+    
+    print("MAE ANN: " + str(mae_ann.mean()))
     print("RMSE ANN: " + str(rmse_ann))
     
     if(settings.smb_model_type == 'ann_weights'):

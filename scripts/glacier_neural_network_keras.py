@@ -22,7 +22,7 @@ from sklearn.model_selection import LeaveOneGroupOut, KFold
 #from sklearn.preprocessing import StandardScaler, normalize
 #from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 from sklearn.utils.class_weight import compute_sample_weight
 from sklearn.neighbors import KernelDensity
 
@@ -64,8 +64,8 @@ path_ann_LSYGO_past = path_smb + 'ANN\\LSYGO_past\\'
 w_weights = False
 #cross_validation = "LOGO"
 #cross_validation = "LOYO"
-#cross_validation = "LSYGO"
-cross_validation = "LSYGO_past"
+cross_validation = "LSYGO"
+#cross_validation = "LSYGO_past"
 #######  Flag to switch between training with a         ###############
 #######  single group of glaciers or cross-validation   ###############
 training = False
@@ -678,6 +678,7 @@ else:
     print("\nScores computed on all values together:")
     print("\nMean overall r2: " + str(r2_score(SMB_ref_all, SMB_nn_all)))
     print("\nMean overall RMSE: " + str(math.sqrt(mean_squared_error(SMB_ref_all, SMB_nn_all))))
+    print("\nMean overall MAE: " + str(mean_absolute_error(SMB_ref_all, SMB_nn_all)))
     
     if(w_weights):
         print("\nMean overall r2 w/ weights: " + str(r2_score(SMB_ref_all, SMB_nn_all, weights_validation)))
