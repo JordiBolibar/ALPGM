@@ -132,6 +132,11 @@ def find_nearest(array,value):
     idx = (np.abs(array-value)).argmin()
     return idx
 
+def store_glacier_info(glacier_info, path):
+    path = path + 'glacier_info_' + str(glacier_info['glimsID'])
+    with open(path, 'wb') as glacier_info_f:
+        np.save(glacier_info_f, glacier_info)
+
 def interpolate_glims_variable(variable_name, glims_glacier, glims_2003, glims_1985):
     var_2015 = glims_glacier[variable_name]
     # In case there are multiple results, we choose the one with the most similar area
@@ -638,7 +643,7 @@ def main(compute, reconstruct):
         
         #### GLIMS data for 1985, 2003 and 2015
         glims_2015 = genfromtxt(path_glims + 'GLIMS_2015.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('GLIMS_ID', '<a50')])
-        glims_2003 = genfromtxt(path_glims + 'GLIMS_2003.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('GLIMS_ID', '<a50')])
+        glims_2003 = genfromtxt(path_glims + 'GLIMS_2003.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('GLIMS_ID', '<a50'), ('Massif_SAFRAN', '<f8')])
         glims_1985 = genfromtxt(path_glims + 'GLIMS_1985.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('GLIMS_ID', '<a50')])
         glims_1967 = genfromtxt(path_glims + 'GLIMS_1967-71.csv', delimiter=';', skip_header=1,  dtype=[('Glacier', '<a50'), ('Latitude', '<f8'), ('Longitude', '<f8'), ('Massif', '<a50'),  ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('Year', '<f8'), ('Perimeter', '<f8'), ('Area', '<f8'),  ('Code_WGI', '<a50'), ('Length', '<f8'), ('MEAN_Pixel', '<f8'), ('Slope', '<f8'), ('Aspect', '<a50'), ('Code', '<a50'), ('BV', '<a50'), ('GLIMS_ID', '<a50')])
 
@@ -727,6 +732,7 @@ def main(compute, reconstruct):
                         glimsID = glims_glacier['GLIMS_ID'].decode('ascii')
 #                    if(glimsID == 'G006985E45538N'):
                         glacier_name = glims_glacier['Glacier'].decode('ascii')
+                        massif_safran = glims_glacier['Massif_SAFRAN']
 #                        print("\nSimulating Glacier: " + str(glacier_name))
                         print("# " + str(glacier_idx))
     #                    print("Glacier GLIMS ID: " + str(glimsID))
@@ -734,7 +740,7 @@ def main(compute, reconstruct):
                         glacier_mean_altitude = interpolate_extended_glims_variable('MEAN_Pixel', glims_glacier, glims_2015, glims_1985, glims_1967)
                         glacier_area = interpolate_extended_glims_variable('Area', glims_glacier, glims_2015, glims_1985, glims_1967)
                         
-                        glacier_info = {'name':glacier_name, 'glimsID':glimsID, 'mean_altitude':glacier_mean_altitude, 'area': glacier_area}
+                        glacier_info = {'name':glacier_name, 'glimsID':glimsID, 'mean_altitude':glacier_mean_altitude, 'area': glacier_area, 'massif_SAFRAN': massif_safran}
                         
                         ####  SAFRAN FORCINGS  ####
                         # We recompute the SAFRAN forcings based on the current topographical data
@@ -763,6 +769,7 @@ def main(compute, reconstruct):
                         # We store the simulated SMB 
                         store_file(SMB_nn, path_smb_all_glaciers_smb, "", "SMB", glimsID, year_start, year_end_file+1)
                         store_file(glacier_area, path_smb_all_glaciers_area, "", "Area", glimsID, year_start, year_end_file+1)
+                        store_glacier_info(glacier_info, path_smb_all_glaciers_area)
                         
                         glacier_slope = np.repeat(x_reg_nn[0][5], year_end_file+1-year_start)
 #                        import pdb; pdb.set_trace()

@@ -10,8 +10,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from numpy import genfromtxt
 import os
-import math
+import copy
+#import math
 from pathlib import Path
+from matplotlib.lines import Line2D
+#from sklearn.metrics import r2_score
+#import seaborn as sns
 
 ######   FILE PATHS    #######
     
@@ -60,7 +64,18 @@ for year_idx in range(0, 49):
     annual_avg_smb_very_small_glaciers_.append([])
     annual_avg_area.append([])
     annual_avg_slope.append([])
+    
+massifs_safran = {'1':'Chablais', '2':'Aravis','3':'Mont-Blanc','5':'Beaufortain','6':'Haute-Tarantaise','10':'Vanoise',
+                  '9':'Maurienne','11':'Haute-Maurienne','8':'Belledonne','12':'Grandes-Rousses','15':'Oisans','16':'Pelvoux',
+                  '13':'Thabor', '19':'Champsaur','18':'Devoluy','21':'Ubaye'}
 
+smb_massif_template = {'Chablais':copy.deepcopy(annual_avg_smb_), 'Aravis':copy.deepcopy(annual_avg_smb_),'Mont-Blanc':copy.deepcopy(annual_avg_smb_),
+                       'Beaufortain':copy.deepcopy(annual_avg_smb_), 'Haute-Tarantaise':copy.deepcopy(annual_avg_smb_),'Vanoise':copy.deepcopy(annual_avg_smb_), 
+                       'Maurienne':copy.deepcopy(annual_avg_smb_),'Haute-Maurienne':copy.deepcopy(annual_avg_smb_), 'Belledonne':copy.deepcopy(annual_avg_smb_),
+                       'Grandes-Rousses':copy.deepcopy(annual_avg_smb_),'Oisans':copy.deepcopy(annual_avg_smb_),'Pelvoux':copy.deepcopy(annual_avg_smb_), 
+                       'Thabor':copy.deepcopy(annual_avg_smb_), 'Champsaur':copy.deepcopy(annual_avg_smb_), 'Ubaye':copy.deepcopy(annual_avg_smb_)}
+
+smb_massif = copy.deepcopy(smb_massif_template)
 mean_smb_glaciers, mean_area_glaciers, mean_slope_glaciers = np.zeros(661), np.zeros(661), np.zeros(661)
     
 fig1, ax1 = plt.subplots()
@@ -89,6 +104,14 @@ for path_smb, path_area, path_slope in zip(path_smb_glaciers, path_area_glaciers
     # Glacier SMB
     smb_glacier = genfromtxt(path_smb_safran + path_smb, delimiter=';')
     smb_glacier = smb_glacier[:,1].flatten()
+    # Glacier info
+    # {'name':glacier_name, 'glimsID':glimsID, 'mean_altitude':glacier_mean_altitude, 'area': glacier_area}
+    with open(path_area_safran + 'glacier_info_' + path_area[:14], 'rb') as glacier_info_f:
+        glacier_info = np.load(glacier_info_f, encoding='latin1').item()
+    
+    
+#    import pdb; pdb.set_trace()
+    current_massif = massifs_safran[str(glacier_info['massif_SAFRAN'])[:-2]]
     
     all_glacier_smb.append(np.asarray(smb_glacier))
     
@@ -101,7 +124,7 @@ for path_smb, path_area, path_slope in zip(path_smb_glaciers, path_area_glaciers
         glaciers_not_2015 = glaciers_not_2015+1
     else:
         area_glacier_i = area_glacier[-15]
-    
+        
     if(area_glacier_i < 0.1):
         linewidth = 0.1
     elif(area_glacier_i < 0.5):
@@ -127,6 +150,8 @@ for path_smb, path_area, path_slope in zip(path_smb_glaciers, path_area_glaciers
         if(not np.isnan(smb_glacier[year_idx])):
             annual_avg_smb_[year_idx].append(smb_glacier[year_idx])
             annual_avg_area[year_idx].append(area_glacier_i)
+            smb_massif[current_massif][year_idx].append(smb_glacier[year_idx])
+            
             if(area_glacier_i >= 1):
                 annual_avg_smb_big_glaciers_[year_idx].append(smb_glacier[year_idx])
                 big_glacier = True
@@ -174,11 +199,32 @@ for avg_smb, avg_smb_big, avg_smb_medium, avg_smb_small, avg_area in zip(annual_
     a_avg_smb_big.append(np.asarray(avg_smb_big).mean())
     a_avg_smb_small.append(np.asarray(avg_smb_medium).mean())
     a_avg_smb_v_small.append(np.asarray(avg_smb_small).mean())
-    
+
+avg_smb_massif = copy.deepcopy(smb_massif_template)  
+for massif, avg_massif in zip(smb_massif, avg_smb_massif):
+    year_idx = 0
+    for annual_smb, annual_avg_smb in zip(smb_massif[massif], avg_smb_massif[avg_massif]):
+#        import pdb; pdb.set_trace()
+        avg_smb_massif[avg_massif][year_idx] = np.average(annual_smb)
+        year_idx = year_idx +1
+        
 a_avg_smb = np.asarray(a_avg_smb)
 a_avg_smb_big = np.asarray(a_avg_smb_big)
 a_avg_smb_small = np.asarray(a_avg_smb_small)
 a_avg_smb_v_small = np.asarray(a_avg_smb_v_small)
+
+all_glacier_smb = np.asarray(all_glacier_smb)
+
+# We compute the correlation of each glacier with respect the weighted mean
+glacier_correlation = []
+for glacier_smb in all_glacier_smb:
+    if(glacier_smb.size > 37):
+        glacier_correlation.append(np.corrcoef(a_avg_smb, glacier_smb)[0,1]**2)
+glacier_correlation = np.asarray(glacier_correlation)
+
+print("\nMax SMB common variance: " + str(glacier_correlation.max()))
+print("\nMin SMB common variance: " + str(glacier_correlation.min()))
+print("\nAverage SMB common variance: " + str(glacier_correlation.mean()))
 
 line1, = ax1.plot(range(1967, 2016), a_avg_smb, linewidth=2, c='black', label='Area weighted mean')
 line2, = ax2.plot(range(1967, 2016), np.cumsum(a_avg_smb), linewidth=2, c='black', label='Area weighted mean')
@@ -188,7 +234,7 @@ ax1.legend()
 ax2.axhline(y=0, color='black', linewidth=0.7, linestyle='-')
 ax2.legend()
 
-print("Number of glaciers disappeared between 2003 and 2015: " + str(glaciers_not_2015))
+print("\nNumber of glaciers disappeared between 2003 and 2015: " + str(glaciers_not_2015))
 
 #import pdb; pdb.set_trace()
 
@@ -260,9 +306,71 @@ ax8.set_xlabel('Lowermost 20% altitudinal range slope (°)')
 ax8.scatter(mean_slope_glaciers, mean_smb_glaciers, s=4, alpha=0.7)
 ax8.plot(np.unique(mean_slope_glaciers), np.poly1d(np.polyfit(mean_slope_glaciers, mean_smb_glaciers, 1))(np.unique(mean_slope_glaciers)), c='darkred')
 
-plt.show()
 #import pdb; pdb.set_trace()
 
 
+### Decade average SMB
+avg_smb_70s = a_avg_smb[3:13].mean()
+avg_smb_80s = a_avg_smb[13:23].mean()
+avg_smb_90s = a_avg_smb[23:33].mean()
+avg_smb_00s = a_avg_smb[33:43].mean()
+avg_smb_10s = a_avg_smb[43:].mean()
 
+avg_decadal_smb = np.array([avg_smb_70s, avg_smb_80s, avg_smb_90s, avg_smb_00s, avg_smb_10s])
+xmin = np.array([1970, 1980, 1990, 2000, 2010])
+xmax = np.array([1980, 1990, 2000, 2010, 2015])
+total_avg_smb = a_avg_smb.mean()
 
+fig9, ax9 = plt.subplots()
+ax9.axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+#ax9.axvline(x=2015, color='grey', linewidth=0.7, linestyle='-')
+ax9.set_ylabel('Average glacier-wide SMB (m.w.e)')
+ax9.set_xlabel('Year')
+ax9.set_title("Average glacier-wide SMB per decade")
+ax9.hlines(total_avg_smb, 1967, 2015, color='darkred', linewidth=6, label='Total average SMB')
+ax9.hlines(avg_decadal_smb, xmin, xmax, color='C0', linewidth=6, label='Decadal average SMB')
+ax9.set_xticks([1970, 1980, 1990, 2000, 2010, 2015])
+ax9.set_xticklabels(('1970', '1980', '1990', '2000', '2010', '2015'))
+ax9.xaxis.grid(True)
+ax9.legend()
+
+# Get colors / markers / functions
+#colors = ('C01', 'C02', 'C03', 'C04', 'C05', 'C06', 'C07', 'C08', 'C09')
+prop_cycle = plt.rcParams['axes.prop_cycle']
+colors = prop_cycle.by_key()['color']
+colors = np.concatenate((colors, colors))
+markers = []
+for m in Line2D.markers:
+    try:
+        if len(m) == 1 and m != ' ':
+            markers.append(m)
+    except TypeError:
+        pass
+
+# SMB per massif
+ax10 = plt.subplot(1,2,1)
+plt.title("Annual glacier-wide SMB by massif", y=1.03, x=1.1)
+ax10.axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+ax10.set_ylabel('Glacier-wide SMB (m.w.e)')
+ax10.set_xlabel('Year')
+
+for massif, color, marker in zip(avg_smb_massif, colors, markers):
+    format_str = "{color}{marker}".format(color=color, marker=marker)
+#    import pdb; pdb.set_trace()
+    line101, = ax10.plot(range(1967, 2016), avg_smb_massif[massif], color=color, marker=marker, linewidth=1, label=massif)
+
+ax11 = plt.subplot(1,2,2)
+ax11.axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+ax11.set_ylabel('Cumulative glacier-wide SMB (m.w.e)')
+ax11.set_xlabel('Year')
+for massif, color, marker in zip(avg_smb_massif, colors, markers):
+    format_str = "{color}{marker}-".format(color=color, marker=marker)
+    line111, = ax11.plot(range(1967, 2016), np.cumsum(avg_smb_massif[massif]), color=color, marker=marker, linewidth=1, label=massif)
+
+handles, labels = ax11.get_legend_handles_labels()
+ax11.legend()
+#ax11.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, -0.05),
+#          fancybox=True, shadow=True, ncol=5)
+#ax11.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=7, col=2, mode="expand", borderaxespad=0.)
+
+plt.show()
