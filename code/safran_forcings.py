@@ -140,7 +140,7 @@ def compute_local_anomalies(idx, glacier_CPDDs, glacier_winter_snow, glacier_sum
                       local_w_snow_anomalies, raw_local_w_snow_anomalies,
                       local_s_snow_anomalies, raw_local_s_snow_anomalies):
     
-    import pdb; pdb.set_trace()
+#    import pdb; pdb.set_trace()
     
     # The anomalies are always computed with respect to the 1984-2014 mean
     glacier_CPDDs[idx]['CPDD'] = np.asarray(glacier_CPDDs[idx]['CPDD'])
@@ -345,9 +345,10 @@ def main(compute):
         path_glims = workspace + 'glacier_data\\GLIMS\\' 
         
 #        year_start = 1984
-        year_start = 1967
-#        year_start = 1959
+#        year_start = 1967
+        year_start = 1959
         year_end = 2015
+#        year_end = 2014
         
         path_temps = path_smb_function_safran +'daily_temps_years_' + str(year_start) + '-' + str(year_end) + '.txt'
         path_snow = path_smb_function_safran +'daily_snow_years_' + str(year_start) + '-' + str(year_end) + '.txt'

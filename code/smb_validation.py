@@ -240,7 +240,9 @@ def create_spatiotemporal_matrix(season_anomalies, mon_anomalies, glims_glacier,
     x_reg_array = []
     
     max_alt = glims_glacier['MAX_Pixel']
-    slope20 = get_slope20(glims_glacier)
+    ## TODO: revise get_slope20 function. It gives steeper slopes than the retrieved values from the inventory
+#    slope20 = get_slope20(glims_glacier)
+    slope20 = glims_glacier['slope20']
     lon = glims_glacier['x_coord']
     lat = glims_glacier['y_coord']
     aspect = np.cos(get_aspect_deg(glims_glacier['Aspect'].decode('ascii')))
@@ -388,7 +390,6 @@ def compute_monthly_anomalies(mon_temps, mon_snow, mon_temp_ref, mon_snow_ref):
 
 def get_default_SAFRAN_forcings(year_start, year_end):
     
-    
     path_temps = path_smb_function_safran +'daily_temps_years_' + str(year_start) + '-' + str(year_end) + '.txt'
     path_snow = path_smb_function_safran +'daily_snow_years_' + str(year_start) + '-' + str(year_end) + '.txt'
     path_rain = path_smb_function_safran +'daily_rain_years_' + str(year_start) + '-' + str(year_end) + '.txt'
@@ -396,6 +397,7 @@ def get_default_SAFRAN_forcings(year_start, year_end):
     path_zs = path_smb_function_safran +'zs_years' + str(year_start) + '-' + str(year_end) + '.txt'
     if(os.path.exists(path_temps) & os.path.exists(path_snow) & os.path.exists(path_rain) & os.path.exists(path_dates) & os.path.exists(path_zs)):
         print("Fetching SAFRAN forcings...")
+        print("\Taking forcings from " + str(path_temps))
         
         with open(path_temps, 'rb') as temps_f:
             daily_temps_years = np.load(temps_f, encoding='latin1')
@@ -418,6 +420,8 @@ def get_adjusted_glacier_SAFRAN_forcings(year, year_start, glacier_mean_altitude
     # We also need to fetch the previous year since data goes from 1st of August to 31st of July
     idx = year - (year_start-1)
     glacier_idx = int(SAFRAN_idx)
+    
+#    import pdb; pdb.set_trace()
     
     zs = zs_years[idx-1]
     
@@ -570,6 +574,7 @@ def get_monthly_snow(daily_data, daily_datetimes):
     return monthly_avg_data[:12]
 
 def compute_SAFRAN_anomalies(glacier_info, year_range, year_start, all_glacier_coordinates, season_meteo, monthly_meteo, daily_meteo_data):
+    
     # We get the glacier indexes
     SAFRAN_idx = all_glacier_coordinates[np.where(all_glacier_coordinates[:,3] == glacier_info['glimsID'])[0]][0][1]
     # We extract the meteo references for the simulation period
@@ -696,13 +701,10 @@ def main(compute, reconstruct):
                 end_ref = 2015
             else:
                 start_ref = 1984
-                end_ref = 2015
-            
-        else:
-            start_ref = year_start
-            end_ref = year_end
+                end_ref = 2014
         
-        year_range = range(year_start, year_end +1)
+#        # Reference period for climate forcings
+        year_range = range(start_ref, end_ref +1)
         
         # We use only the 19 best models
         best_models = best_models[:19]
@@ -710,7 +712,7 @@ def main(compute, reconstruct):
         if(forcing == "SAFRAN"):
             print("Getting all the SAFRAN forcing data....")
 #            all_glacier_coordinates = get_SAFRAN_glacier_coordinates(glims_rabatel)
-            daily_temps_years, daily_snow_years, daily_rain_years, daily_dates_years, zs_years = get_default_SAFRAN_forcings(start_ref, end_ref)
+            daily_temps_years, daily_snow_years, daily_rain_years, daily_dates_years, zs_years = get_default_SAFRAN_forcings(year_start, year_end)
             daily_meteo_data = {'temps': daily_temps_years, 'snow':daily_snow_years, 'rain':daily_rain_years, 'dates':daily_dates_years, 'zs':zs_years}
             
             if(reconstruct):
@@ -738,9 +740,10 @@ def main(compute, reconstruct):
     #                    print("Glacier GLIMS ID: " + str(glimsID))
                         
                         glacier_mean_altitude = interpolate_extended_glims_variable('MEAN_Pixel', glims_glacier, glims_2015, glims_1985, glims_1967)
+                        glacier_max_altitude = interpolate_extended_glims_variable('MAX_Pixel', glims_glacier, glims_2015, glims_1985, glims_1967)
                         glacier_area = interpolate_extended_glims_variable('Area', glims_glacier, glims_2015, glims_1985, glims_1967)
                         
-                        glacier_info = {'name':glacier_name, 'glimsID':glimsID, 'mean_altitude':glacier_mean_altitude, 'area': glacier_area, 'massif_SAFRAN': massif_safran}
+                        glacier_info = {'name':glacier_name, 'glimsID':glimsID, 'mean_altitude':glacier_mean_altitude, 'max_altitude':glacier_max_altitude, 'area': glacier_area, 'massif_SAFRAN': massif_safran}
                         
                         ####  SAFRAN FORCINGS  ####
                         # We recompute the SAFRAN forcings based on the current topographical data
@@ -885,7 +888,7 @@ def main(compute, reconstruct):
                         plt.figure(nfigure)
                         fig, axes = plt.subplots()
                         plt.title("Glacier " + str(glacier_name))
-                        plt.ylabel('Glacier-wide SMB')
+                        plt.ylabel('Glacier-wide SMB (m.w.e.)')
                         plt.xlabel('Year')
                         
                         plt.plot(range(start_ref,end_ref+1), np.cumsum(SMB_glacier), linewidth=3, color = 'C0', label='Ground truth SMB')
