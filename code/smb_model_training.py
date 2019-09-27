@@ -575,12 +575,14 @@ def generate_SMB_models(SMB_raw, season_raw_meteo_anomalies_SMB, mon_temp_anomal
     
     plt.figure(fig_idx, figsize=(6,6))
     if(settings.smb_model_type == 'ann_no_weights'):
-        plt.title("Deep learning without weights", fontsize=16)
+        plt.title("Deep learning without weights", fontsize=17)
     elif(settings.smb_model_type == 'ann_weights'):
-        plt.title("Deep learning with weights", fontsize=16)
-    plt.ylabel('SMB modeled with ANN (m.w.e)', fontsize=14)
-    plt.xlabel('Reference SMB data (m.w.e)', fontsize=14)
+        plt.title("Deep learning with weights", fontsize=17)
+    plt.ylabel('SMB modeled with ANN (m.w.e)', fontsize=16)
+    plt.xlabel('Reference SMB data (m.w.e)', fontsize=16)
     sc = plt.scatter(y_plt, ann_plt, c=z, s=50)
+    plt.clim(0,0.4)
+    plt.tick_params(labelsize=14)
     plt.colorbar(sc)
     lineStart = y_ref_ann.min() 
     lineEnd = y_ref_ann.max()  
@@ -617,15 +619,17 @@ def generate_SMB_models(SMB_raw, season_raw_meteo_anomalies_SMB, mon_temp_anomal
     
     plt.figure(fig_idx, figsize=(6,6))
     plt.title("Lasso", fontsize=20)
-    plt.ylabel('SMB modeled with Lasso (m.w.e)', fontsize=14)
-    plt.xlabel('Reference SMB data (m.w.e)', fontsize=14)
+    plt.ylabel('SMB modeled with Lasso (m.w.e)', fontsize=16)
+    plt.xlabel('Reference SMB data (m.w.e)', fontsize=16)
     sc = plt.scatter(y_plt, lasso_plt, c=z, s=50, cmap='plasma')
     plt.colorbar(sc)
+    plt.tick_params(labelsize=14)
     lineStart = y_ref_lasso.min() 
     lineEnd = y_ref_lasso.max()  
     plt.plot([lineStart, lineEnd], [lineStart, lineEnd], 'k-', color = 'black')
     plt.xlim(lineStart, lineEnd)
     plt.ylim(lineStart, lineEnd)
+    plt.clim(0,0.4)
     plt.show()
     fig_idx = fig_idx+1
     
@@ -656,15 +660,17 @@ def generate_SMB_models(SMB_raw, season_raw_meteo_anomalies_SMB, mon_temp_anomal
     
     plt.figure(fig_idx, figsize=(6,6))
     plt.title("OLS", fontsize=20)
-    plt.ylabel('SMB modeled with OLS (m.w.e)', fontsize=14)
-    plt.xlabel('Reference SMB data (m.w.e)', fontsize=14)
+    plt.ylabel('SMB modeled with OLS (m.w.e)', fontsize=16)
+    plt.xlabel('Reference SMB data (m.w.e)', fontsize=16)
     sc = plt.scatter(y_plt, ols_plt, c=z, s=50, cmap='plasma')
     plt.colorbar(sc)
+    plt.tick_params(labelsize=14)
     lineStart = SMB_ols_ref.min() 
     lineEnd = SMB_ols_ref.max()  
     plt.plot([lineStart, lineEnd], [lineStart, lineEnd], 'k-', color = 'black')
     plt.xlim(lineStart, lineEnd)
     plt.ylim(lineStart, lineEnd)
+    plt.clim(0,0.4)
     plt.show()
     fig_idx = fig_idx+1
     

@@ -887,15 +887,16 @@ def main(compute, reconstruct):
                         #########  SMB SIMULATION PLOTS   ##############
                         plt.figure(nfigure)
                         fig, axes = plt.subplots()
-                        plt.title("Glacier " + str(glacier_name))
-                        plt.ylabel('Glacier-wide SMB (m.w.e.)')
-                        plt.xlabel('Year')
+                        plt.title("Glacier " + str(glacier_name), fontsize=20)
+                        plt.ylabel('Glacier-wide SMB (m.w.e.)', fontsize=16)
+                        plt.xlabel('Year', fontsize=16)
                         
                         plt.plot(range(start_ref,end_ref+1), np.cumsum(SMB_glacier), linewidth=3, color = 'C0', label='Ground truth SMB')
                         axes.fill_between(range(start_ref,end_ref+1), np.cumsum(SMB_glacier)-SMB_uncertainties[:,1], np.cumsum(SMB_glacier)+SMB_uncertainties[:,1], facecolor = "red", alpha=0.3)
                         plt.plot(range(start_ref,end_ref+1), np.cumsum(SMB_lasso), linewidth=3, color = 'C3', label='Lasso SMB')
                         plt.plot(range(start_ref,end_ref+1), np.cumsum(SMB_nn), linewidth=3, color = 'C8', label='ANN SMB')
                         
+                        plt.tick_params(labelsize=14)
                         plt.legend()
                         plt.draw()
                         nfigure = nfigure+1
