@@ -22,7 +22,8 @@ import glacier_evolution
 from pathlib import Path
 
 workspace = str(Path(os.getcwd()).parent) + '\\'
-path_adamont = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\FORCING_ADAMONT_IGE_BERGER\\normal\\'
+path_adamont = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\treated\\'
+#path_adamont = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\FORCING_ADAMONT_IGE_BERGER\\normal\\'
 #path_adamont = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\FORCING_ADAMONT_IGE_BERGER\\INERIS\\'
 #path_adamont = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\FORCING_ADAMONT_IGE_BERGER\\HIRHAM5\\'
 #path_adamont = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\FORCING_ADAMONT_IGE_BERGER\\projections\\'
@@ -46,11 +47,13 @@ def init(hist_forcing, proj_forcing, simu_type, smb_model):
     global path_cv_ann
     global smb_model_type
     if(smb_model == 'ann_no_weights'):
-        path_ann = path_smb + 'ANN\\LOYO\\no_weights\\'
+        path_ann = path_smb + 'ANN\\LSYGO\\no_weights\\'
+#        path_ann = path_smb + 'ANN\\LOGO\\no_weights\\'
+#        path_ann = path_smb + 'ANN\\LOYO\\no_weights\\'
         path_cv_ann = path_ann + 'CV\\'
         smb_model_type = smb_model
     elif(smb_model == 'ann_weights'):
-        path_ann = path_smb + 'ANN\\LOYO\\weights\\'
+        path_ann = path_smb + 'ANN\\LSYGO\\weights\\'
         path_cv_ann = path_ann + 'CV\\'
         smb_model_type = smb_model
     elif(smb_model == 'lasso'):
@@ -89,8 +92,8 @@ def adamont_simulation(simulation_type, compute_projection_forcings, compute_evo
             if(forcing_threshold <= counter):
                 current_ADAMONT_model_daymean = str(ADAMONT_proj_filepaths[i])
                 current_ADAMONT_model_daysum = str(ADAMONT_proj_filepaths[i+1])
-                current_ADAMONT_forcing_mean = 'projections\\' + ADAMONT_proj_filepaths[i][8:]
-                current_ADAMONT_forcing_sum =  'projections\\' + ADAMONT_proj_filepaths[i+1][8:]
+                current_ADAMONT_forcing_mean = 'projections\\' + ADAMONT_proj_filepaths[i]
+                current_ADAMONT_forcing_sum =  'projections\\' + ADAMONT_proj_filepaths[i+1]
                 adamont_forcings.main(compute_projection_forcings)
                 glacier_evolution.main(compute_evolution, overwrite, counter_threshold, thickness_idx)
             counter = counter+1
@@ -105,7 +108,7 @@ def glacier_simulation(simulation_type, counter_threshold, validate_SMB, compute
     elif(simulation_type == "historical"):
         smb_validation.main(validate_SMB, reconstruct)
 #        for thickness_idx in range(0,3):
-        # 0 = original ice thickness / 1 = 0.7*ice thickness / 2 = 1.3*ice thickness
+        # 0 = original ice thickness / 1 = 1.3*ice thickness /  2 =  0.7*ice thickness 
         glacier_evolution.main(compute_evolution, overwrite, counter_threshold, 0) # thickness idx = 0 by default
     else:
         print("\n[ERROR] Wrong type of projection!")

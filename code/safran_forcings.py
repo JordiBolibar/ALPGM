@@ -46,7 +46,7 @@ def find_glacier_idx(glacier_massif, massif_number, altitudes, glacier_altitude,
 
 @jit
 def get_SAFRAN_glacier_coordinates(massif_number, zs, aspects, glims_data, glims_rabatel):
-    glacier_centroid_altitude = glims_data['MEDIAN_Pixel']
+    glacier_centroid_altitude = glims_data['MEAN_Pixel']
     GLIMS_IDs = glims_data['GLIMS_ID']
     glacier_massifs = glims_data['Massif_SAFRAN']
     glacier_names = glims_data['Glacier']
@@ -54,7 +54,7 @@ def get_SAFRAN_glacier_coordinates(massif_number, zs, aspects, glims_data, glims
     glacier_SMB_coordinates, all_glacier_coordinates = [], []
     
     # Glaciers with SMB Data (Rabatel et al. 2016)
-    for glims_id, glacier_name, glacier_massif, glacier_altitude, glacier_aspect in zip(glims_rabatel['GLIMS_ID'], glims_rabatel['Glacier'], glims_rabatel['Massif_SAFRAN'], glims_rabatel['MEDIAN_Pixel'], glims_rabatel['Aspect_num']):
+    for glims_id, glacier_name, glacier_massif, glacier_altitude, glacier_aspect in zip(glims_rabatel['GLIMS_ID'], glims_rabatel['Glacier'], glims_rabatel['Massif_SAFRAN'], glims_rabatel['MEAN_Pixel'], glims_rabatel['Aspect_num']):
         glacier_SMB_coordinates.append([glacier_name, find_glacier_idx(glacier_massif, massif_number, zs, glacier_altitude, aspects, glacier_aspect), float(glacier_altitude), glims_id, int(glacier_massif)])
     
     # All glaciers loop

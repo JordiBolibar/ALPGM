@@ -27,7 +27,7 @@ from netCDF4 import Dataset
 import sys
 import pandas as pd
 from pathlib import Path
-from glacier_evolution import store_file, get_aspect_deg
+from glacier_evolution import store_file, get_aspect_deg, empty_folder
 
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import r2_score
@@ -59,6 +59,8 @@ path_smb_all_glaciers = path_smb + 'smb_simulations\\SAFRAN\\1\\all_glaciers_196
 path_smb_all_glaciers_smb = path_smb + 'smb_simulations\\SAFRAN\\1\\all_glaciers_1967_2015\\smb\\'
 path_smb_all_glaciers_area = path_smb + 'smb_simulations\\SAFRAN\\1\\all_glaciers_1967_2015\\area\\'
 path_smb_all_glaciers_slope = path_smb + 'smb_simulations\\SAFRAN\\1\\all_glaciers_1967_2015\\slope\\'
+path_training_data = workspace + 'glacier_data\\glacier_evolution\\training\\'
+path_training_glacier_info = path_training_data + 'glacier_info\\'
 global path_slope20
 path_slope20 = workspace + 'glacier_data\\glacier_evolution\\glacier_slope20\\SAFRAN\\1\\'
 
@@ -133,9 +135,12 @@ def find_nearest(array,value):
     return idx
 
 def store_glacier_info(glacier_info, path):
+    if not os.path.exists(path):
+        os.makedirs(path)
     path = path + 'glacier_info_' + str(glacier_info['glimsID'])
     with open(path, 'wb') as glacier_info_f:
         np.save(glacier_info_f, glacier_info)
+        print("File saved: " + str(path))
 
 def interpolate_glims_variable(variable_name, glims_glacier, glims_2003, glims_1985):
     var_2015 = glims_glacier[variable_name]
@@ -227,7 +232,7 @@ def get_slope20(glims_glacier):
     else:
         slope20 = slope20_array[:,1].mean()
         print("Retrieved slope: " + str(slope20_array[:,1].mean()))
-        print("Manual slope: " + str(np.rad2deg(np.arcsin((alt_max - alt_min)/length))))
+        print("Manual slope: " + str(np.rad2deg(np.arctan((alt_max - alt_min)/length))))
 #    
     if(slope20 > 55 or np.isnan(slope20)):
         slope20 = 55 # Limit slope at 55º to avoid unrealistic slopes
@@ -240,9 +245,9 @@ def create_spatiotemporal_matrix(season_anomalies, mon_anomalies, glims_glacier,
     x_reg_array = []
     
     max_alt = glims_glacier['MAX_Pixel']
-    ## TODO: revise get_slope20 function. It gives steeper slopes than the retrieved values from the inventory
 #    slope20 = get_slope20(glims_glacier)
-    slope20 = glims_glacier['slope20']
+#    slope20 = glims_glacier['slope20']
+    slope20 = glims_glacier['slope20_evo']
     lon = glims_glacier['x_coord']
     lat = glims_glacier['y_coord']
     aspect = np.cos(get_aspect_deg(glims_glacier['Aspect'].decode('ascii')))
@@ -420,8 +425,6 @@ def get_adjusted_glacier_SAFRAN_forcings(year, year_start, glacier_mean_altitude
     # We also need to fetch the previous year since data goes from 1st of August to 31st of July
     idx = year - (year_start-1)
     glacier_idx = int(SAFRAN_idx)
-    
-#    import pdb; pdb.set_trace()
     
     zs = zs_years[idx-1]
     
@@ -641,8 +644,6 @@ def main(compute, reconstruct):
         else:
             forcing = settings.historical_forcing
             
-        
-            
         # We determine the path depending on the forcing
         path_smb_function_forcing = path_smb + 'smb_function\\' + forcing + "\\"
         
@@ -654,7 +655,7 @@ def main(compute, reconstruct):
 
         
         ####  GLIMS data for the 30 glaciers with remote sensing SMB data (Rabatel et al. 2016)   ####
-        glims_rabatel = genfromtxt(path_glims + 'GLIMS_Rabatel_30_2015.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('slope20', '<f8'), ('GLIMS_ID', '<a50'), ('Massif_SAFRAN', '<f8'), ('Aspect_num', '<f8')])        
+        glims_rabatel = genfromtxt(path_glims + 'GLIMS_Rabatel_30_2015.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('slope20', '<f8'), ('GLIMS_ID', '<a50'), ('Massif_SAFRAN', '<f8'), ('Aspect_num', '<f8'), ('slope20_evo', '<f8')])        
         
         best_models = genfromtxt(path_smb + 'chosen_models_3_5.csv', delimiter=';', skip_header=1, dtype=None) 
         
@@ -784,6 +785,11 @@ def main(compute, reconstruct):
                 
                 # We make a deep copy to avoid issues when flattening for processing
                 SMB_all = copy.deepcopy(SMB_raw)
+                
+                # We remove all previous simulations
+                empty_folder(path_training_data + 'glacier_info\\')
+                empty_folder(path_training_data + 'slope20\\')
+                empty_folder(path_training_data + 'SMB\\')
                  
                 # We split the sample weights in order to iterate them in the main loop
                 SMB_flat = SMB_raw.flatten()
@@ -814,9 +820,10 @@ def main(compute, reconstruct):
                 glacier_idx = 0
                 SMB_lasso_glaciers, SMB_ols_glaciers, SMB_ann_glaciers = [],[],[]
                 for glims_glacier, SMB_glacier_nan, glacier_weights, lasso_logo_model  in zip(glims_rabatel, SMB_all, sample_weights, lasso_logo_models):
-    #                if(glacier_name == "d'Argentiere"):
                     if(True):
                         glacier_name = glims_glacier['Glacier'].decode('ascii')
+                    
+#                    if(glacier_name == "d'Argentiere"):
                         glimsID = glims_glacier['GLIMS_ID'].decode('ascii')
                         print("\nSimulating Glacier: " + str(glacier_name))
     #                    print("Glacier GLIMS ID: " + str(glimsID))
@@ -825,6 +832,7 @@ def main(compute, reconstruct):
                         SMB_glacier = SMB_glacier_nan[glacier_mask]
         
                         # We retrie de CV ANN model
+                        glacier_idx = np.where(glimsID.encode('ascii') == glims_rabatel['GLIMS_ID'])[0][0]
                         cv_ann_model = load_model(path_cv_ann + 'glacier_' + str(glacier_idx+1) + '_model.h5', custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error})
                         
                         glacier_mean_altitude = interpolate_glims_variable('MEAN_Pixel', glims_glacier, glims_2003, glims_1985)
@@ -900,6 +908,17 @@ def main(compute, reconstruct):
                         plt.legend()
                         plt.draw()
                         nfigure = nfigure+1
+                        
+                        # We store all the glacier's data to be compared later
+                        print("\nStoring data...")
+                         # We store the simulated SMB 
+                         
+                        store_file(SMB_nn, path_training_data, "SMB\\", "SMB", glimsID, start_ref, end_ref+1)
+                        store_glacier_info(glacier_info, path_training_data + 'glacier_info\\')
+                        
+                        glacier_slope = np.repeat(x_reg_nn[0][5], end_ref+1-start_ref)
+#                        import pdb; pdb.set_trace()
+                        store_file(glacier_slope, path_training_data, "slope20\\", "Slope_20", glimsID, start_ref, end_ref+1)
                         
                         glacier_idx = glacier_idx+1
             

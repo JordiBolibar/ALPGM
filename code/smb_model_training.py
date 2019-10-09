@@ -112,7 +112,9 @@ def create_spatiotemporal_matrix(SMB_raw, season_raw_meteo_anomalies_SMB, mon_te
     print("Creating spatiotemporal matrix...")
     x_reg, y_reg = [],[]
     max_altitudes = glims_rabatel['MAX_Pixel']
-    slopes20 = glims_rabatel['slope20']
+    # TODO: decide on slope20 version
+    slopes20 = glims_rabatel['slope20_evo']
+#    slopes20 = glims_rabatel['slope20']
     lons = glims_rabatel['x_coord']
     lats = glims_rabatel['y_coord']
     
@@ -185,10 +187,10 @@ def create_spatiotemporal_matrix(SMB_raw, season_raw_meteo_anomalies_SMB, mon_te
         x_reg = np.asarray(x_reg)
         y_reg = np.asarray(y_reg) 
         
-#        with open(root + 'X_nn_extended.txt', 'wb') as x_f:
-#            np.save(x_f, x_reg_nn)
-#        with open(root + 'y_extended.txt', 'wb') as y_f:
-#            np.save(y_f, SMB_raw)
+        with open(root + 'X_nn_extended.txt', 'wb') as x_f:
+            np.save(x_f, x_reg_nn)
+        with open(root + 'y_extended.txt', 'wb') as y_f:
+            np.save(y_f, SMB_raw)
         
         finite_idxs = np.isfinite(y_reg)
         x_reg_full = x_reg_full[finite_idxs,:]
@@ -739,7 +741,7 @@ def main(compute):
 
         
         ####  GLIMS data for the 30 glaciers with remote sensing SMB data (Rabatel et al. 2016)   ####
-        glims_rabatel = genfromtxt(path_glims + 'GLIMS_Rabatel_30_2015.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('slope20', '<f8'), ('GLIMS_ID', '<a50'), ('Massif_SAFRAN', '<f8'), ('Aspect_num', '<f8')])        
+        glims_rabatel = genfromtxt(path_glims + 'GLIMS_Rabatel_30_2015.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('slope20', '<f8'), ('GLIMS_ID', '<a50'), ('Massif_SAFRAN', '<f8'), ('Aspect_num', '<f8'), ('slope20_evo', '<f8'),])        
         path_smb_function_forcing = path_smb_function + forcing + '\\'
         
         # We open all the files with the data to be modelled

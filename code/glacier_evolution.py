@@ -22,6 +22,7 @@ from numba import jit
 import unicodedata
 import subprocess
 import os
+import shutil
 import sys
 from osgeo import gdal, ogr, osr
 import copy
@@ -80,8 +81,8 @@ path_smb_function_safran = path_smb + 'smb_function\\SAFRAN\\'
 global path_smb_function_adamont
 path_smb_function_adamont = path_smb + 'smb_function\\ADAMONT\\'
 # Path to be updated with ADAMONT forcings local path
-#path_adamont_forcings = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\treated\\'
-path_adamont_forcings = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\\FORCING_ADAMONT_IGE_BERGER\\projections\\'
+path_adamont_forcings = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\treated\\'
+#path_adamont_forcings = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\\FORCING_ADAMONT_IGE_BERGER\\projections\\'
 # SMB simulation files
 path_smb_simulations = path_smb + 'smb_simulations\\'
 path_smb_function = path_smb + 'smb_function\\'
@@ -104,6 +105,10 @@ def shorten_name(glacierName):
         glacierName = glacierName[:ch_idx-1]
     return glacierName
 
+def empty_folder(path):
+    if(os.path.exists(path)):
+        shutil.rmtree(path)
+
 def store_file(data, path, midfolder, file_description, glimsID, year_start, year):
     stored = False
     year_range = np.asarray(range(year_start, year))
@@ -118,6 +123,7 @@ def store_file(data, path, midfolder, file_description, glimsID, year_start, yea
         if not os.path.exists(file_name):
             try:
                 np.savetxt(file_name, data_w_years, delimiter=";", fmt="%.7f")
+                print("File saved: " + str(file_name))
                 stored = True
             except IOError:
                 print("File currently opened. Please close it to proceed.")
@@ -156,15 +162,17 @@ def strip_accents(unicode_or_str):
 
 # Clips a raster with the shape of a polygon   
 def clipRaster_with_polygon(output_cropped_raster, input_raster, shapefile_mask):
-    if not os.path.exists(output_cropped_raster):
-        try:
-            subprocess.check_output("gdalwarp --config GDALWARP_IGNORE_BAD_CUTLINE YES -q -cutline \"" + shapefile_mask 
-                                               + "\" -of GTiff \"" 
-                                               + input_raster + "\" \"" + output_cropped_raster +"\"",
-                                         stderr=subprocess.PIPE,
-                                         shell=True)
-        except subprocess.CalledProcessError as e:
-            raise RuntimeError("command '{}' return with error (code {}): {}".format(e.cmd, e.returncode, e.output))
+    if os.path.exists(output_cropped_raster):
+        os.remove(output_cropped_raster)
+        
+    try:
+        subprocess.check_output("gdalwarp --config GDALWARP_IGNORE_BAD_CUTLINE YES -q -cutline \"" + shapefile_mask 
+                                           + "\" -of GTiff \"" 
+                                           + input_raster + "\" \"" + output_cropped_raster +"\"",
+                                     stderr=subprocess.PIPE,
+                                     shell=True)
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError("command '{}' return with error (code {}): {}".format(e.cmd, e.returncode, e.output))
 
 def normalize_dem(dem):
     dem_n = dem.copy()
@@ -255,7 +263,7 @@ def generate_fs(year_smb, year_start, DEM_sorted_current_glacier_u, DEM_sorted_C
         delta_h_i = delta_h_dh_current_glacier[delta_h_idx]
         
         vol_distrib = vol_distrib + area_band*delta_h_i  
-    
+        
     fs_id = year_smb*(glacierArea*1000) / (ice_density * vol_distrib) 
     
     return fs_id, delta_h_dh_current_glacier
@@ -310,7 +318,10 @@ def crop_inital_rasters_to_GLIMS(path_glacier_ID_rasters, path_glacier_DEM_raste
     if(year_start == 2004):
         print("glacierID: " + str(glacierID))
         
-        current_glacier_ice_depth = path_glacier_ID_rasters + "RGI60-11.0" + str(glacierID) + "_thickness.tif"
+        if(glacierID == 3638): # If Argentiere glacier, use field data
+            current_glacier_ice_depth = path_glacier_ID_rasters + "argentiere_2003_glacioclim.tif"
+        else:
+            current_glacier_ice_depth = path_glacier_ID_rasters + "RGI60-11.0" + str(glacierID) + "_thickness.tif"
         
         current_glacier_DEM = path_glacier_DEM_rasters + "dem_0" + str(glacierID) + ".asc.tif"
 #        
@@ -323,12 +334,9 @@ def crop_inital_rasters_to_GLIMS(path_glacier_ID_rasters, path_glacier_DEM_raste
         print("Clipping raster to GLIMS 2003 extent... ")
         clipRaster_with_polygon(path_glacier_ID_GLIMS, current_glacier_ice_depth, path_glacier_outline)
         
-        # TODO: Check if raster really needs to be cropped or not
-        path_glacier_ID_GLIMS = current_glacier_ice_depth
+#        path_glacier_ID_GLIMS = current_glacier_ice_depth
 #        clipRaster_with_polygon(path_glacier_DEM_GLIMS, current_glacier_DEM, path_glacier_outline)
         
-        path_glacier_ID_GLIMS = current_glacier_ice_depth
-    
     elif(year_start == 2015):
         # We open the 2015 projected F19 files
         path_glacier_ID_GLIMS = path_glacier_ID_rasters + "glacier_evolution\\SAFRAN\\1\\" + "IceDepth_Glacier_0" + str(glacierID) + "_2014.tif"
@@ -369,7 +377,7 @@ def get_point_values(flowline_feature, dem_raster):
     return flowline_altitudes, flowline_coordinates
 
 # Get the lenght of the lowermost 20%
-def get_flowline_20_length(flowline_feature, flowline_coords, alt_20_flowline_idx, path_temp_shapefile):
+def get_flowline_20_length(flowline_feature, flowline_coords, alt_20_flowline_idx, min_flowline_idx, path_temp_shapefile):
     driver = ogr.GetDriverByName('ESRI Shapefile')
     datasource = driver.CreateDataSource(path_temp_shapefile)
     line = ogr.Geometry(type=flowline_feature.GetGeometryRef().GetGeometryType())
@@ -377,7 +385,7 @@ def get_flowline_20_length(flowline_feature, flowline_coords, alt_20_flowline_id
     if(alt_20_flowline_idx+1 == flowline_coords.shape[0]):
         alt_20_flowline_idx = alt_20_flowline_idx - 1
         fixed_length = True
-    for coords in flowline_coords[alt_20_flowline_idx:]:
+    for coords in flowline_coords[alt_20_flowline_idx:min_flowline_idx+1]:
         line.AddPoint(coords[0], coords[1])
     myPoly = ogr.Geometry(type=flowline_feature.GetGeometryRef().GetGeometryType())
     myPoly.AddGeometry(line)
@@ -390,7 +398,9 @@ def get_flowline_20_length(flowline_feature, flowline_coords, alt_20_flowline_id
     return flowline_20_length, fixed_length
 
 # Computes the slope of the lowermost 20% of a glacier    
-def get_slope20(masked_DEM_current_glacier_u, DEM_sorted_current_glacier_u, glacierName, flowline, raster_current_DEM, yearly_glacier_slope20):
+def get_slope20(masked_DEM_current_glacier_u, DEM_sorted_current_glacier_u, glacierName, flowline, path_raster_current_DEM, yearly_glacier_slope20):
+    
+    raster_current_DEM = gdal.Open(path_raster_current_DEM) 
     
     path_temp_shapefile = path_glacier_DEM_rasters + "aux_vector_" + str(glacierName) + ".shp"
     flowline_altitudes_full, flowline_coordinates = get_point_values(flowline, raster_current_DEM)
@@ -402,24 +412,20 @@ def get_slope20(masked_DEM_current_glacier_u, DEM_sorted_current_glacier_u, glac
     
     max_alt = DEM_sorted_current_glacier_u.max()
     min_alt = DEM_sorted_current_glacier_u.min()
-    min_flowline_alt = flowline_altitudes.min()
-
-    if(min_alt >= min_flowline_alt):
-        min_alt_flowline_idx, diff = find_nearest(flowline_altitudes, min_alt)
-        min_flowline_alt_u = flowline_altitudes[min_alt_flowline_idx]
-        alt_20_threshold = min_flowline_alt_u + (max_alt - min_flowline_alt_u)*0.2
-    else:
-        alt_20_threshold = min_flowline_alt + (max_alt - min_flowline_alt)*0.2
-        
+    
+    min_alt_flowline_idx, diff = find_nearest(flowline_altitudes, min_alt)
+    min_flowline_alt_u = flowline_altitudes[min_alt_flowline_idx]
+    alt_20_threshold = min_flowline_alt_u + (max_alt - min_flowline_alt_u)*0.2
     alt_20_flowline_idx, diff = find_nearest(flowline_altitudes, alt_20_threshold)
-    flowline_20_length, fixed_length = get_flowline_20_length(flowline, flowline_coordinates, alt_20_flowline_idx, path_temp_shapefile)
+    flowline_20_length, fixed_length = get_flowline_20_length(flowline, flowline_coordinates, alt_20_flowline_idx, min_alt_flowline_idx, path_temp_shapefile)
+
     # We adjust the parameters in case there are problems with the angle calculation
     if(fixed_length):
         alt_20_threshold = flowline_altitudes[alt_20_flowline_idx-1]
     counter = 0
-    while((flowline_20_length < (alt_20_threshold - min_flowline_alt)) and counter < 20):
+    while((flowline_20_length < (alt_20_threshold - min_flowline_alt_u)) and counter < 20):
         alt_20_flowline_idx = alt_20_flowline_idx-1
-        flowline_20_length, fixed_length = get_flowline_20_length(flowline, flowline_coordinates, alt_20_flowline_idx, path_temp_shapefile)
+        flowline_20_length, fixed_length = get_flowline_20_length(flowline, flowline_coordinates, alt_20_flowline_idx, min_alt_flowline_idx, path_temp_shapefile)
         counter = counter+1
     
     # If the slope cannot be computed, we take the slope from the previous year
@@ -428,7 +434,11 @@ def get_slope20(masked_DEM_current_glacier_u, DEM_sorted_current_glacier_u, glac
     elif(counter >= 20) and len(yearly_glacier_slope20) < 0:
         slope20 = 50 # Standard value for few steep glaciers whose slope cannot be computed
     else:
-        slope20 = np.rad2deg(np.arcsin((alt_20_threshold - min_flowline_alt)/flowline_20_length))
+        slope20 = np.rad2deg(np.arctan((alt_20_threshold - min_flowline_alt_u)/flowline_20_length))
+        # Smooth slope transitions to avoid abrupt changes due to DEMs
+        if(len(yearly_glacier_slope20) > 0):
+            if(slope20 < yearly_glacier_slope20[-1]*0.8):
+                slope20 = yearly_glacier_slope20[-1]*0.8
     
     if(slope20 > 55):
         slope20 = 55 # Limit slope at 55º to avoid unrealistic slopes
@@ -548,7 +558,7 @@ def compute_local_anomalies(glacier_CPDD, glacier_winter_snow, glacier_summer_sn
     local_CPDD_anomaly = glacier_CPDD - meteo_anomalies['CPDD']
     local_w_snow_anomaly = glacier_winter_snow - meteo_anomalies['w_snow']
     local_s_snow_anomaly = glacier_summer_snow - meteo_anomalies['s_snow']
-        
+    
     return local_CPDD_anomaly, local_w_snow_anomaly, local_s_snow_anomaly
 
 def compute_monthly_anomalies(mon_temps, mon_snow, mon_temp_ref, mon_snow_ref):
@@ -559,9 +569,7 @@ def compute_monthly_anomalies(mon_temps, mon_snow, mon_temp_ref, mon_snow_ref):
     return mon_temp_anomaly, mon_snow_anomaly
 
 # Fetches the preprocessed SAFRAN daily data 
-def get_default_SAFRAN_forcings(year_start, year_end):
-    
-    safran_start, safran_end = 1959, 2015
+def get_default_SAFRAN_forcings(safran_start, safran_end):
     
     path_temps = path_smb_function_safran +'daily_temps_years_' + str(safran_start) + '-' + str(safran_end) + '.txt'
     path_snow = path_smb_function_safran +'daily_snow_years_' + str(safran_start) + '-' + str(safran_end) + '.txt'
@@ -572,16 +580,14 @@ def get_default_SAFRAN_forcings(year_start, year_end):
     if(os.path.exists(path_temps) & os.path.exists(path_snow) & os.path.exists(path_rain) & os.path.exists(path_dates) & os.path.exists(path_zs)):
         print("\nFetching SAFRAN forcings...")
         
-        start_y = year_start - safran_start +1
-        
         with open(path_temps, 'rb') as temps_f:
-            daily_temps_years = np.load(temps_f, encoding='latin1')[start_y:]
+            daily_temps_years = np.load(temps_f, encoding='latin1')
         with open(path_snow, 'rb') as snow_f:
-            daily_snow_years = np.load(snow_f, encoding='latin1')[start_y:]
+            daily_snow_years = np.load(snow_f, encoding='latin1')
         with open(path_rain, 'rb') as rain_f:
-            daily_rain_years = np.load(rain_f, encoding='latin1')[start_y:]
+            daily_rain_years = np.load(rain_f, encoding='latin1')
         with open(path_dates, 'rb') as dates_f:
-            daily_dates_years = np.load(dates_f, encoding='latin1')[start_y:]
+            daily_dates_years = np.load(dates_f, encoding='latin1')
         with open(path_zs, 'rb') as zs_f:
             zs_years = np.load(zs_f, encoding='latin1')[0]
             
@@ -595,8 +601,9 @@ def get_default_SAFRAN_forcings(year_start, year_end):
 # Adjusts the daily SAFRAN data for each glacier
 def get_adjusted_glacier_SAFRAN_forcings(year, year_start, glacier_mean_altitude, SAFRAN_idx, daily_meteo_data, meteo_anomalies):
     # We also need to fetch the previous year since data goes from 1st of August to 31st of July
-    idx = year - year_start -1
+    idx = year - year_start +1
     glacier_idx = int(SAFRAN_idx)
+    print("Year idx: " + str(idx))
     
     daily_temps_years = daily_meteo_data['temps']
     daily_snow_years = daily_meteo_data['snow']
@@ -771,23 +778,24 @@ def get_default_ADAMONT_forcings(year_start, year_end, midfolder):
         
         zs = file_forcing_daymean.variables['ZS'][:]
         # TODO: Change depending on the ADAMONT version 
-        #    massif_number = file_forcing_daymean.variables['MASSIF_NUMBER'][:]
-        massif_number = file_forcing_daymean.variables['massif_number'][:]
+#        massif_number = file_forcing_daymean.variables['massif_number'][:]
+        massif_number = file_forcing_daymean.variables['MASSIF_NUMBER'][:]
+        
         # Aspects commented until they are available for ADAMONT
-        aspects = file_forcing_daymean.variables['aspect'][:]
-    #    aspects = np.repeat(-1, len(zs))
+#        aspects = file_forcing_daymean.variables['aspect'][:]
+        aspects = np.repeat(-1, len(zs))
         
         # Temperatures (from K to C)
         temps_mean = file_forcing_daymean.variables['Tair'][:] -273.15
         
-    #    rain_sum = file_forcing_daysum.variables['RAIN'][:]
-        rain_sum = file_forcing_daysum.variables['Rainf'][:] * 3600
+        rain_sum = file_forcing_daysum.variables['RAIN'][:]
+#        rain_sum = file_forcing_daysum.variables['Rainf'][:] * 3600
         
-    #    snow_sum = file_forcing_daysum.variables['SNOW'][:]
-        snow_sum = file_forcing_daysum.variables['Snowf'][:] * 3600
+        snow_sum = file_forcing_daysum.variables['SNOW'][:]
+#        snow_sum = file_forcing_daysum.variables['Snowf'][:] * 3600
         
-    #    times = file_forcing_daysum.variables['TIME'][:]
-        times = file_forcing_daysum.variables['time'][:]
+        times = file_forcing_daysum.variables['TIME'][:]
+#        times = file_forcing_daysum.variables['time'][:]
         start = np.datetime64('2005-08-01 06:00:00')
         datetimes = np.array([start + np.timedelta64(np.int32(time), 'h') for time in times])
         yeartimes = []
@@ -996,12 +1004,6 @@ def get_adjusted_glacier_ADAMONT_forcings(year, year_start, glacier_mean_altitud
     season_anomalies_y = {'CPDD': CPDD_LocalAnomaly, 'winter_snow':winter_snow_LocalAnomaly, 'summer_snow': summer_snow_LocalAnomaly}
     monthly_anomalies_y = {'temps': mon_temp_anomaly, 'snow': mon_snow_anomaly}
     
-    print("glacier_CPDD: " + str(glacier_CPDD))
-    print("glacier_winter_snow: " + str(glacier_winter_snow))
-    print("glacier_summer_snow: " + str(glacier_summer_snow))
-    
-#    import pdb; pdb.set_trace()
-    
     return season_anomalies_y, monthly_anomalies_y
 
 # Retrieves the mean meteo values to compute the anomalies
@@ -1104,6 +1106,8 @@ def store_rasters(masked_DEM_current_glacier_u, masked_ID_current_glacier_u, mid
         os.makedirs(path_glacier_evolution_ID_rasters + midfolder)
     array2raster(path_DEM_raster_year, r_origin, r_pixelwidth, r_pixelheight, masked_DEM_current_glacier_u)
     array2raster(path_ID_raster_year, r_origin, r_pixelwidth, r_pixelheight, masked_ID_current_glacier_u)
+    
+    return path_DEM_raster_year
 
 ###########################  GLACIER EVOLUTION  ##############################################
         
@@ -1111,14 +1115,14 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
                       delta_h_dh_current_glacier, delta_h_DEM_current_glacier, 
                       DEM_sorted_current_glacier,  
                       daily_meteo_data, meteo_anomalies,
-                      flowline, raster_current_DEM, store_plots, 
+                      flowline, raster_current_DEM, current_glacier_DEM, store_plots, 
                       glacierName, glacierID, glimsID, massif, lat, lon, aspect,
                       midfolder, pixel_area, glaciers_with_errors, 
                       lasso_scaler, lasso_model, ann_model,
-                      year_range, SAFRAN_idx, overwrite):
+                      year_range, ref_start, ref_end, SAFRAN_idx, overwrite):
     
     print("Applying glacier evolution...")
-    
+       
     # We make deep copies of the original DEM and ice depth distribution to start updating them
     masked_ID_current_glacier_u = copy.deepcopy(masked_ID_current_glacier)
     masked_ID_current_glacier_u.mask = np.ma.make_mask(np.where(masked_ID_current_glacier_u > 0, 0, 1))
@@ -1127,8 +1131,7 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
     # We sort the DEM by altitude in order to have the altitudinal range ready for iteration
     DEM_sorted_current_glacier_u = np.sort(masked_DEM_current_glacier_u.compressed(), axis=None)
     DEM_sorted_current_glacier_u = np.unique(DEM_sorted_current_glacier_u[DEM_sorted_current_glacier_u > 0])
-    
-    DEM_sorted_CG_n_u = normalize_dem(DEM_sorted_current_glacier_u, DEM_sorted_current_glacier_init)
+    DEM_sorted_CG_n_u = normalize_dem(DEM_sorted_current_glacier_u)
     
     nfigure = 1
     isNotFirst = False
@@ -1143,6 +1146,7 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
     glacierName = shorten_name(glacierName)
     newpath = path_glacier_evolution_plots +  midfolder + strip_accents(massif) + '\\' + "Glacier " + strip_accents(glacierName) + "\\"
     
+    path_raster_current_DEM = current_glacier_DEM
     
     if not os.path.exists(newpath) or overwrite:
         # We create a new folder in order to store the raster plots
@@ -1162,11 +1166,12 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
             masked_ID_previous_glacier_u = copy.deepcopy(masked_ID_current_glacier_u)
             print("\n--- Hydrological year: " + str(year-1) + "-" + str(year) + " ---\n")
             print("Glacier front: " + str(DEM_sorted_current_glacier_u[0]) + " meters")
+            print
             
             ####  RECALCULATION OF TOPOGRAPHICAL PARAMETERS  ####
             mean_glacier_alt = masked_DEM_current_glacier_u.mean()
             max_glacier_alt = masked_DEM_current_glacier_u.max()
-            slope20 = get_slope20(masked_DEM_current_glacier_u, DEM_sorted_current_glacier_u, glacierName, flowline, raster_current_DEM, yearly_glacier_slope20)
+            slope20 = get_slope20(masked_DEM_current_glacier_u, DEM_sorted_current_glacier_u, glacierName, flowline, path_raster_current_DEM, yearly_glacier_slope20)
             
             # Skip glacier if slope cannot be computed
             if(slope20 == -9):
@@ -1175,7 +1180,7 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
             
             ####  METEOROLOGICAL FORCINGS  ####
             if(settings.projection_forcing == "SAFRAN"):
-                season_anomalies_y,  monthly_anomalies_y = get_adjusted_glacier_SAFRAN_forcings(year, year_start, 
+                season_anomalies_y,  monthly_anomalies_y = get_adjusted_glacier_SAFRAN_forcings(year, ref_start, 
                                                                                              masked_DEM_current_glacier_u.compressed().mean(), SAFRAN_idx, 
                                                                                              daily_meteo_data, meteo_anomalies)
             elif(settings.projection_forcing == "ADAMONT"):
@@ -1186,16 +1191,6 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
             mean_CPDD.append(season_anomalies_y['CPDD'])
             mean_w_snow.append(season_anomalies_y['winter_snow'])
             mean_s_snow.append(season_anomalies_y['summer_snow'])
-            
-            if(year == 2025):
-                mean_CPDD = np.asarray(mean_CPDD)
-                mean_w_snow = np.asarray(mean_w_snow)
-                mean_s_snow = np.asarray(mean_s_snow)
-                print("Mean CPDD: " + str(mean_CPDD.mean()))
-                print("Mean winter snow: " + str(mean_w_snow.mean()))
-                print("Mean summer snow: " + str(mean_s_snow.mean()))
-                
-                import pdb; pdb.set_trace()
             
             ####  CREATION OF THE MODEL TEST DATASET  ####
             x_lasso, x_ann = create_input_array(season_anomalies_y, monthly_anomalies_y, mean_glacier_alt, max_glacier_alt, slope20, current_glacierArea, lat, lon, aspect)
@@ -1242,9 +1237,11 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
             
             ID_difference_current_glacier = masked_ID_current_glacier_u - masked_ID_previous_glacier_u
             masked_DEM_current_glacier_u = masked_DEM_current_glacier_u + ID_difference_current_glacier
-            masked_DEM_current_glacier_u[masked_ID_current_glacier_u <= 0] = np.ma.masked
+#            masked_DEM_current_glacier_u[masked_ID_current_glacier_u <= 0] = np.ma.masked
+            masked_DEM_current_glacier_u = np.ma.masked_where(masked_ID_current_glacier_u.data <= 0, masked_DEM_current_glacier_u)
             
             if(len(masked_DEM_current_glacier_u.compressed()) > 0):
+#                import pdb; pdb.set_trace()
                 yearly_glacier_zmean.append(masked_DEM_current_glacier_u.compressed().mean())
             else:
                 yearly_glacier_zmean.append(yearly_glacier_zmean[-1])
@@ -1254,7 +1251,7 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
             print("Zmean: " + str(yearly_glacier_zmean[-1]))
             
             # We convert and store the updated DEM and ice thickness as rasters for each year
-            store_rasters(masked_DEM_current_glacier_u, masked_ID_current_glacier_u, midfolder, glacierID, year)
+            path_raster_current_DEM = store_rasters(masked_DEM_current_glacier_u, masked_ID_current_glacier_u, midfolder, glacierID, year)
              
             ####  CREATING AND STORING GLACIER EVOLUTION PLOTS  ####
             if(store_plots):
@@ -1269,7 +1266,7 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
                 masked_DEM_current_glacier_u.mask = np.ma.make_mask(np.where(masked_ID_current_glacier_u > 0, 0, 1))
                 DEM_sorted_current_glacier_u = np.sort(masked_DEM_current_glacier_u.compressed(), axis=None)
                 DEM_sorted_current_glacier_u = np.unique(DEM_sorted_current_glacier_u[DEM_sorted_current_glacier_u > 0])
-                DEM_sorted_CG_n_u = normalize_dem(DEM_sorted_current_glacier_u, DEM_sorted_current_glacier_init)
+                DEM_sorted_CG_n_u = normalize_dem(DEM_sorted_current_glacier_u)
             else:
                 print("\n ------  Glacier completely melted  ------")
                 DEM_sorted_current_glacier_u = np.array([0])
@@ -1332,6 +1329,13 @@ def main(compute, overwrite_flag, counter_threshold, thickness_idx):
         path_ann = settings.path_ann
         path_safran_forcings = path_smb_function + 'SAFRAN\\'
         
+        if(settings.smb_model_type == 'ann_no_weights'):
+            path_ann_train = path_smb + 'ANN\\LOGO\\no_weights\\'
+            path_cv_ann = path_ann_train + 'CV\\'
+        elif(settings.smb_model_type == 'ann_weights'):
+            path_ann_train = path_smb + 'ANN\\LOGO\\weights\\'
+            path_cv_ann = path_ann_train + 'CV\\'
+        
         ### We detect the forcing between SPAZM, SAFRAN or ADAMONT
         forcing = settings.projection_forcing
 #        print("forcing: " + str(forcing))
@@ -1341,7 +1345,7 @@ def main(compute, overwrite_flag, counter_threshold, thickness_idx):
         
 #        glims_2015 = genfromtxt(path_glims + 'GLIMS_2015_massif.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('GLIMS_ID', '<a50'), ('Massif_SAFRAN', '<i8'),('Aspect_num', '<i8')])
 #        glims_2003 = genfromtxt(path_glims + 'GLIMS_2003.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('GLIMS_ID', '<a50'), ('Massif_SAFRAN', '<i8'), ('Aspect_num', '<i8')])
-#        glims_rabatel = genfromtxt(path_glims + 'GLIMS_Rabatel_30_2003.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('slope20', '<f8'), ('GLIMS_ID', '<a50'), ('Massif_SAFRAN', '<f8'), ('Aspect_num', '<f8')])        
+        glims_rabatel = genfromtxt(path_glims + 'GLIMS_Rabatel_30_2003.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('slope20', '<f8'), ('GLIMS_ID', '<a50'), ('Massif_SAFRAN', '<f8'), ('Aspect_num', '<f8')])        
 
         # Flag to determine if raster plots should be stored (time consuming)
         store_plots = True
@@ -1363,6 +1367,8 @@ def main(compute, overwrite_flag, counter_threshold, thickness_idx):
         if(settings.simulation_type == "historical"):
             year_start = 2004 
             year_end = 2015
+            ref_start = 1959
+            ref_end = 2015
         elif(settings.simulation_type == "future"):
             year_start = 2015  
             year_end = 2099
@@ -1406,10 +1412,31 @@ def main(compute, overwrite_flag, counter_threshold, thickness_idx):
 #            all_glacier_coordinates = get_ADAMONT_glacier_coordinates(glims_2015, massif_number, zs_years)
         else:
             midfolder_base = 'SAFRAN\\'
-            daily_meteo_data = get_default_SAFRAN_forcings(year_start, year_end)
+            daily_meteo_data = get_default_SAFRAN_forcings(ref_start, ref_end)
             # We retrieve all the SAFRAN glacier coordinates
             with open(path_smb_function_forcing+'all_glacier_coordinates.txt', 'rb') as coords_f:
                 all_glacier_coordinates = np.load(coords_f)
+                
+        ### We modify the ice depth in order to compute the effects of the uncertainties ###
+        if(thickness_idx == 1):
+            thickness_folder_tail = "1.3\\"
+            print("\nIce thickness *1.3 simulation \n")
+        elif(thickness_idx == 2):
+            thickness_folder_tail = "0.7\\"
+            print("\nIce thickness *0.7 simulation \n")
+        else:
+#            thickness_folder_tail = "1\\delta_110\\"
+#            thickness_folder_tail = "1\\delta_90\\"
+            thickness_folder_tail = "1\\"
+            print("\nOriginal Ice thickness simulation \n")
+        midfolder = midfolder_base+thickness_folder_tail
+        
+        # We remove all the previous SMB and topo simulations
+        empty_folder(path_smb_simulations+midfolder)
+        empty_folder(path_glacier_area+midfolder)
+        empty_folder(path_glacier_volume+midfolder)
+        empty_folder(path_glacier_zmean+midfolder)
+        empty_folder(path_glacier_slope20+midfolder)
           
         # We calculate the year range once we know if the ADAMONT forcings end in 2098 or 2099
         year_range = range(year_start, year_end+1)
@@ -1435,6 +1462,8 @@ def main(compute, overwrite_flag, counter_threshold, thickness_idx):
             lon = glacier.GetField('x_coord')
             
             found_glacier = True
+            # Use CV SMB models for the 32 French alpine glaciers dataset
+            smb_cv = True
             
             print("Glacier: " + str(glacierName))
             
@@ -1445,13 +1474,20 @@ def main(compute, overwrite_flag, counter_threshold, thickness_idx):
                 glacier_length = glacier.GetField("Length")
                 print("GLIMS ID: " + str(glimsID))
                 # We process only the non-discarded glaciers with a delta h function and those greater than 0.5 km2
-#                if(True):
-#                if(glacierName == "Mer de Glace"):
-                if(glacierName == "d'Argentiere" or glacierName == "Mer de Glace"):
+                if(True):
+#                if(glacierName == "d'Argentiere"):
+#                if(glacierName == "d'Argentiere" or glacierName == "Mer de Glace"):
+#                if(np.any(glimsID.encode('ascii') == glims_rabatel['GLIMS_ID']) and (glacierName[-1] != '2' and glacierName[-1] != '3' and glacierName[-1] != '4')):
 #                if(massif == "Ubaye"):
                     print ("\n-------   Processing glacier: " + glacierName + " -------")
                     print("GLIMS ID: " + str(glimsID))
                     
+                    if(smb_cv):
+                        print("Retrieving CV LOGO SMB model")
+                        glacier_idx = np.where(glimsID.encode('ascii') == glims_rabatel['GLIMS_ID'])[0][0]
+                        # We retrie de CV ANN model
+                        ann_model = load_model(path_cv_ann + 'glacier_' + str(glacier_idx+1) + '_model.h5', custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error})
+                        
                     # We crop the initial rasters to the extent of the GLIMS 2003 or 2015 database
                     path_outline_current_glacier = path_glacier_2003_shapefiles + 'individual_GLIMS_2003\\' +  'GLIMS_ID_' + str(glimsID) + '.shp'
                     current_glacier_ice_depth, current_glacier_DEM, path_glacier_DEM_2003, path_glacier_ID_2003 = crop_inital_rasters_to_GLIMS(path_glacier_ID_rasters, path_glacier_DEM_rasters, path_outline_current_glacier, 
@@ -1465,6 +1501,10 @@ def main(compute, overwrite_flag, counter_threshold, thickness_idx):
                     if(glacier_delta_h):
                         delta_h_DEM_current_glacier = genfromtxt(path_delta_h_param + glimsID + '_DEM.csv', delimiter=';')
                         delta_h_dh_current_glacier = genfromtxt(path_delta_h_param + glimsID + '_dh.csv', delimiter=';')
+                        
+                        # Uncomment to add uncertainty assessement +-10%
+#                        delta_h_dh_current_glacier = delta_h_dh_current_glacier*1.1
+#                        delta_h_dh_current_glacier = delta_h_dh_current_glacier*0.9
                     else:
                         delta_h_DEM_current_glacier = np.ones(50)
                         delta_h_dh_current_glacier = np.ones(50)
@@ -1484,22 +1524,21 @@ def main(compute, overwrite_flag, counter_threshold, thickness_idx):
                              print("/!\ Ice depth raster coordinates not aligned with GLIMS database for Glacier " + str(glacierName) + " with area = " + str(glacierArea) + " km2\n")
                              glaciers_with_errors.append(glacierName)
                              continue
-                        raster_F19_2003 = gdal.Open(path_glacier_ID_2003) 
-                        ice_depth_glacier_2003 = raster_F19_2003.ReadAsArray()
+#                        raster_F19_2003 = gdal.Open(path_glacier_ID_2003) 
+#                        ice_depth_glacier_2003 = raster_F19_2003.ReadAsArray()
                         
-                        ### We modify the ice depth in order to compute the effects of the uncertainties ###
+                          ### We modify the ice depth in order to compute the effects of the uncertainties ###
                         if(thickness_idx == 1):
-                            ice_depth_current_glacier = ice_depth_current_glacier*1.3
-                            thickness_folder_tail = "1.3\\"
-                            print("\nIce thickness *1.3 simulation \n")
+                            thick_comp = 1.3
+                            ice_depth_current_glacier = ice_depth_current_glacier*thick_comp
                         elif(thickness_idx == 2):
-                            ice_depth_current_glacier = ice_depth_current_glacier*0.7
-                            thickness_folder_tail = "0.7\\"
-                            print("\nIce thickness *0.7 simulation \n")
+                            thick_comp = 0.7
+                            ice_depth_current_glacier = ice_depth_current_glacier*thick_comp
                         else:
-                            thickness_folder_tail = "1\\"
-                            print("\nOriginal Ice thickness simulation \n")
-                        midfolder = midfolder_base+thickness_folder_tail
+                            thick_comp = 1
+                            
+                        # Filter noise 
+                        ice_depth_current_glacier = np.where(ice_depth_current_glacier > 550*thick_comp, 0, ice_depth_current_glacier)
                         
                     else:
                         print("\n/!\ Ice depth raster doesn't exist for Glacier " + str(glacierName) + " with area = " + str(glacierArea) + " km2\n")
@@ -1513,8 +1552,8 @@ def main(compute, overwrite_flag, counter_threshold, thickness_idx):
                         raster_current_DEM = gdal.Open(current_glacier_DEM) 
                         DEM_current_glacier = np.round(raster_current_DEM.ReadAsArray())
                         
-                        raster_DEM_2003 = gdal.Open(path_glacier_DEM_2003) 
-                        DEM_glacier_2003 = np.round(raster_DEM_2003.ReadAsArray())
+#                        raster_DEM_2003 = gdal.Open(path_glacier_DEM_2003) 
+#                        DEM_glacier_2003 = np.round(raster_DEM_2003.ReadAsArray())
                         
                     else:
                         print("/!\ DEM raster doesn't exist for Glacier " + str(glacierName) + " with area = " + str(glacierArea) + " km2")
@@ -1522,15 +1561,12 @@ def main(compute, overwrite_flag, counter_threshold, thickness_idx):
                     
                     # We get the flattened versions of the ID and the DEM of the current glacier
                     masked_ID_current_glacier = np.ma.masked_values(np.float64(ice_depth_current_glacier), 0.0)
-                    masked_ID_glacier_2003 = np.ma.masked_values(np.float64(ice_depth_glacier_2003), 0.0)
                     masked_DEM_current_glacier = np.ma.array(DEM_current_glacier, mask = masked_ID_current_glacier.mask)
-                    masked_DEM_glacier_2003 = np.ma.array(DEM_glacier_2003, mask = masked_ID_glacier_2003.mask)
+                    flat_DEM_current_glacier = masked_DEM_current_glacier.compressed()
                     
                     # We sort the DEM by altitude in order to have the altitudinal range ready for iteration
                     DEM_sorted_current_glacier = np.sort(flat_DEM_current_glacier, axis=None)
                     DEM_sorted_current_glacier = np.unique(DEM_sorted_current_glacier[DEM_sorted_current_glacier > 0])
-                    
-                    DEM_sorted_current_glacier_init = np.unique(DEM_sorted_glacier_2003[DEM_sorted_glacier_2003 > 0])
                     
                     if(forcing == 'ADAMONT'):
                         SAFRAN_idx = get_ADAMONT_idx(massif_idx, masked_DEM_current_glacier.compressed().mean(), massif_number, daily_meteo_data['zs'])
@@ -1549,12 +1585,12 @@ def main(compute, overwrite_flag, counter_threshold, thickness_idx):
                                                                                                 delta_h_DEM_current_glacier, 
                                                                                                 DEM_sorted_current_glacier, 
                                                                                                 daily_meteo_data, meteo_anomalies,
-                                                                                                flowline, raster_current_DEM, 
+                                                                                                flowline, raster_current_DEM, current_glacier_DEM,
                                                                                                 store_plots, glacierName, 
                                                                                                 glacierID, glimsID, massif, lat, lon, aspect,
                                                                                                 midfolder, pixel_area, glaciers_with_errors,
                                                                                                 lasso_scaler, lasso_model, ann_model,
-                                                                                                year_range, SAFRAN_idx, overwrite) 
+                                                                                                year_range, ref_start, ref_end, SAFRAN_idx, overwrite) 
                     
                     if(glacier_melted_flag):
                         melted_glaciers.append([glacierName, glacier_melt_year])
