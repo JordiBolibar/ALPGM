@@ -13,6 +13,7 @@ GLACIER SMB MACHINE LEARNING MODEL(S) TRAINING
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy import genfromtxt
+import numpy.polynomial.polynomial as poly
 #from numba import jit
 import math
 import time
@@ -112,7 +113,6 @@ def create_spatiotemporal_matrix(SMB_raw, season_raw_meteo_anomalies_SMB, mon_te
     print("Creating spatiotemporal matrix...")
     x_reg, y_reg = [],[]
     max_altitudes = glims_rabatel['MAX_Pixel']
-    # TODO: decide on slope20 version
     slopes20 = glims_rabatel['slope20_evo']
 #    slopes20 = glims_rabatel['slope20']
     lons = glims_rabatel['x_coord']
@@ -607,6 +607,26 @@ def generate_SMB_models(SMB_raw, season_raw_meteo_anomalies_SMB, mon_temp_anomal
     plt.plot(xs,density(xs), label='Ground truth')
     plt.plot(xs,density_nn(xs), label='NN simulation')
     plt.legend()
+    plt.show()
+    
+    fig_idx = fig_idx+1
+    
+    
+    # Error distribution
+    plt.figure(fig_idx)
+    SMB_ann_errors = np.abs(y_ref_ann - SMB_ann_all)
+    pf = poly.Polynomial.fit(y_ref_ann, SMB_ann_errors, 5)
+    x_pf = np.asarray(*pf.linspace(n=y_ref_ann.size)[:1]).flatten()
+    y_pf = np.asarray(*pf.linspace(n=SMB_ann_errors.size)[1:]).flatten()
+#    bins = np.linspace(-4, 3, 70)
+#    digitized = np.digitize(y_re)
+    plt.scatter(y_ref_ann, SMB_ann_errors, s=30, alpha=0.2, c='red')
+    plt.plot(x_pf, y_pf, c='darkred', linewidth=4)
+#    plt.title("Glacier-wide SMB error distribution")
+    plt.ylabel('Error (m.w.e)', fontsize=16)
+    plt.xlabel('Deep learning glacier-wide SMB (m.w.e)', fontsize=16)
+    plt.ylim(0, 2.7)
+#    plt.legend()
     plt.show()
     
     ####################################
