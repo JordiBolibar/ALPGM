@@ -123,7 +123,7 @@ def store_file(data, path, midfolder, file_description, glimsID, year_start, yea
         if not os.path.exists(file_name):
             try:
                 np.savetxt(file_name, data_w_years, delimiter=";", fmt="%.7f")
-                print("File saved: " + str(file_name))
+#                print("File saved: " + str(file_name))
                 stored = True
             except IOError:
                 print("File currently opened. Please close it to proceed.")
@@ -1262,7 +1262,7 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
             
             # We sort the DEM by altitude in order to have the altitudinal range ready for iteration 
             # Reminder: the DEM masked array is masked based on the ID array (ID > 0)
-            if(masked_ID_current_glacier_u.compressed().size > 0):
+            if(masked_ID_current_glacier_u[ice_idx].size > 0):
                 masked_DEM_current_glacier_u.mask = np.ma.make_mask(np.where(masked_ID_current_glacier_u > 0, 0, 1))
                 DEM_sorted_current_glacier_u = np.sort(masked_DEM_current_glacier_u.compressed(), axis=None)
                 DEM_sorted_current_glacier_u = np.unique(DEM_sorted_current_glacier_u[DEM_sorted_current_glacier_u > 0])

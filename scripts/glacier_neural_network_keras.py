@@ -69,6 +69,8 @@ cross_validation = "LSYGO"
 #######  Flag to switch between training with a         ###############
 #######  single group of glaciers or cross-validation   ###############
 training = False
+# Train only the full model without training CV models
+final_model_only = True 
 ########################################
 
 if(cross_validation == 'LOGO'):
@@ -227,7 +229,7 @@ def create_lsygo_model(n_features):
     optimizer = optimizers.rmsprop(lr=0.002)
     
     # Compilation
-    model.compile(optimizer = optimizer, loss=root_mean_squared_error, metrics=[root_mean_squared_error])
+    model.compile(optimizer = optimizer, loss=root_mean_squared_error, metrics=[r2_keras])
 #    model.compile(optimizer = optimizer, loss=r2_keras_loss, metrics=[r2_keras])
 
     
@@ -525,7 +527,6 @@ if(training):
 # Training for all the folds    
 else:
     
-    
     # Set training sample weights and epochs
     weights_full = compute_sample_weight(class_weight='balanced', y=y)
     
@@ -557,164 +558,169 @@ else:
         full_model = create_lsygo_model(n_features)
         fold_filter = -1
         n_epochs = 2000
+        
+    if(not final_model_only):
      
-    fold_count = 0
-    
-    for train_idx, test_idx in splits:
-        # We skip the first dummy fold with the "extra years"
-        if(fold_count > fold_filter):
+        fold_count = 0
         
-            print("\nFold " + str(fold_idx))
+        for train_idx, test_idx in splits:
+            # We skip the first dummy fold with the "extra years"
+            if(fold_count > fold_filter):
             
-            print("train_idx: " + str(train_idx) + "  -   " + str(np.count_nonzero(train_idx)) + " values")
-            print("test_idx: " + str(test_idx) + "  -   " + str(np.count_nonzero(test_idx)) + " values")
-            
-#            import pdb; pdb.set_trace()
-    #        
-            X_test = X[test_idx]
-            y_test = y[test_idx]
-            X_train = X[train_idx]
-            y_train = y[train_idx]
-            
-#            if(cross_validation == 'LSYGO'):
-#                print("test_idx: " + str(np.where(test_idx == True)))
+                print("\nFold " + str(fold_idx))
                 
-#                print("\nglaciers test: " + str(groups[test_idx]))
-#                print("years test: " + str(year_groups[test_idx]))
-#                
-#                print("\nglaciers train: " + str(groups[train_idx]))
-#                print("years train: " + str(year_groups[train_idx]))
-#                print("train_idx: " + str(np.where(train_idx == True)))
+                print("train_idx: " + str(train_idx) + "  -   " + str(np.count_nonzero(train_idx)) + " values")
+                print("test_idx: " + str(test_idx) + "  -   " + str(np.count_nonzero(test_idx)) + " values")
                 
-#                import pdb; pdb.set_trace()
-            
-            weights_train = weights_full[train_idx]
-            weights_test = weights_full[test_idx]
-            
+    #            import pdb; pdb.set_trace()
+        #        
+                X_test = X[test_idx]
+                y_test = y[test_idx]
+                X_train = X[train_idx]
+                y_train = y[train_idx]
                 
-            if(cross_validation == "LOGO"):
-                model = create_logo_model(n_features)
-                file_name = 'best_model_LOGO.h5'
-            elif(cross_validation == "LOYO"):
-                model = create_loyo_model(n_features)
-                file_name = 'best_model_LOYO.h5'
-            elif(cross_validation == "LSYGO"):
-                model = create_lsygo_model(n_features)
-                file_name = 'best_model_LSYGO.h5'
-            elif(cross_validation == "LSYGO_past"):
-                model = create_lsygo_model(n_features)
-                file_name = 'best_model_LSYGO_past.h5'
-            
-            es = EarlyStopping(monitor='val_loss', mode='min', min_delta=0.01, patience=1000)
-            mc = ModelCheckpoint(path_ann + str(file_name), monitor='val_loss', mode='min', save_best_only=True, verbose=1)
-    
-            if(w_weights):
-                # Training with weights
-                history = model.fit(X_train, y_train, validation_data = (X_test, y_test), epochs=n_epochs, batch_size = 32, sample_weight = weights_train, callbacks=[es, mc], verbose=1)
-            else:
-                # Training without weights
-                history = model.fit(X_train, y_train, validation_data = (X_test, y_test), epochs=n_epochs, batch_size = 32, callbacks=[es, mc], verbose=1)
-            
-            # load the saved model
-            best_model = load_model(path_ann  + str(file_name), custom_objects={"r2_keras": r2_keras, "r2_keras_loss": r2_keras_loss, "root_mean_squared_error": root_mean_squared_error})
-            
-            score = best_model.evaluate(X_test, y_test)
-            print(best_model.metrics_names)
-            print(score)
-            
-            SMB_nn = best_model.predict(X_test, batch_size = 32)
-            SMB_nn_all = np.concatenate((SMB_nn_all, SMB_nn), axis=None)
-            
-            print("Manual r2: " + str(r2_score(y_test, SMB_nn)))
-            print("Manual RMSE: " + str(math.sqrt(mean_squared_error(y_test, SMB_nn))))
-            
-            if(w_weights):
-                print("Manual r2 w/ weights: " + str(r2_score(y_test, SMB_nn, weights_test)))
-                print("Manual RMSE w/ weights: " + str(math.sqrt(mean_squared_error(y_test, SMB_nn, weights_test))))
-            
-            
-              # We plot the current fold
-    #        plt.scatter(y_test, SMB_nn, alpha=0.7, marker = next(marker), label='Glacier ' + str(glacier_idx))
-            
-            r2_nn_all = np.concatenate((r2_nn_all, r2_score(y_test, SMB_nn)), axis=None)
-            RMSE_nn_all = np.concatenate((RMSE_nn_all, math.sqrt(mean_squared_error(y_test, SMB_nn))), axis=None)
-            SMB_ref_all = np.concatenate((SMB_ref_all, y_test), axis=None)
-            
-            if(w_weights):
-                r2_nn_all_w = np.concatenate((r2_nn_all_w, r2_score(y_test, SMB_nn, weights_test)), axis=None)
-                RMSE_nn_all_w = np.concatenate((RMSE_nn_all_w, math.sqrt(mean_squared_error(y_test, SMB_nn, weights_test))), axis=None)
-            
-            #### We store the CV model
-            if not os.path.exists(path_cv_ann):
-                os.makedirs(path_cv_ann)
-            ##### We save the model in HDF5 format
-            best_model.save(path_cv_ann + 'glacier_' + str(fold_idx) + '_model.h5')
-            print("CV model saved to disk")
-            
-            # Clear tensorflow graph to avoid slowing CPU down
-            if(fold_idx != 64):
-                K.clear_session()
-            
-            fold_idx = fold_idx+1
-            
-        fold_count = fold_count+1
+    #            if(cross_validation == 'LSYGO'):
+    #                print("test_idx: " + str(np.where(test_idx == True)))
+                    
+    #                print("\nglaciers test: " + str(groups[test_idx]))
+    #                print("years test: " + str(year_groups[test_idx]))
+    #                
+    #                print("\nglaciers train: " + str(groups[train_idx]))
+    #                print("years train: " + str(year_groups[train_idx]))
+    #                print("train_idx: " + str(np.where(train_idx == True)))
+                    
+    #                import pdb; pdb.set_trace()
+                
+                weights_train = weights_full[train_idx]
+                weights_test = weights_full[test_idx]
+                
+                if(cross_validation == "LOGO"):
+                    model = create_logo_model(n_features)
+                    file_name = 'best_model_LOGO.h5'
+                elif(cross_validation == "LOYO"):
+                    model = create_loyo_model(n_features)
+                    file_name = 'best_model_LOYO.h5'
+                elif(cross_validation == "LSYGO"):
+                    model = create_lsygo_model(n_features)
+                    file_name = 'best_model_LSYGO.h5'
+                elif(cross_validation == "LSYGO_past"):
+                    model = create_lsygo_model(n_features)
+                    file_name = 'best_model_LSYGO_past.h5'
+                
+                es = EarlyStopping(monitor='val_loss', mode='min', min_delta=0.01, patience=1000)
+                mc = ModelCheckpoint(path_ann + str(file_name), monitor='val_loss', mode='min', save_best_only=True, verbose=1)
         
-    r2_nn_all = np.asarray(r2_nn_all)
-    RMSE_nn_all = np.asarray(RMSE_nn_all)
-    if(w_weights):
-        r2_nn_all_w = np.asarray(r2_nn_all_w)
-        RMSE_nn_all_w = np.asarray(RMSE_nn_all_w)
-    
-    weights_validation = compute_sample_weight(class_weight='balanced', y=SMB_ref_all)
-    
-    print("\nScores from averaging folds: ")
-    print("\nMean overall r2: " + str(r2_nn_all.mean()))
-    print("\nMean overall RMSE: " + str(RMSE_nn_all.mean()))
-    if(w_weights):
-        print("\nMean overall r2 w/ weights: " + str(r2_nn_all_w.mean()))
-        print("\nMean overall RMSE w/ weights: " + str(RMSE_nn_all_w.mean()))
-    print("--------------------------")
-    
-    print("\nScores computed on all values together:")
-    print("\nMean overall r2: " + str(r2_score(SMB_ref_all, SMB_nn_all)))
-    print("\nMean overall RMSE: " + str(math.sqrt(mean_squared_error(SMB_ref_all, SMB_nn_all))))
-    print("\nMean overall MAE: " + str(mean_absolute_error(SMB_ref_all, SMB_nn_all)))
-    
-    if(w_weights):
-        print("\nMean overall r2 w/ weights: " + str(r2_score(SMB_ref_all, SMB_nn_all, weights_validation)))
-        print("\nMean overall RMSE w/ weights: " + str(math.sqrt(mean_squared_error(SMB_ref_all, SMB_nn_all, weights_validation))))
+                if(w_weights):
+                    # Training with weights
+                    history = model.fit(X_train, y_train, validation_data = (X_test, y_test), epochs=n_epochs, batch_size = 32, sample_weight = weights_train, callbacks=[es, mc], verbose=1)
+                else:
+                    # Training without weights
+                    history = model.fit(X_train, y_train, validation_data = (X_test, y_test), epochs=n_epochs, batch_size = 32, callbacks=[es, mc], verbose=1)
+                
+                # load the saved model
+                best_model = load_model(path_ann  + str(file_name), custom_objects={"r2_keras": r2_keras, "r2_keras_loss": r2_keras_loss, "root_mean_squared_error": root_mean_squared_error})
+                
+                score = best_model.evaluate(X_test, y_test)
+                print(best_model.metrics_names)
+                print(score)
+                
+                SMB_nn = best_model.predict(X_test, batch_size = 32)
+                SMB_nn_all = np.concatenate((SMB_nn_all, SMB_nn), axis=None)
+                
+                print("Manual r2: " + str(r2_score(y_test, SMB_nn)))
+                print("Manual RMSE: " + str(math.sqrt(mean_squared_error(y_test, SMB_nn))))
+                
+                if(w_weights):
+                    print("Manual r2 w/ weights: " + str(r2_score(y_test, SMB_nn, weights_test)))
+                    print("Manual RMSE w/ weights: " + str(math.sqrt(mean_squared_error(y_test, SMB_nn, weights_test))))
+                
+                
+                  # We plot the current fold
+        #        plt.scatter(y_test, SMB_nn, alpha=0.7, marker = next(marker), label='Glacier ' + str(glacier_idx))
+                
+                r2_nn_all = np.concatenate((r2_nn_all, r2_score(y_test, SMB_nn)), axis=None)
+                RMSE_nn_all = np.concatenate((RMSE_nn_all, math.sqrt(mean_squared_error(y_test, SMB_nn))), axis=None)
+                SMB_ref_all = np.concatenate((SMB_ref_all, y_test), axis=None)
+                
+                if(w_weights):
+                    r2_nn_all_w = np.concatenate((r2_nn_all_w, r2_score(y_test, SMB_nn, weights_test)), axis=None)
+                    RMSE_nn_all_w = np.concatenate((RMSE_nn_all_w, math.sqrt(mean_squared_error(y_test, SMB_nn, weights_test))), axis=None)
+                
+                #### We store the CV model
+                if not os.path.exists(path_cv_ann):
+                    os.makedirs(path_cv_ann)
+                ##### We save the model in HDF5 format
+                best_model.save(path_cv_ann + 'glacier_' + str(fold_idx) + '_model.h5')
+                print("CV model saved to disk")
+                
+                # Clear tensorflow graph to avoid slowing CPU down
+                if(fold_idx != 64):
+                    K.clear_session()
+                
+                fold_idx = fold_idx+1
+                
+            fold_count = fold_count+1
+            
+        r2_nn_all = np.asarray(r2_nn_all)
+        RMSE_nn_all = np.asarray(RMSE_nn_all)
+        if(w_weights):
+            r2_nn_all_w = np.asarray(r2_nn_all_w)
+            RMSE_nn_all_w = np.asarray(RMSE_nn_all_w)
         
-    print("\nRMSE per fold: " + str(RMSE_nn_all))
+        weights_validation = compute_sample_weight(class_weight='balanced', y=SMB_ref_all)
+        
+        print("\nScores from averaging folds: ")
+        print("\nMean overall r2: " + str(r2_nn_all.mean()))
+        print("\nMean overall RMSE: " + str(RMSE_nn_all.mean()))
+        if(w_weights):
+            print("\nMean overall r2 w/ weights: " + str(r2_nn_all_w.mean()))
+            print("\nMean overall RMSE w/ weights: " + str(RMSE_nn_all_w.mean()))
+        print("--------------------------")
+        
+        print("\nScores computed on all values together:")
+        print("\nMean overall r2: " + str(r2_score(SMB_ref_all, SMB_nn_all)))
+        print("\nMean overall RMSE: " + str(math.sqrt(mean_squared_error(SMB_ref_all, SMB_nn_all))))
+        print("\nMean overall MAE: " + str(mean_absolute_error(SMB_ref_all, SMB_nn_all)))
+        
+        if(w_weights):
+            print("\nMean overall r2 w/ weights: " + str(r2_score(SMB_ref_all, SMB_nn_all, weights_validation)))
+            print("\nMean overall RMSE w/ weights: " + str(math.sqrt(mean_squared_error(SMB_ref_all, SMB_nn_all, weights_validation))))
+            
+        print("\nRMSE per fold: " + str(RMSE_nn_all))
+        
+        import pdb; pdb.set_trace()
+        
+        # Calculate the point density
+        xy = np.vstack([SMB_ref_all,SMB_nn_all])
+        z = gaussian_kde(xy)(xy)
+        # Sort the points by density, so that the densest points are plotted last
+        idx = z.argsort()
+        y_plt, ann_plt, z = SMB_ref_all[idx], SMB_nn_all[idx], z[idx]
+        
+        plt.figure(figsize=(6,6))
+        plt.title("Deep learning glacier-wide SMB simulation (1959-1983)", fontsize=16)
+        plt.ylabel('SMB modeled by ANN', fontsize=14)
+        plt.xlabel('SMB from remote sensing (ground truth)', fontsize=14)
+        lineStart = SMB_ref_all.min() 
+        lineEnd = SMB_ref_all.max()  
+        sc = plt.scatter(y_plt, ann_plt, c=z, s=50)
+        cbar = plt.colorbar(sc, label="Kernel density estimation")
+        plt.plot([lineStart, lineEnd], [lineStart, lineEnd], 'k-', color = 'black')
+        plt.xlim(lineStart, lineEnd)
+        plt.ylim(lineStart, lineEnd)
+        plt.legend()
+        plt.show()
     
-    import pdb; pdb.set_trace()
-    
-    # Calculate the point density
-    xy = np.vstack([SMB_ref_all,SMB_nn_all])
-    z = gaussian_kde(xy)(xy)
-    # Sort the points by density, so that the densest points are plotted last
-    idx = z.argsort()
-    y_plt, ann_plt, z = SMB_ref_all[idx], SMB_nn_all[idx], z[idx]
-    
-    plt.figure(figsize=(6,6))
-    plt.title("Deep learning glacier-wide SMB simulation (1959-1983)", fontsize=16)
-    plt.ylabel('SMB modeled by ANN', fontsize=14)
-    plt.xlabel('SMB from remote sensing (ground truth)', fontsize=14)
-    lineStart = SMB_ref_all.min() 
-    lineEnd = SMB_ref_all.max()  
-    sc = plt.scatter(y_plt, ann_plt, c=z, s=50)
-    cbar = plt.colorbar(sc, label="Kernel density estimation")
-    plt.plot([lineStart, lineEnd], [lineStart, lineEnd], 'k-', color = 'black')
-    plt.xlim(lineStart, lineEnd)
-    plt.ylim(lineStart, lineEnd)
-    plt.legend()
-    plt.show()
     
     #### We train the model with the full dataset and we store it
     
-#    import pdb; pdb.set_trace()
+    file_name = 'best_model_full.h5'
     
-    es = EarlyStopping(monitor='val_loss', mode='min', min_delta=0.01, patience=1000)
-    mc = ModelCheckpoint(path_ann + str(file_name), monitor='val_loss', mode='min', save_best_only=True, verbose=1)
+    es = EarlyStopping(monitor='loss', mode='min', min_delta=0.01, patience=1500)
+    mc = ModelCheckpoint(path_ann + str(file_name), monitor='loss', mode='min', save_best_only=True, verbose=1)
+    n_epochs = 3000
+    
+#    import pdb; pdb.set_trace()
     
     if(w_weights):
          # Training with weights
@@ -724,7 +730,6 @@ else:
         history = full_model.fit(X, y, epochs=n_epochs, batch_size = 32, callbacks=[es, mc], verbose=1)
         
     # load the saved model
-    file_name = 'best_model_full.h5'
     best_model_full = load_model(path_ann  + str(file_name), custom_objects={"r2_keras": r2_keras, "r2_keras_loss": r2_keras_loss, "root_mean_squared_error": root_mean_squared_error})
     full_score = best_model_full.evaluate(X, y)
     print("Full model score: " + str(full_score))
