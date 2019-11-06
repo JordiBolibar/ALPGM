@@ -71,6 +71,7 @@ cross_validation = "LSYGO"
 training = False
 # Train only the full model without training CV models
 final_model_only = True 
+ensemble = True
 ########################################
 
 if(cross_validation == 'LOGO'):
@@ -688,7 +689,7 @@ else:
             
         print("\nRMSE per fold: " + str(RMSE_nn_all))
         
-        import pdb; pdb.set_trace()
+#        import pdb; pdb.set_trace()
         
         # Calculate the point density
         xy = np.vstack([SMB_ref_all,SMB_nn_all])
@@ -712,39 +713,56 @@ else:
         plt.show()
     
     
-    #### We train the model with the full dataset and we store it
+    ###############    We train the model with the full dataset and we store it   #######################################
     
-    file_name = 'best_model_full.h5'
-    
-    es = EarlyStopping(monitor='loss', mode='min', min_delta=0.01, patience=1500)
-    mc = ModelCheckpoint(path_ann + str(file_name), monitor='loss', mode='min', save_best_only=True, verbose=1)
-    n_epochs = 3000
-    
-#    import pdb; pdb.set_trace()
-    
-    if(w_weights):
-         # Training with weights
-         history = full_model.fit(X, y, epochs=n_epochs, batch_size = 32, sample_weight = weights_full, callbacks=[es, mc], verbose=1)
-    else:
-        # Training without weights
-        history = full_model.fit(X, y, epochs=n_epochs, batch_size = 32, callbacks=[es, mc], verbose=1)
-        
-    # load the saved model
-    best_model_full = load_model(path_ann  + str(file_name), custom_objects={"r2_keras": r2_keras, "r2_keras_loss": r2_keras_loss, "root_mean_squared_error": root_mean_squared_error})
-    full_score = best_model_full.evaluate(X, y)
-    print("Full model score: " + str(full_score))
-    
-     #### We store the full model
-    if not os.path.exists(path_ann):
-        os.makedirs(path_ann)
-    ##### We serialize the weights to HDF5
-    best_model_full.save(path_ann + 'ann_glacier_model.h5')
-                    
-    with open(path_ann + 'SMB_nn_all.txt', 'wb') as SMB_nn_all_f: 
-        np.save(SMB_nn_all_f, SMB_nn_all)
+    # We create N models in an ensemble approach to be averaged
+    if(ensemble):
+        ensemble_size = 60
+        path_ann_ensemble = path_ann_LSYGO + 'ensemble\\'
+        for e_idx in range(1, ensemble_size+1):
+            # Create folder for each ensemble member
+            path_e_member = path_ann_ensemble + str(e_idx) + '\\'
+            if not os.path.exists(path_e_member):
+                os.makedirs(path_e_member)
             
-    print("Full model saved to disk")
-    
+            file_name = 'best_model_full.h5'
+            
+            # Create new model to avoid re-training the previous one
+            full_model = create_lsygo_model(n_features)
+            es = EarlyStopping(monitor='loss', mode='min', min_delta=0.01, patience=1000)
+            mc = ModelCheckpoint(path_e_member + str(file_name), monitor='loss', mode='min', save_best_only=True, verbose=1)
+            
+            if(w_weights):
+                 # Training with weights
+                 history = full_model.fit(X, y, epochs=n_epochs, batch_size = 32, sample_weight = weights_full, callbacks=[es, mc], verbose=1)
+            else:
+                # Training without weights
+                history = full_model.fit(X, y, epochs=n_epochs, batch_size = 32, callbacks=[es, mc], verbose=1)
+                
+            # load the saved model
+            best_model_full = load_model(path_e_member  + str(file_name), custom_objects={"r2_keras": r2_keras, "r2_keras_loss": r2_keras_loss, "root_mean_squared_error": root_mean_squared_error})
+            full_score = best_model_full.evaluate(X, y, batch_size = 32)
+            full_original_score = full_model.evaluate(X, y, batch_size = 32)
+            print("Full best model score: " + str(full_score))
+            print("Full model score: " + str(full_original_score))
+            
+             #### We store the full model
+            if not os.path.exists(path_e_member):
+                os.makedirs(path_e_member)
+            ##### We serialize the weights to HDF5
+            best_model_full.save(path_e_member + 'ann_glacier_model.h5')
+                            
+            with open(path_e_member + 'SMB_nn_all.txt', 'wb') as SMB_nn_all_f: 
+                np.save(SMB_nn_all_f, SMB_nn_all)
+                    
+            print("Full model saved to disk")
+            
+            # Clear tensorflow graph to avoid slowing CPU down
+            K.clear_session()
+            
+        print("\nEnsemble model members completed")
+        
+    import pdb; pdb.set_trace()
     
     ################################################################################################################
     

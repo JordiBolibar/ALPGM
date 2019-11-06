@@ -34,6 +34,8 @@ from pathlib import Path
 
 from keras import backend as K
 from keras.models import load_model
+import tensorflow as tf
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 matplotlib.use("GTKCairo", warn=False)
 
@@ -209,6 +211,76 @@ def create_input_array(season_anomalies_y, monthly_anomalies_y, mean_alt_y, max_
     
     return np.asarray(input_variables_array), np.asarray(input_features_nn_array)
 
+# Preloads all the ANN SMB ensemble models to speed up the simulations
+@jit
+def preload_ensemble_SMB_models():
+    print("\nPreloading ensemble SMB models...\n")
+    path_ensemble = workspace + 'glacier_data\\smb\\ANN\\LSYGO\\ensemble\\'
+#    path_ensemble = settings.path_ann + 'ensemble\\'
+    path_ensemble_members = np.asarray(os.listdir(path_ensemble))
+    
+    ensemble_members = []
+    for path_member in path_ensemble_members:
+        # We retrieve the ensemble member ANN model
+        # Clear session to speed up load time
+#        K.clear_session()
+        ann_member_model = load_model(path_ensemble + path_member + '\\ann_glacier_model.h5', custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error}, compile=False)
+        ensemble_members.append(ann_member_model)
+        print("|", end="", flush=True)
+    ensemble_members = np.asarray(ensemble_members)
+    print("\n")
+    
+    return ensemble_members
+
+# Makes an ANN glacier-wide SMB simulation using an ensemble approach
+# Evolution flag = True for glacier_evolution.py format and False for smb_validation.py format
+@jit
+def make_ensemble_simulation(ensemble_SMB_models, x_ann, batch_size, evolution):
+    SMB_ensemble = []
+    first = True
+    member_idx = 0
+    # We iterate the previously loaded ensemble models
+    for ensemble_model in ensemble_SMB_models:
+        # We retrieve the ensemble member ANN model
+        # Make single member prediction
+        if(evolution):
+            x_ann = x_ann.reshape(1,-1)
+            SMB_member = ensemble_model.predict(x_ann, batch_size=batch_size)[0][0]
+        else:
+            SMB_member = ensemble_model.predict(x_ann, batch_size=batch_size).flatten()
+        if(first):
+            print("\nRunning ensemble SMB simulation", end="", flush=True)
+        print(".", end="", flush=True)
+        
+        # Add member simulation to ensemble
+        SMB_ensemble.append(SMB_member)
+        first = False
+        member_idx = member_idx+1
+    
+    # We compute the ensemble average value
+    if(evolution):
+        ensemble_simulation = np.average(SMB_ensemble)
+    else:
+        # We initialize the empty struture to fill with annual data
+        ensemble_data, ensemble_simulation = [],[]
+        for year in SMB_ensemble[0]:
+            ensemble_data.append([])
+        # We fill the data structure
+        for member in SMB_ensemble:
+            year_idx = 0
+            for year in member:
+                ensemble_data[year_idx].append(year)
+                year_idx = year_idx+1
+        # We compute the average annual value
+        for year in ensemble_data:
+            ensemble_simulation.append(np.average(year))
+        ensemble_simulation = np.asarray(ensemble_simulation)
+    
+#    print("\nAverage simulation: " + str(ensemble_simulation))
+    
+    # We return the average value of all the ensemble members
+    return ensemble_simulation
+        
     
 def getRasterInfo(raster_current_F19):
     global r_projection
@@ -1118,7 +1190,7 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
                       flowline, raster_current_DEM, current_glacier_DEM, store_plots, 
                       glacierName, glacierID, glimsID, massif, lat, lon, aspect,
                       midfolder, pixel_area, glaciers_with_errors, 
-                      lasso_scaler, lasso_model, ann_model,
+                      lasso_scaler, lasso_model, ann_model, ensemble_SMB_models,
                       year_range, ref_start, ref_end, SAFRAN_idx, overwrite):
     
     print("Applying glacier evolution...")
@@ -1200,7 +1272,8 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
             if(settings.smb_model_type == "lasso"):
                 SMB_y = lasso_model.predict(lasso_scaler.transform(x_lasso.reshape(1,-1)))
             elif(settings.smb_model_type == "ann_no_weights" or settings.smb_model_type == "ann_weights"):
-                SMB_y = ann_model.predict(x_ann.reshape(1,-1), batch_size=34)[0][0]
+                # We use an ensemble approach to compute the glacier-wide SMB
+                SMB_y = make_ensemble_simulation(ensemble_SMB_models, x_ann, batch_size=34, evolution=True)
             
             yearly_simulated_SMB.append(SMB_y)
             print("Simulated SMB: " + str(SMB_y))
@@ -1330,10 +1403,10 @@ def main(compute, overwrite_flag, counter_threshold, thickness_idx):
         path_safran_forcings = path_smb_function + 'SAFRAN\\'
         
         if(settings.smb_model_type == 'ann_no_weights'):
-            path_ann_train = path_smb + 'ANN\\LOGO\\no_weights\\'
+            path_ann_train = path_smb + 'ANN\\LSYGO\\no_weights\\'
             path_cv_ann = path_ann_train + 'CV\\'
         elif(settings.smb_model_type == 'ann_weights'):
-            path_ann_train = path_smb + 'ANN\\LOGO\\weights\\'
+            path_ann_train = path_smb + 'ANN\\LSYGO\\weights\\'
             path_cv_ann = path_ann_train + 'CV\\'
         
         ### We detect the forcing between SPAZM, SAFRAN or ADAMONT
@@ -1577,6 +1650,8 @@ def main(compute, overwrite_flag, counter_threshold, thickness_idx):
                     # We get the glacier's reference meteorological values ( [()] in order to access the dictionaries)
                     CPDD_ref, w_snow_ref, s_snow_ref, mon_temp_ref, mon_snow_ref = get_meteo_references(season_meteo, monthly_meteo, glimsID, glacierName)
                     meteo_anomalies = {'CPDD': CPDD_ref, 'w_snow': w_snow_ref, 's_snow': s_snow_ref, 'mon_temp': mon_temp_ref, 'mon_snow': mon_snow_ref}
+                    
+                    ensemble_SMB_models = preload_ensemble_SMB_models()
                         
                     # We compute the glacier retreat, updating the DEM and ID matrixes and storing the rasters for every year
                     masked_DEM_current_glacier_u, masked_ID_current_glacier_u = glacier_evolution(masked_DEM_current_glacier, 
@@ -1589,7 +1664,7 @@ def main(compute, overwrite_flag, counter_threshold, thickness_idx):
                                                                                                 store_plots, glacierName, 
                                                                                                 glacierID, glimsID, massif, lat, lon, aspect,
                                                                                                 midfolder, pixel_area, glaciers_with_errors,
-                                                                                                lasso_scaler, lasso_model, ann_model,
+                                                                                                lasso_scaler, lasso_model, ann_model, ensemble_SMB_models,
                                                                                                 year_range, ref_start, ref_end, SAFRAN_idx, overwrite) 
                     
                     if(glacier_melted_flag):

@@ -27,7 +27,7 @@ from netCDF4 import Dataset
 import sys
 import pandas as pd
 from pathlib import Path
-from glacier_evolution import store_file, get_aspect_deg, empty_folder
+from glacier_evolution import store_file, get_aspect_deg, empty_folder, make_ensemble_simulation, preload_ensemble_SMB_models
 
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import r2_score
@@ -36,6 +36,8 @@ from sklearn.utils.class_weight import compute_sample_weight
 from keras import backend as K
 #from keras import optimizers
 from keras.models import load_model
+import tensorflow as tf
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
 ######   FILE PATHS    #######
@@ -402,7 +404,7 @@ def get_default_SAFRAN_forcings(year_start, year_end):
     path_zs = path_smb_function_safran +'zs_years' + str(year_start) + '-' + str(year_end) + '.txt'
     if(os.path.exists(path_temps) & os.path.exists(path_snow) & os.path.exists(path_rain) & os.path.exists(path_dates) & os.path.exists(path_zs)):
         print("Fetching SAFRAN forcings...")
-        print("\Taking forcings from " + str(path_temps))
+        print("\nTaking forcings from " + str(path_temps))
         
         with open(path_temps, 'rb') as temps_f:
             daily_temps_years = np.load(temps_f, encoding='latin1')
@@ -721,12 +723,15 @@ def main(compute, reconstruct):
                 ####  SMB simulation for all the French alpine glaciers
                 print("\nNow we simulate the glacier-wide SMB for all the French alpine glaciers")
                 glacier_idx = 0
-                # We retrie the ANN model
-                ann_model = load_model(path_ann + 'ann_glacier_model.h5', custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error})
+#                # We retrie the ANN model
+#                ann_model = load_model(path_ann + 'ann_glacier_model.h5', custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error})
                 
                 # We remove all previous simulations from the folder
                 if(os.path.exists(path_smb_all_glaciers)):
                     shutil.rmtree(path_smb_all_glaciers)
+                
+                # We preload the ensemble SMB models to speed up the simulations
+                ensemble_SMB_models = preload_ensemble_SMB_models()
                 
                 for glims_glacier in glims_2003:
     #                if(glacier_name == "d'Argentiere"):
@@ -755,8 +760,7 @@ def main(compute, reconstruct):
                         
                         #####  Machine learning SMB simulations   ###################
                         # ANN CV model
-                        SMB_nn = ann_model.predict(x_reg_nn, batch_size = 34)
-                        SMB_nn = np.asarray(SMB_nn)[:,0].flatten()
+                        SMB_nn = make_ensemble_simulation(ensemble_SMB_models, x_reg_nn, batch_size = 34, evolution=False)
                         
 #                        print("# years: " + str(SMB_nn.size))
                         print("\nGlacier: " + str(glacier_name))
