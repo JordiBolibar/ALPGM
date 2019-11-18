@@ -14,17 +14,18 @@ import os
 import matplotlib.pyplot as plt
 import copy
 import numpy as np
-import seaborn as sns
+#import seaborn as sns
 import math
 from numpy import genfromtxt
 from pathlib import Path
+#import shutil
 from sklearn.model_selection import LeaveOneGroupOut, KFold
 #from sklearn.preprocessing import StandardScaler, normalize
 #from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from sklearn.utils.class_weight import compute_sample_weight
-from sklearn.neighbors import KernelDensity
+#from sklearn.neighbors import KernelDensity
 
 from keras.callbacks import EarlyStopping
 from keras.callbacks import ModelCheckpoint
@@ -38,9 +39,11 @@ from keras import optimizers
 from keras import backend as K
 from keras.layers import GaussianNoise
 from keras.models import load_model
-from keras import regularizers
+#import tensorflow as tf
+#from tensorflow.keras.backend import set_session
+#from keras import regularizers
 
-from itertools import combinations 
+#from itertools import combinations 
 from scipy.stats import gaussian_kde
 
 ### Force CPU
@@ -61,7 +64,7 @@ path_ann_LSYGO_past = path_smb + 'ANN\\LSYGO_past\\'
 
 ######################################
 #  Training with or without weights  #
-w_weights = False
+w_weights = True
 #cross_validation = "LOGO"
 #cross_validation = "LOYO"
 cross_validation = "LSYGO"
@@ -70,7 +73,8 @@ cross_validation = "LSYGO"
 #######  single group of glaciers or cross-validation   ###############
 training = False
 # Train only the full model without training CV models
-final_model_only = True 
+final_model_only = True
+# Activate the ensemble modelling approach
 ensemble = True
 ########################################
 
@@ -200,37 +204,45 @@ def create_lsygo_model(n_features):
     model.add(Dense(n_features, input_shape=(n_features,), kernel_initializer='he_normal'))
     model.add(BatchNormalization())
     model.add(GaussianNoise(0.1))
+#    model.add(GaussianNoise(0.2))
     
     # Hidden layers
     model.add(Dense(40, kernel_initializer='he_normal'))
     model.add(BatchNormalization())
     model.add(LeakyReLU(alpha=0.05))
     model.add(Dropout(0.3))
+#    model.add(Dropout(0.2))
     
     model.add(Dense(20, kernel_initializer='he_normal'))
     model.add(BatchNormalization()) 
     model.add(LeakyReLU(alpha=0.05))
     model.add(Dropout(0.2))
+#    model.add(Dropout(0.1))
         
     model.add(Dense(10, kernel_initializer='he_normal'))
     model.add(BatchNormalization()) 
     model.add(LeakyReLU(alpha=0.05))
     model.add(Dropout(0.1))
+#    model.add(Dropout(0.05))
     
     model.add(Dense(5, kernel_initializer='he_normal'))
     model.add(BatchNormalization()) 
     model.add(LeakyReLU(alpha=0.05))
     model.add(Dropout(0.1))
+#    model.add(Dropout(0.05))
     
     # Output layer
     model.add(Dense(1))
     
     ##### Optimizers  #######
 #    optimizer = optimizers.rmsprop(lr=0.05)
-    optimizer = optimizers.rmsprop(lr=0.002)
+#    optimizer = optimizers.rmsprop(lr=0.002)
+#    optimizer = optimizers.rmsprop(lr=0.0005)
+    optimizer = optimizers.rmsprop(lr=0.0007)
+#    optimizer = optimizers.rmsprop(lr=0.0008)
     
     # Compilation
-    model.compile(optimizer = optimizer, loss=root_mean_squared_error, metrics=[r2_keras])
+    model.compile(optimizer = optimizer, loss=root_mean_squared_error, metrics=[root_mean_squared_error])
 #    model.compile(optimizer = optimizer, loss=r2_keras_loss, metrics=[r2_keras])
 
     
@@ -308,6 +320,7 @@ year_idx = 0
 glacier_idx = 0
 np.random.seed(0)
 n_folds = 64
+#n_folds = 120
 random_years = np.random.randint(26, 57, n_folds*4) # Random year idxs
 random_glaciers = np.random.randint(0, 32, n_folds*4) # Random glacier indexes
 
@@ -379,8 +392,10 @@ past_train_matrix = np.array(past_train_int_matrix, dtype=bool)
 
 past_glaciers = np.array([1, 3, 31, 32])
 past_folds_test, past_folds_train = [],[]
+past_years = []
 for past_glacier in past_glaciers:
     past_glacier_test_idx = np.intersect1d(np.where(groups == past_glacier)[0], np.where(year_groups == 0)[0])
+    past_years = np.concatenate((past_years, past_glacier_test_idx), axis=None)
     current_past_fold_test = copy.deepcopy(past_test_matrix)
     current_past_fold_test[past_glacier_test_idx] = True
     past_folds_test.append(current_past_fold_test)
@@ -391,6 +406,9 @@ for past_glacier in past_glaciers:
 
 past_folds_test = np.asarray(past_folds_test)
 past_folds_train = np.asarray(past_folds_train)
+
+# Indexes with all years before 1984
+past_years = np.asarray(past_years)
 
 #import pdb; pdb.set_trace()
 
@@ -531,6 +549,18 @@ else:
     # Set training sample weights and epochs
     weights_full = compute_sample_weight(class_weight='balanced', y=y)
     
+    # TODO: check effect of positive SMB weights
+#    positive_smb_weights = np.where(y > 0, 100, 1)
+    
+#    past_int_years = np.array(past_years, dtype='int')
+#    positive_smb_weights = np.ones(y.shape)
+#    positive_smb_weights[past_int_years] = 10
+##    positive_smb_weights = np.where(y == y[past_int_years], 20, 1)
+#    
+##    import pdb; pdb.set_trace()
+#    
+#    weights_full = positive_smb_weights
+    
     SMB_nn_all = []
     RMSE_nn_all, RMSE_nn_all_w = [],[]
     r2_nn_all, r2_nn_all_w = [],[]
@@ -553,7 +583,8 @@ else:
         splits = zip(lsygo_train_folds, lsygo_test_folds)
         full_model = create_lsygo_model(n_features)
         fold_filter = -1
-        n_epochs = 2000
+#        n_epochs = 2000
+        n_epochs = 1500
     elif(cross_validation == 'LSYGO_past'):
         splits = zip(past_folds_train, past_folds_test)
         full_model = create_lsygo_model(n_features)
@@ -561,8 +592,12 @@ else:
         n_epochs = 2000
         
     if(not final_model_only):
-     
+        
+        # TODO: remove after tests
+#        fold_filter = 2
+#        fold_filter = 3
         fold_count = 0
+        average_overall_score = []
         
         for train_idx, test_idx in splits:
             # We skip the first dummy fold with the "extra years"
@@ -579,6 +614,8 @@ else:
                 y_test = y[test_idx]
                 X_train = X[train_idx]
                 y_train = y[train_idx]
+                
+                print("\nTesting SMB values: " + str(y_test))
                 
     #            if(cross_validation == 'LSYGO'):
     #                print("test_idx: " + str(np.where(test_idx == True)))
@@ -613,7 +650,22 @@ else:
         
                 if(w_weights):
                     # Training with weights
+                    print("\nMax weight " + str(weights_full.max()) + " for " + str(np.where(weights_full == 50)[0].size) + " values")
                     history = model.fit(X_train, y_train, validation_data = (X_test, y_test), epochs=n_epochs, batch_size = 32, sample_weight = weights_train, callbacks=[es, mc], verbose=1)
+                    
+                    SMB_fold_pred = model.predict(X_test)
+                    print("\nReference SMB: " + str(y_test))
+                    print("\nPredicted SMB: " + str(SMB_fold_pred))
+                    
+#                    # summarize history for loss
+#                    plt.plot(history.history['loss'])
+#                    plt.plot(history.history['val_loss'])
+#                    plt.title('model loss')
+#                    plt.ylabel('loss')
+#                    plt.ylim(0, 3)
+#                    plt.xlabel('epoch')
+#                    plt.legend(['train', 'test'], loc='upper left')
+#                    plt.show()
                 else:
                     # Training without weights
                     history = model.fit(X_train, y_train, validation_data = (X_test, y_test), epochs=n_epochs, batch_size = 32, callbacks=[es, mc], verbose=1)
@@ -624,6 +676,8 @@ else:
                 score = best_model.evaluate(X_test, y_test)
                 print(best_model.metrics_names)
                 print(score)
+                average_overall_score.append(score[0])
+                print("\nAverage overall score so far: " + str(np.average(average_overall_score)))
                 
                 SMB_nn = best_model.predict(X_test, batch_size = 32)
                 SMB_nn_all = np.concatenate((SMB_nn_all, SMB_nn), axis=None)
@@ -717,45 +771,82 @@ else:
     
     # We create N models in an ensemble approach to be averaged
     if(ensemble):
-        ensemble_size = 60
+        ensemble_size = 100
         path_ann_ensemble = path_ann_LSYGO + 'ensemble\\'
+        average_overall_score = []
+        
+        # We clear all the previous models to avoid problems loading files
+#        if(os.path.exists(path_ann_ensemble)):
+#            shutil.rmtree(path_ann_ensemble)
+#            os.makedirs(path_ann_ensemble)
+        
         for e_idx in range(1, ensemble_size+1):
-            # Create folder for each ensemble member
-            path_e_member = path_ann_ensemble + str(e_idx) + '\\'
-            if not os.path.exists(path_e_member):
-                os.makedirs(path_e_member)
-            
-            file_name = 'best_model_full.h5'
+            file_name = 'best_model_full_' + str(e_idx) + '.h5'
             
             # Create new model to avoid re-training the previous one
-            full_model = create_lsygo_model(n_features)
+            if(cross_validation == "LOGO"):
+                full_model = create_logo_model(n_features)
+                n_epochs = 3000
+            elif(cross_validation == "LOYO"):
+                full_model = create_loyo_model(n_features)
+                n_epochs = 2000
+            elif(cross_validation == 'LSYGO'):
+                full_model = create_lsygo_model(n_features)
+                n_epochs = 1500
+            elif(cross_validation == 'LSYGO_past'):
+                full_model = create_lsygo_model(n_features)
+                n_epochs = 2000
+             
             es = EarlyStopping(monitor='loss', mode='min', min_delta=0.01, patience=1000)
-            mc = ModelCheckpoint(path_e_member + str(file_name), monitor='loss', mode='min', save_best_only=True, verbose=1)
             
             if(w_weights):
-                 # Training with weights
-                 history = full_model.fit(X, y, epochs=n_epochs, batch_size = 32, sample_weight = weights_full, callbacks=[es, mc], verbose=1)
+                # Training with weights
+                print("\nMax weight " + str(weights_full.max()) + " for " + str(np.where(weights_full == 50)[0].size) + " values")
+                history = full_model.fit(X, y, epochs=n_epochs, batch_size = 32, sample_weight = weights_full, verbose=1)
+                 
             else:
                 # Training without weights
-                history = full_model.fit(X, y, epochs=n_epochs, batch_size = 32, callbacks=[es, mc], verbose=1)
+                history = full_model.fit(X, y, epochs=n_epochs, batch_size = 32, verbose=1)
                 
-            # load the saved model
-            best_model_full = load_model(path_e_member  + str(file_name), custom_objects={"r2_keras": r2_keras, "r2_keras_loss": r2_keras_loss, "root_mean_squared_error": root_mean_squared_error})
-            full_score = best_model_full.evaluate(X, y, batch_size = 32)
             full_original_score = full_model.evaluate(X, y, batch_size = 32)
-            print("Full best model score: " + str(full_score))
-            print("Full model score: " + str(full_original_score))
             
-             #### We store the full model
-            if not os.path.exists(path_e_member):
-                os.makedirs(path_e_member)
-            ##### We serialize the weights to HDF5
-            best_model_full.save(path_e_member + 'ann_glacier_model.h5')
+            SMB_nn_original = full_model.predict(X, batch_size = 32)
+            
+            print("\nMean original overall r2: " + str(r2_score(y, SMB_nn_original)))
+            print("\nMean original overall RMSE: " + str(math.sqrt(mean_squared_error(y, SMB_nn_original))))
+            
+            # Extreme values bias check
+            y_pos_idx = np.where(y > 0)
+            pos_bias = (SMB_nn_original[y_pos_idx] - y[y_pos_idx]).mean()
+            pos_rmse = math.sqrt(mean_squared_error(y[y_pos_idx], SMB_nn_original[y_pos_idx]))
+            print("\nRMSE for positive SMB values: " + str(pos_rmse))
+            
+            y_neg_idx = np.where(y < -2)
+            neg_bias = (SMB_nn_original[y_neg_idx] - y[y_neg_idx]).mean()
+            neg_rmse = math.sqrt(mean_squared_error(y[y_neg_idx], SMB_nn_original[y_neg_idx]))
+            print("\nRMSE for negative SMB values: " + str(neg_rmse))
+            
+            print("\nFull model score: " + str(full_original_score))
+            
+            if(pos_rmse < 0.75 and neg_rmse < 0.75):
+                average_overall_score.append(full_original_score[0])
+                print("\nModel added to ensemble")
+                
+                # Create folder for each ensemble member
+                path_e_member = path_ann_ensemble + str(e_idx) + '\\'
+                if not os.path.exists(path_e_member):
+                    os.makedirs(path_e_member)
+                
+                #### We store the full model
+                ##### We save the model to HDF5
+                full_model.save(path_e_member + 'ann_glacier_model.h5')
+                print("Full model saved to disk")
                             
-            with open(path_e_member + 'SMB_nn_all.txt', 'wb') as SMB_nn_all_f: 
-                np.save(SMB_nn_all_f, SMB_nn_all)
-                    
-            print("Full model saved to disk")
+                with open(path_e_member + 'SMB_nn.txt', 'wb') as SMB_nn_all_f: 
+                    np.save(SMB_nn_all_f, SMB_nn_original)
+            
+            if(len(average_overall_score) > 0):
+                print("\n Overall ensemble performance so far: " + str(np.average(average_overall_score)))
             
             # Clear tensorflow graph to avoid slowing CPU down
             K.clear_session()

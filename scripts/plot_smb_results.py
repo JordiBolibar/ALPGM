@@ -74,7 +74,7 @@ if(process_marzeion):
             SMB_marzeion_all.append({'IDs': glacier['ID'], 'SMB': (SMB_raw_marzeion[66:115, rgi_idx[1]].flatten())/1000}) 
 #            rgi_IDs.append(int(rgi_6[rgi_idx, 0][-4:]))
         else:
-            print("Glacier NOT found in RGI 6.0: " + str(glacier['Glacier'].decode('ascii') + " - " + str(glacier['GLIMS_ID'].decode('ascii'))))
+            print("Glacier NOT found in RGI 6.0: " + str(glacier['Glacier'].decode('ascii') + " - " + str(glacier['GLIMS_ID'].decode('ascii')) + ' - ' + str(glacier['Area'])))
             # No SMB data from Marzeion for this glacier
             SMB_marzeion_all.append({'IDs': glacier['ID'], 'SMB': []})
     
@@ -227,6 +227,8 @@ for path_smb, path_area, path_slope in zip(path_smb_glaciers, path_area_glaciers
         print("Zmean: " + str(glacier_info['mean_altitude'][-1]))
         print("Area: " + str(area_glacier))
         print("Slope: " + str(slope_glacier))
+        print("SMB: " + str(smb_glacier))
+        print("glacier_info: " + str(glacier_info))
     
     # All glaciers indexes
     glacier_idx = glacier_idx+1
@@ -266,8 +268,6 @@ a_avg_smb, a_avg_smb_marzeion, a_avg_smb_big, a_avg_smb_small, a_avg_smb_v_small
 for avg_smb, avg_smb_marzeion, avg_smb_big, avg_smb_medium, avg_smb_small, avg_area, avg_area_marzeion in zip(annual_avg_smb_, annual_avg_smb_marzeion, annual_avg_smb_big_glaciers_, annual_avg_smb_small_glaciers_, annual_avg_smb_very_small_glaciers_, annual_avg_area, annual_avg_area_marzeion):
     # Area weighted mean
 #    import pdb; pdb.set_trace()
-    print("avg_smb_marzeion: " + str(len(avg_smb_marzeion)))
-    print("avg_area: " + str(len(avg_area)))
     a_avg_smb.append(np.average(avg_smb, weights=avg_area))
     a_avg_smb_marzeion.append(np.average(avg_smb_marzeion, weights=avg_area_marzeion))
     a_avg_smb_big.append(np.asarray(avg_smb_big).mean())

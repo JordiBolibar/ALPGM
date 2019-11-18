@@ -169,8 +169,15 @@ def interpolate_extended_glims_variable(variable_name, glims_glacier, glims_2015
     
     idx_2015 = np.where(glims_2015['GLIMS_ID'] == glims_glacier['GLIMS_ID'])[0]
     if(idx_2015.size > 1):
-        idx_aux = find_nearest(glims_2015[idx_2015]['Area'], glims_glacier['Area'])
-        idx_2015 = idx_2015[idx_aux]
+        # Special case for Rouies / Chardon glacier
+        if(glims_2015['GLIMS_ID'] == 'G006275E44878N'):
+            if(glims_glacier['Glacier'] == 'des Rouies'):
+                idx_2015 = np.where(glims_2015['Glacier'] == 'des Rouies')
+            else:
+                idx_2015 = np.where(glims_2015['Glacier'] == 'du Chardon_1') 
+        else:
+            idx_aux = find_nearest(glims_2015[idx_2015]['Area'], glims_glacier['Area'])
+            idx_2015 = idx_2015[idx_aux]
     idx_1985 = np.where(glims_1985['GLIMS_ID'] == glims_glacier['GLIMS_ID'])[0]
     if(idx_1985.size > 1):
         idx_aux = find_nearest(glims_1985[idx_1985]['Area'], glims_glacier['Area'])
@@ -724,7 +731,7 @@ def main(compute, reconstruct):
                 print("\nNow we simulate the glacier-wide SMB for all the French alpine glaciers")
                 glacier_idx = 0
 #                # We retrie the ANN model
-#                ann_model = load_model(path_ann + 'ann_glacier_model.h5', custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error})
+                ann_model = load_model(path_ann + 'ann_glacier_model.h5', custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error})
                 
                 # We remove all previous simulations from the folder
                 if(os.path.exists(path_smb_all_glaciers)):
@@ -759,8 +766,9 @@ def main(compute, reconstruct):
                         x_reg_array, x_reg_full, x_reg_nn = create_spatiotemporal_matrix(season_anomalies, mon_anomalies, glims_glacier, glacier_mean_altitude, glacier_area, best_models)
                         
                         #####  Machine learning SMB simulations   ###################
-                        # ANN CV model
                         SMB_nn = make_ensemble_simulation(ensemble_SMB_models, x_reg_nn, batch_size = 34, evolution=False)
+#                        SMB_nn = ann_model.predict(x_reg_nn, batch_size = 34)
+#                        SMB_nn = np.asarray(SMB_nn)[:,0].flatten()
                         
 #                        print("# years: " + str(SMB_nn.size))
                         print("\nGlacier: " + str(glacier_name))
