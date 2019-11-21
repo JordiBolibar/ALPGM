@@ -7,18 +7,21 @@
 #### Author 
 <p><b>Jordi Bolíbar</b></p>
 <p>jordi.bolibar@univ-grenoble-alpes.fr</p>
-<p>Institut des Géosciences de l'Environnement (Université Grenoble Alpes)</p>
+<p>Intitute of Environmental Geosciences (Université Grenoble Alpes)</p>
 
 ## Overview
 <p>
-    ALPGM is a fully parameterized glacier evolution model based on machine learning. Glacier-wide surface mass balance (SMB) is simulated using a deep artificial neural network (deep learning) or Lasso. 
-    Glacier dynamics are parameterized using glacier-specific delta-h functions (Huss et al. 2008). The model has been implemented with a dataset of French alpine glaciers, using climate forcings
+    ALPGM is a fully parameterized glacier evolution model based on deep and machine learning. Glacier-wide surface mass balance (SMB) are simulated using a deep artificial neural network (deep learning) or Lasso (regularized multilinear regression). 
+    Glacier dynamics are parameterized using glacier-specific delta-h functions (Huss et al. 2008). The model has so far been implemented with a dataset of French alpine glaciers, using climate forcings
     for past (SAFRAN, Durand et al. 1993) and future (ADAMONT, Verfaillie et al. 2018) periods.
 </p>
 
 <p>
     The machine learning SMB modelling approach is built on widely used Python libraries (Keras, Scikit-learn and Statsmodels). 
 </p>
+
+<p>
+    For more details regarding ALPGM and the deep learning modelling approach, I encourage you to read the Bolibar et al. (2019) paper in The Cryosphere: https://www.the-cryosphere-discuss.net/tc-2019-163/
 
 ## Workflow
 <p>
@@ -54,7 +57,7 @@
     <br><br>
     Two main models can be chosen for the SMB simulations:
     <br><br>
-    <b>Deep Artificial Neural Network</b>: A deep ANN, also know as deep learning, is a nonlinear statistical model capable of finding extremely complex patters in data. This approach represents an improvement with 
+    <b>Deep Artificial Neural Network</b>: A deep ANN, also know as deep learning, is a nonlinear statistical model capable of finding complex patters in data. This approach represents an improvement with 
     respect to classical linear methods, such as multiple linear regression. They allow the use of sample weights in order to balance the training dataset to give equal importance to all the sample values. This can help
     the ANN to better simulate extreme SMB values, thus increasing the explained variance of the model (r<sup>2</sup>) at the cost of sacrificing the overall accuracy of the model (RMSE). In order to use it for simulations, 
     choose the "ann_weights" or "ann_no_weights" models in alpgm_interface.py
