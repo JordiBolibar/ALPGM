@@ -629,7 +629,7 @@ def main(compute, reconstruct):
     if(compute):
         
         if(reconstruct):
-            path_ann = path_smb + 'ANN\\LSYGO\\no_weights\\'
+            path_ann = path_smb + 'ANN\\LOGO\\no_weights\\'
             path_cv_ann = path_ann + 'CV\\'
         else:
             # Set LOGO for model validation
