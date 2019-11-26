@@ -22,6 +22,7 @@ import subprocess
 import shutil
 import copy
 import math
+import random
 from numba import jit
 from netCDF4 import Dataset
 import sys
@@ -167,7 +168,9 @@ def interpolate_glims_variable(variable_name, glims_glacier, glims_2003, glims_1
 def interpolate_extended_glims_variable(variable_name, glims_glacier, glims_2015, glims_1985, glims_1967):
     # In case there are multiple results, we choose the one with the most similar area
     
+    # 2015 glacier inventory
     idx_2015 = np.where(glims_2015['GLIMS_ID'] == glims_glacier['GLIMS_ID'])[0]
+    # Decision making in case of glacier split with the same GLIMS ID
     if(idx_2015.size > 1):
         # Special case for Rouies / Chardon glacier
         if(glims_2015['GLIMS_ID'] == 'G006275E44878N'):
@@ -176,13 +179,22 @@ def interpolate_extended_glims_variable(variable_name, glims_glacier, glims_2015
             else:
                 idx_2015 = np.where(glims_2015['Glacier'] == 'du Chardon_1') 
         else:
-            idx_aux = find_nearest(glims_2015[idx_2015]['Area'], glims_glacier['Area'])
-            idx_2015 = idx_2015[idx_aux]
+            idx_area_aux = find_nearest(glims_2015[idx_2015]['Area'], glims_glacier['Area'])
+            idx_zmean_aux = find_nearest(glims_2015[idx_2015]['MEAN_Pixel'], glims_glacier['MEAN_Pixel'])
+            # Choose most similar glacier based on surface area or mean altitude
+            if(idx_area_aux == idx_zmean_aux):
+                idx_2015 = idx_2015[idx_zmean_aux]
+            else:
+                if((glims_glacier['Area'] - glims_2015['Area'][idx_2015[idx_zmean_aux]]) > glims_glacier['Area']*0.5):
+                    idx_2015 = idx_2015[idx_zmean_aux]
+                else:
+                    idx_2015 = idx_2015[idx_area_aux]
+    # 1985 glacier inventory
     idx_1985 = np.where(glims_1985['GLIMS_ID'] == glims_glacier['GLIMS_ID'])[0]
     if(idx_1985.size > 1):
         idx_aux = find_nearest(glims_1985[idx_1985]['Area'], glims_glacier['Area'])
         idx_1985 = idx_1985[idx_aux]
-    
+        
     var_2003 = glims_glacier[variable_name]
     var_2015 = glims_2015[idx_2015][variable_name]
     var_1985 = glims_1985[idx_1985][variable_name]
@@ -209,7 +221,7 @@ def interpolate_extended_glims_variable(variable_name, glims_glacier, glims_2015
         interp_data = interp_1967_2015
     else:
         interp_data = [var_1985]
-    
+        
     return np.asarray(interp_data)
 
 # We retrieve the slope from a glacier from the middle year of the simulation (2003)
@@ -235,18 +247,19 @@ def get_slope20(glims_glacier):
     ### Retrieve the 20% slope
     if(slope20_array.size == 0 or slope20_array.size == 2):
         slope20 = np.rad2deg(np.arcsin((alt_max - alt_min)/length))
-        print("Manual slope: " + str(slope20))
+#        print("Manual slope: " + str(slope20))
     elif(slope20_array[:,1].mean() > 55):
         slope20 = np.rad2deg(np.arcsin((alt_max - alt_min)/length))
-        print("Manual slope: " + str(np.rad2deg(np.arctan((alt_max - alt_min)/length))))
+#        print("Manual slope: " + str(np.rad2deg(np.arctan((alt_max - alt_min)/length))))
     else:
         slope20 = slope20_array[:,1].mean()
-        print("Retrieved slope: " + str(slope20_array[:,1].mean()))
+#        print("Retrieved slope: " + str(slope20_array[:,1].mean()))
 #    
-    if(slope20 > 55 or np.isnan(slope20)):
-        slope20 = 55 # Limit slope at 55º to avoid unrealistic slopes
+    if(slope20 > 50 or np.isnan(slope20)):
+        # Limit slope with random variance to avoid unrealistic slopes
+        slope20 = random.uniform(40.0, 55.0)
     
-#    print("slope20: " + str(slope20))
+    print("Glacier tongue slope: " + str(slope20))
     
     return slope20
 
@@ -745,11 +758,11 @@ def main(compute, reconstruct):
 #                    if(glacier_idx == 421):
                     if(True):
                         glimsID = glims_glacier['GLIMS_ID'].decode('ascii')
-#                    if(glimsID == 'G006985E45538N'):
+#                    if(glimsID == 'G006934E45883N' or glimsID == 'G006985E45951N'):
                         glacier_name = glims_glacier['Glacier'].decode('ascii')
                         massif_safran = glims_glacier['Massif_SAFRAN']
 #                        print("\nSimulating Glacier: " + str(glacier_name))
-                        print("# " + str(glacier_idx))
+                        print("\n# " + str(glacier_idx))
     #                    print("Glacier GLIMS ID: " + str(glimsID))
                         
                         glacier_mean_altitude = interpolate_extended_glims_variable('MEAN_Pixel', glims_glacier, glims_2015, glims_1985, glims_1967)
@@ -766,7 +779,7 @@ def main(compute, reconstruct):
                         x_reg_array, x_reg_full, x_reg_nn = create_spatiotemporal_matrix(season_anomalies, mon_anomalies, glims_glacier, glacier_mean_altitude, glacier_area, best_models)
                         
                         #####  Machine learning SMB simulations   ###################
-                        SMB_nn = make_ensemble_simulation(ensemble_SMB_models, x_reg_nn, batch_size = 34, evolution=False)
+                        SMB_nn = make_ensemble_simulation(ensemble_SMB_models, x_reg_nn, 34, glimsID, glims_rabatel, evolution=False)
 #                        SMB_nn = ann_model.predict(x_reg_nn, batch_size = 34)
 #                        SMB_nn = np.asarray(SMB_nn)[:,0].flatten()
                         
@@ -775,6 +788,10 @@ def main(compute, reconstruct):
                         print("Cumulative SMB: " + str(np.sum(SMB_nn)))
                         print("Area: " + str(glacier_area[-1]))
                         print("SMB: " + str(SMB_nn))
+                        
+                        # TODO: remove after test
+#                        if(glimsID == 'G006934E45883N' or glimsID == 'G006985E45951N'):
+#                            import pdb; pdb.set_trace()
                         
                         # We reduce the year range if the glacier disappeared before 2015
                         if(glacier_area.size < 49):

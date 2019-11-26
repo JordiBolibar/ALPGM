@@ -18,7 +18,7 @@ import numpy as np
 import math
 from numpy import genfromtxt
 from pathlib import Path
-#import shutil
+import shutil
 from sklearn.model_selection import LeaveOneGroupOut, KFold
 #from sklearn.preprocessing import StandardScaler, normalize
 #from sklearn.model_selection import train_test_split
@@ -64,7 +64,7 @@ path_ann_LSYGO_past = path_smb + 'ANN\\LSYGO_past\\'
 
 ######################################
 #  Training with or without weights  #
-w_weights = True
+w_weights = False
 #cross_validation = "LOGO"
 #cross_validation = "LOYO"
 cross_validation = "LSYGO"
@@ -73,9 +73,9 @@ cross_validation = "LSYGO"
 #######  single group of glaciers or cross-validation   ###############
 training = False
 # Train only the full model without training CV models
-final_model_only = True
+final_model_only = False
 # Activate the ensemble modelling approach
-ensemble = True
+final_model = False
 ########################################
 
 if(cross_validation == 'LOGO'):
@@ -107,40 +107,68 @@ def r2_keras_loss(y_true, y_pred):
 def root_mean_squared_error(y_true, y_pred):
         return K.sqrt(K.mean(K.square(y_pred - y_true))) 
 
-def create_logo_model(n_features):
+def create_logo_model(n_features, final):
     model = Sequential()
     
     # Input layer
     model.add(Dense(n_features, input_shape=(n_features,), kernel_initializer='he_normal'))
     model.add(BatchNormalization())
     
-    # Hidden layers
-    model.add(Dense(40, kernel_initializer='he_normal'))
-    model.add(BatchNormalization()) 
-    model.add(LeakyReLU(alpha=0.05))
-    model.add(Dropout(0.2))
-#        
-    model.add(Dense(20, kernel_initializer='he_normal'))
-    model.add(BatchNormalization())  
-    model.add(LeakyReLU(alpha=0.05))
-    model.add(Dropout(0.2)) 
-    
-    model.add(Dense(10, kernel_initializer='he_normal'))
-    model.add(BatchNormalization())
-    model.add(LeakyReLU(alpha=0.05))
-    model.add(Dropout(0.05))
-    
-    model.add(Dense(5, kernel_initializer='he_normal'))
-    model.add(BatchNormalization()) 
-    model.add(LeakyReLU(alpha=0.05))
-    model.add(Dropout(0.01))
+    if(final):
+        # Hidden layers
+        model.add(Dense(60, kernel_initializer='he_normal'))
+        model.add(BatchNormalization()) 
+        model.add(LeakyReLU(alpha=0.05))
+    #        
+        model.add(Dense(50, kernel_initializer='he_normal'))
+        model.add(BatchNormalization())  
+        model.add(LeakyReLU(alpha=0.05))
+        
+        model.add(Dense(40, kernel_initializer='he_normal'))
+        model.add(BatchNormalization())
+        model.add(LeakyReLU(alpha=0.05))
+        
+        model.add(Dense(30, kernel_initializer='he_normal'))
+        model.add(BatchNormalization())
+        model.add(LeakyReLU(alpha=0.05))
+        
+        model.add(Dense(20, kernel_initializer='he_normal'))
+        model.add(BatchNormalization()) 
+        model.add(LeakyReLU(alpha=0.05))
+        
+        model.add(Dense(10, kernel_initializer='he_normal'))
+        model.add(BatchNormalization()) 
+        model.add(LeakyReLU(alpha=0.05))
+        
+    else:
+           # Hidden layers
+        model.add(Dense(40, kernel_initializer='he_normal'))
+        model.add(BatchNormalization()) 
+        model.add(LeakyReLU(alpha=0.05))
+        model.add(Dropout(0.2))
+    #        
+        model.add(Dense(20, kernel_initializer='he_normal'))
+        model.add(BatchNormalization())  
+        model.add(LeakyReLU(alpha=0.05))
+        model.add(Dropout(0.1)) 
+        
+        model.add(Dense(10, kernel_initializer='he_normal'))
+        model.add(BatchNormalization())
+        model.add(LeakyReLU(alpha=0.05))
+        model.add(Dropout(0.05))
+        
+        model.add(Dense(5, kernel_initializer='he_normal'))
+        model.add(BatchNormalization()) 
+        model.add(LeakyReLU(alpha=0.05))
+        model.add(Dropout(0.01))
     
     # Output layer
     model.add(Dense(1))
     
     ##### Optimizers  #######
 #    optimizer = optimizers.rmsprop(lr=0.0002)
-    optimizer = optimizers.rmsprop(lr=0.0005)
+#    optimizer = optimizers.rmsprop(lr=0.0005)
+    optimizer = optimizers.rmsprop(lr=0.001)
     
     # Compilation
     model.compile(optimizer = optimizer, loss=root_mean_squared_error, metrics=[r2_keras])
@@ -211,14 +239,14 @@ def create_lsygo_model(n_features):
     model.add(BatchNormalization())
     model.add(LeakyReLU(alpha=0.05))
     model.add(Dropout(0.3))
-#    model.add(Dropout(0.2))
+#    model.add(Dropout(0.1))
     
     model.add(Dense(20, kernel_initializer='he_normal'))
     model.add(BatchNormalization()) 
     model.add(LeakyReLU(alpha=0.05))
     model.add(Dropout(0.2))
 #    model.add(Dropout(0.1))
-        
+    
     model.add(Dense(10, kernel_initializer='he_normal'))
     model.add(BatchNormalization()) 
     model.add(LeakyReLU(alpha=0.05))
@@ -235,10 +263,13 @@ def create_lsygo_model(n_features):
     model.add(Dense(1))
     
     ##### Optimizers  #######
-#    optimizer = optimizers.rmsprop(lr=0.05)
-#    optimizer = optimizers.rmsprop(lr=0.002)
+#    optimizer = optimizers.rmsprop(lr=0.004)
+    optimizer = optimizers.rmsprop(lr=0.002)
+#    optimizer = optimizers.rmsprop(lr=0.001)
 #    optimizer = optimizers.rmsprop(lr=0.0005)
-    optimizer = optimizers.rmsprop(lr=0.0007)
+#    optimizer = optimizers.adam(lr=0.0005)
+#    optimizer = optimizers.adam(lr=0.0003)
+#    optimizer = optimizers.rmsprop(lr=0.0007)
 #    optimizer = optimizers.rmsprop(lr=0.0008)
     
     # Compilation
@@ -318,27 +349,51 @@ lsygo_test_matrixes, lsygo_train_matrixes = [],[]
 # LSYGO folds
 year_idx = 0
 glacier_idx = 0
-np.random.seed(0)
-n_folds = 64
+# TODO: see if block seed
+#np.random.seed(10)
+n_folds = 60
 #n_folds = 120
-random_years = np.random.randint(26, 57, n_folds*4) # Random year idxs
+random_years = np.random.randint(0, 57, n_folds*4) # Random year idxs
 random_glaciers = np.random.randint(0, 32, n_folds*4) # Random glacier indexes
 
 for fold in range(1, n_folds+1):
     test_matrix, train_matrix = np.zeros((32, 57), dtype=np.int8), np.ones((32, 57), dtype=np.int8)
     
+    # Make sure Sarennes and Saint Sorlin appear in the folds
+    if(fold == 1):
+        test_matrix[-1, :] = 1
+        # Fill train matrix
+        train_matrix[-1, :] = 0
+    elif(fold == 2):
+        test_matrix[2, :] = 1
+        # Fill train matrix
+        train_matrix[2, :] = 0
+    else:
+        # Fill test matrix
+        test_matrix[random_glaciers[glacier_idx], :] = 1
+        # Fill train matrix
+        train_matrix[random_glaciers[glacier_idx], :] = 0
+        
+    
     # Fill test matrix
-    test_matrix[random_glaciers[glacier_idx], random_years[year_idx]] = 1
-    test_matrix[random_glaciers[glacier_idx], random_years[year_idx+1]] = 1
-    test_matrix[random_glaciers[glacier_idx+1], random_years[year_idx+1]] = 1
-    test_matrix[random_glaciers[glacier_idx+1], random_years[year_idx]] = 1
+#    test_matrix[random_glaciers[glacier_idx], :] = 1
+#    test_matrix[random_glaciers[glacier_idx+1], :] = 1
+    test_matrix[:, random_years[year_idx]] = 1
+#    test_matrix[:, random_years[year_idx+1]] = 1
+    
+#    test_matrix[random_glaciers[glacier_idx], random_years[year_idx]] = 1
+#    test_matrix[random_glaciers[glacier_idx], random_years[year_idx+1]] = 1
+#    test_matrix[random_glaciers[glacier_idx+1], random_years[year_idx+1]] = 1
+#    test_matrix[random_glaciers[glacier_idx+1], random_years[year_idx]] = 1
+    
     lsygo_test_matrixes.append(test_matrix)
     
     # Fill train matrix
-    train_matrix[random_glaciers[glacier_idx], :] = 0
-    train_matrix[random_glaciers[glacier_idx+1], :] = 0
+#    train_matrix[random_glaciers[glacier_idx], :] = 0
+#    train_matrix[random_glaciers[glacier_idx+1], :] = 0
     train_matrix[:, random_years[year_idx]] = 0
-    train_matrix[:, random_years[year_idx+1]] = 0
+#    train_matrix[:, random_years[year_idx+1]] = 0
+    
     lsygo_train_matrixes.append(train_matrix)
     
     year_idx = year_idx+1
@@ -456,7 +511,7 @@ if(training):
     if(cross_validation == 'LOYO'):
         model = create_loyo_model(n_features)
     elif(cross_validation == 'LOGO'):
-        model = create_logo_model(n_features)
+        model = create_logo_model(n_features, final=False)
     elif(cross_validation == 'LSYGO' or cross_validation == 'LSYGO_past'):
         model = create_lsygo_model(n_features)
         
@@ -571,9 +626,9 @@ else:
     
     if(cross_validation == "LOGO"):
         splits = logo_splits
-        full_model = create_logo_model(n_features)
+        full_model = create_logo_model(n_features, final=False)
         fold_filter = -1
-        n_epochs = 3000
+        n_epochs = 2500
     elif(cross_validation == "LOYO"):
         splits = loyo_splits
         full_model = create_loyo_model(n_features)
@@ -583,8 +638,9 @@ else:
         splits = zip(lsygo_train_folds, lsygo_test_folds)
         full_model = create_lsygo_model(n_features)
         fold_filter = -1
-#        n_epochs = 2000
-        n_epochs = 1500
+        n_epochs = 2000
+#        n_epochs = 1000
+#        n_epochs = 800
     elif(cross_validation == 'LSYGO_past'):
         splits = zip(past_folds_train, past_folds_test)
         full_model = create_lsygo_model(n_features)
@@ -594,8 +650,8 @@ else:
     if(not final_model_only):
         
         # TODO: remove after tests
-#        fold_filter = 2
-#        fold_filter = 3
+#        fold_filter = 1
+#        fold_filter = 50
         fold_count = 0
         average_overall_score = []
         
@@ -633,7 +689,7 @@ else:
                 weights_test = weights_full[test_idx]
                 
                 if(cross_validation == "LOGO"):
-                    model = create_logo_model(n_features)
+                    model = create_logo_model(n_features, final=False)
                     file_name = 'best_model_LOGO.h5'
                 elif(cross_validation == "LOYO"):
                     model = create_loyo_model(n_features)
@@ -651,18 +707,20 @@ else:
                 if(w_weights):
                     # Training with weights
                     print("\nMax weight " + str(weights_full.max()) + " for " + str(np.where(weights_full == 50)[0].size) + " values")
-                    history = model.fit(X_train, y_train, validation_data = (X_test, y_test), epochs=n_epochs, batch_size = 32, sample_weight = weights_train, callbacks=[es, mc], verbose=1)
+                    #TODO: decide if use MC or not
+                    history = model.fit(X_train, y_train, validation_data = (X_test, y_test), epochs=n_epochs, batch_size = 32, callbacks=[es, mc], sample_weight = weights_train, verbose=1)
                     
                     SMB_fold_pred = model.predict(X_test)
-                    print("\nReference SMB: " + str(y_test))
-                    print("\nPredicted SMB: " + str(SMB_fold_pred))
+                    
+#                    print("\nReference SMB: " + str(y_test))
+#                    print("\nPredicted SMB: " + str(SMB_fold_pred))
                     
 #                    # summarize history for loss
 #                    plt.plot(history.history['loss'])
 #                    plt.plot(history.history['val_loss'])
 #                    plt.title('model loss')
 #                    plt.ylabel('loss')
-#                    plt.ylim(0, 3)
+#                    plt.ylim(0, 2)
 #                    plt.xlabel('epoch')
 #                    plt.legend(['train', 'test'], loc='upper left')
 #                    plt.show()
@@ -743,6 +801,8 @@ else:
             
         print("\nRMSE per fold: " + str(RMSE_nn_all))
         
+        print("\nAverage bias: " + str(np.average(SMB_nn_all - SMB_ref_all)))
+        
 #        import pdb; pdb.set_trace()
         
         # Calculate the point density
@@ -764,35 +824,36 @@ else:
         plt.xlim(lineStart, lineEnd)
         plt.ylim(lineStart, lineEnd)
         plt.legend()
-        plt.show()
+        plt.draw()
     
     
     ###############    We train the model with the full dataset and we store it   #######################################
     
     # We create N models in an ensemble approach to be averaged
-    if(ensemble):
-        ensemble_size = 100
-        path_ann_ensemble = path_ann_LSYGO + 'ensemble\\'
-        average_overall_score = []
+    if(final_model):
+        ensemble_size = 50
+        path_ann_ensemble = path_ann + 'ensemble\\'
+        average_overall_score, average_pos_rmse, average_neg_rmse, average_bias = [],[],[],[]
         
         # We clear all the previous models to avoid problems loading files
-#        if(os.path.exists(path_ann_ensemble)):
-#            shutil.rmtree(path_ann_ensemble)
-#            os.makedirs(path_ann_ensemble)
+        if(os.path.exists(path_ann_ensemble)):
+            shutil.rmtree(path_ann_ensemble)
+            os.makedirs(path_ann_ensemble)
         
         for e_idx in range(1, ensemble_size+1):
             file_name = 'best_model_full_' + str(e_idx) + '.h5'
             
             # Create new model to avoid re-training the previous one
             if(cross_validation == "LOGO"):
-                full_model = create_logo_model(n_features)
-                n_epochs = 3000
+                full_model = create_logo_model(n_features, final=True)
+                n_epochs = 2000
             elif(cross_validation == "LOYO"):
                 full_model = create_loyo_model(n_features)
                 n_epochs = 2000
             elif(cross_validation == 'LSYGO'):
                 full_model = create_lsygo_model(n_features)
-                n_epochs = 1500
+#                n_epochs = 1500
+                n_epochs = 500
             elif(cross_validation == 'LSYGO_past'):
                 full_model = create_lsygo_model(n_features)
                 n_epochs = 2000
@@ -821,15 +882,21 @@ else:
             pos_rmse = math.sqrt(mean_squared_error(y[y_pos_idx], SMB_nn_original[y_pos_idx]))
             print("\nRMSE for positive SMB values: " + str(pos_rmse))
             
-            y_neg_idx = np.where(y < -2)
+            y_neg_idx = np.where(y < 0)
             neg_bias = (SMB_nn_original[y_neg_idx] - y[y_neg_idx]).mean()
             neg_rmse = math.sqrt(mean_squared_error(y[y_neg_idx], SMB_nn_original[y_neg_idx]))
             print("\nRMSE for negative SMB values: " + str(neg_rmse))
             
-            print("\nFull model score: " + str(full_original_score))
+            overall_bias = (SMB_nn_original - y).mean()
             
-            if(pos_rmse < 0.75 and neg_rmse < 0.75):
+            print("\nFull model score: " + str(full_original_score))
+            print("\nFull model bias: " + str(overall_bias))
+            
+            if(pos_rmse < 0.75 and neg_rmse < 0.75 and np.abs(overall_bias) < 0.1):
                 average_overall_score.append(full_original_score[0])
+                average_pos_rmse.append(pos_rmse)
+                average_neg_rmse.append(neg_rmse)
+                average_bias.append(overall_bias)
                 print("\nModel added to ensemble")
                 
                 # Create folder for each ensemble member
@@ -847,41 +914,55 @@ else:
             
             if(len(average_overall_score) > 0):
                 print("\n Overall ensemble performance so far: " + str(np.average(average_overall_score)))
+                print("\n Overall ensemble positive SMB RMSE so far: " + str(np.average(average_pos_rmse)))
+                print("\n Overall ensemble negative SMB RMSE so far: " + str(np.average(average_neg_rmse)))
+                print("\n Overall ensemble average bias so far: " + str(np.average(average_bias)))
             
             # Clear tensorflow graph to avoid slowing CPU down
             K.clear_session()
             
         print("\nEnsemble model members completed")
         
-    import pdb; pdb.set_trace()
+        print("\nSaving model performance..." )
+        with open(path_ann_LSYGO + 'overall_average_score.txt', 'wb') as o_a_s_f: 
+            np.save(o_a_s_f, np.asarray(average_overall_score))
+        with open(path_ann_LSYGO + 'overall_positive_RMSE.txt', 'wb') as o_p_rmse_f: 
+            np.save(o_p_rmse_f, np.asarray(average_pos_rmse))
+        with open(path_ann_LSYGO + 'overall_negative_RMSE.txt', 'wb') as o_n_rmse_f: 
+            np.save(o_n_rmse_f, np.asarray(average_neg_rmse))
+        with open(path_ann_LSYGO + 'overall_bias.txt', 'wb') as obias_f: 
+            np.save(obias_f, np.asarray(average_bias))
+        
+        
+#    import pdb; pdb.set_trace()
     
     ################################################################################################################
     
 #    print("\nSimulated ANN SMB values: " + str(SMB_nn_all))
     
-    hypsometry, bins = np.histogram(RMSE_nn_all_w, bins="auto")
-    plt.xlabel('RMSE')
-    plt.title("Weighted RMSE score distribution")
-    plt.bar(bins[:-1] + np.diff(bins) / 2, hypsometry, np.diff(bins), label='Hypsometry')
-    plt.show()
-    
-    print("\nr2_nn_all_w: " + str(r2_nn_all_w))
-    
-    hypsometry, bins = np.histogram(r2_nn_all_w, bins="auto")
-    plt.xlabel('R2')
-    plt.title("Weighted R2 score distribution")
-    plt.bar(bins[:-1] + np.diff(bins) / 2, hypsometry, np.diff(bins), label='Hypsometry')
-    plt.show()
-    
-    density_nn = gaussian_kde(SMB_nn_all)
-    density = gaussian_kde(y)
-    xs = np.linspace(-4,3,200)
-    density.covariance_factor = lambda : .25
-    density_nn.covariance_factor = lambda : .25
-    density._compute_covariance()
-    density_nn._compute_covariance()
-    plt.title("Neural network SMB density distribution")
-    plt.plot(xs,density(xs), label='Ground truth')
-    plt.plot(xs,density_nn(xs), label='NN simulation')
-    plt.legend()
-    plt.show()
+#    hypsometry, bins = np.histogram(RMSE_nn_all_w, bins="auto")
+#    plt.xlabel('RMSE')
+#    plt.title("Weighted RMSE score distribution")
+#    plt.bar(bins[:-1] + np.diff(bins) / 2, hypsometry, np.diff(bins), label='Hypsometry')
+#    plt.show()
+#    
+#    print("\nr2_nn_all_w: " + str(r2_nn_all_w))
+#    
+#    hypsometry, bins = np.histogram(r2_nn_all_w, bins="auto")
+#    plt.xlabel('R2')
+#    plt.title("Weighted R2 score distribution")
+#    plt.bar(bins[:-1] + np.diff(bins) / 2, hypsometry, np.diff(bins), label='Hypsometry')
+#    plt.show()
+#    
+#    density_nn = gaussian_kde(SMB_nn_all)
+#    density = gaussian_kde(y)
+#    xs = np.linspace(-4,3,200)
+#    density.covariance_factor = lambda : .25
+#    density_nn.covariance_factor = lambda : .25
+#    density._compute_covariance()
+#    density_nn._compute_covariance()
+#    plt.title("Neural network SMB density distribution")
+#    plt.plot(xs,density(xs), label='Ground truth')
+#    plt.plot(xs,density_nn(xs), label='NN simulation')
+#    plt.legend()
+#    plt.show()

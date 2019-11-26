@@ -211,39 +211,60 @@ def create_input_array(season_anomalies_y, monthly_anomalies_y, mean_alt_y, max_
     
     return np.asarray(input_variables_array), np.asarray(input_features_nn_array)
 
-# Preloads all the ANN SMB ensemble models to speed up the simulations
-@jit
+# Preloads in memory all the ANN SMB ensemble models to speed up the simulations
 def preload_ensemble_SMB_models():
-    print("\nPreloading CV ensemble SMB models...\n")
-#    path_ensemble_members = workspace + 'glacier_data\\smb\\ANN\\LOGO\\CV\\'
-    path_ensemble = workspace + 'glacier_data\\smb\\ANN\\LOGO\\CV\\'
+    # CV ensemble
+#    path_CV_ensemble = workspace + 'glacier_data\\smb\\ANN\\LSYGO\\CV\\'
+    path_CV_ensemble = workspace + 'glacier_data\\smb\\ANN\\LOGO\\CV\\'
+    path_CV_ensemble_members = np.asarray(os.listdir(path_CV_ensemble))
+    
+    # Full model ensemble
+#    path_ensemble = workspace + 'glacier_data\\smb\\ANN\\LSYGO\\ensemble\\'
+    path_ensemble = workspace + 'glacier_data\\smb\\ANN\\LOGO\\ensemble\\'
     path_ensemble_members = np.asarray(os.listdir(path_ensemble))
     
-    ensemble_members = []
+    CV_ensemble_members, ensemble_members = [],[]
     glacier_n = 1
+    print("\nPreloading CV ensemble SMB models...")
+    for path_CV_member in path_CV_ensemble_members:
+        # We retrieve the ensemble member ANN model
+        ann_CV_member_model = load_model(path_CV_ensemble + path_CV_member, custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error}, compile=False)
+        CV_ensemble_members.append(ann_CV_member_model)
+        print("|", end="", flush=True)
+    
+    print("\n\nPreloading ensemble full SMB models...")
     for path_member in path_ensemble_members:
         # We retrieve the ensemble member ANN model
-        # Clear session to speed up load time
-#        K.clear_session()
-        ann_member_model = load_model(path_ensemble + path_member, custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error}, compile=False)
-#        ann_member_model = load_model(path_ensemble + path_member + '\\glacier_' + str(glacier_n) + '_model.h5', custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error}, compile=False)
-        
+        ann_member_model = load_model(path_ensemble + path_member + '\\ann_glacier_model.h5', custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error}, compile=False)
         ensemble_members.append(ann_member_model)
         print("|", end="", flush=True)
+        
+    CV_ensemble_members = np.asarray(CV_ensemble_members)
     ensemble_members = np.asarray(ensemble_members)
     print("\n")
     
-    return ensemble_members
+    # We pack all the ensemble models
+    ensemble_member_models = {'CV': CV_ensemble_members, 'full':ensemble_members}
+    
+    return ensemble_member_models
 
 # Makes an ANN glacier-wide SMB simulation using an ensemble approach
 # Evolution flag = True for glacier_evolution.py format and False for smb_validation.py format
-@jit
-def make_ensemble_simulation(ensemble_SMB_models, x_ann, batch_size, evolution):
+def make_ensemble_simulation(ensemble_SMB_models, x_ann, batch_size, glimsID, glims_rabatel, evolution):
     SMB_ensemble = []
     first = True
     member_idx = 0
+    
+    # Depending if glacier is present in training dataset we use the CV or full model
+    if(np.any(glims_rabatel['GLIMS_ID'] == glimsID.encode('utf-8'))):
+        SMB_ensemble_members = ensemble_SMB_models['full']
+        print("\nFull ensemble models")
+    else:
+        SMB_ensemble_members = ensemble_SMB_models['CV']
+        print("\nCross-validation ensemble models")
+    
     # We iterate the previously loaded ensemble models
-    for ensemble_model in ensemble_SMB_models:
+    for ensemble_model in SMB_ensemble_members:
         # We retrieve the ensemble member ANN model
         # Make single member prediction
         if(evolution):
@@ -252,7 +273,7 @@ def make_ensemble_simulation(ensemble_SMB_models, x_ann, batch_size, evolution):
         else:
             SMB_member = ensemble_model.predict(x_ann, batch_size=batch_size).flatten()
         if(first):
-            print("\nRunning ensemble SMB simulation", end="", flush=True)
+            print("Running ensemble SMB simulation", end="", flush=True)
         print(".", end="", flush=True)
         
         # Add member simulation to ensemble

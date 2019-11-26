@@ -142,15 +142,19 @@ def compute_local_anomalies(idx, glacier_CPDDs, glacier_winter_snow, glacier_sum
     
 #    import pdb; pdb.set_trace()
     
+    # TODO: Test to use 1967-2015 anomalies
     # The anomalies are always computed with respect to the 1984-2014 mean
     glacier_CPDDs[idx]['CPDD'] = np.asarray(glacier_CPDDs[idx]['CPDD'])
-    glacier_CPDDs_training = glacier_CPDDs[idx]['CPDD'][1::2][-32:]
+#    glacier_CPDDs_training = glacier_CPDDs[idx]['CPDD'][1::2][-32:]
+    glacier_CPDDs_training = glacier_CPDDs[idx]['CPDD'][1::2][-49:]
     glacier_CPDDs[idx]['Mean'] = glacier_CPDDs_training.mean()
     glacier_winter_snow[idx]['snow'] = np.asarray(glacier_winter_snow[idx]['snow'])
-    glacier_winter_snow_training = glacier_winter_snow[idx]['snow'][1::2][-32:]
+#    glacier_winter_snow_training = glacier_winter_snow[idx]['snow'][1::2][-32:]
+    glacier_winter_snow_training = glacier_winter_snow[idx]['snow'][1::2][-49:]
     glacier_winter_snow[idx]['Mean'] = glacier_winter_snow_training.mean()
     glacier_summer_snow[idx]['snow'] = np.asarray(glacier_summer_snow[idx]['snow'])
-    glacier_summer_snow_training = glacier_summer_snow[idx]['snow'][1::2][-32:]
+#    glacier_summer_snow_training = glacier_summer_snow[idx]['snow'][1::2][-32:]
+    glacier_summer_snow_training = glacier_summer_snow[idx]['snow'][1::2][-49:]
     glacier_summer_snow[idx]['Mean'] = glacier_summer_snow_training.mean()
     
     local_CPDD_anomalies.append(copy.deepcopy(glacier_CPDDs[idx]))
@@ -184,8 +188,12 @@ def compute_monthly_anomalies(idx, glacier_mon_temp, glacier_mon_snow,
         mon_avg_temp = np.asarray(mon_avg_temp)
         mon_avg_snow = np.asarray(mon_avg_snow)
         
-        glacier_mon_temp[idx]['mon_means'].append(mon_avg_temp[-32:].mean())
-        glacier_mon_snow[idx]['mon_means'].append(mon_avg_snow[-32:].mean())
+        # TODO: test to use 1967-2015 anomalies
+#        glacier_mon_temp[idx]['mon_means'].append(mon_avg_temp[-32:].mean())
+#        glacier_mon_snow[idx]['mon_means'].append(mon_avg_snow[-32:].mean())
+        
+        glacier_mon_temp[idx]['mon_means'].append(mon_avg_temp[-49:].mean())
+        glacier_mon_snow[idx]['mon_means'].append(mon_avg_snow[-49:].mean())
         
     local_mon_temp_anomalies.append(copy.deepcopy(glacier_mon_temp[idx]))
     local_mon_snow_anomalies.append(copy.deepcopy(glacier_mon_snow[idx]))

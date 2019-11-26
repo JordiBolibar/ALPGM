@@ -104,28 +104,28 @@ for year_idx in range(0, 49):
     annual_avg_area_marzeion.append([])
     annual_avg_slope.append([])
     
-massifs_safran = {'1':'Chablais', '2':'Aravis','3':'Mont-Blanc','5':'Beaufortain','6':'Haute-Tarantaise','10':'Vanoise',
+massifs_safran = {'1':'Chablais', '6':'Haute-Tarantaise', '3':'Mont-Blanc', '10':'Vanoise',
                   '9':'Maurienne','11':'Haute-Maurienne','8':'Belledonne','12':'Grandes-Rousses','15':'Oisans','16':'Pelvoux',
                   '13':'Thabor', '19':'Champsaur','18':'Devoluy','21':'Ubaye'}
 
-smb_massif_template = {'Chablais':copy.deepcopy(annual_avg_smb_), 'Aravis':copy.deepcopy(annual_avg_smb_),'Mont-Blanc':copy.deepcopy(annual_avg_smb_),
-                       'Beaufortain':copy.deepcopy(annual_avg_smb_), 'Haute-Tarantaise':copy.deepcopy(annual_avg_smb_),'Vanoise':copy.deepcopy(annual_avg_smb_), 
-                       'Maurienne':copy.deepcopy(annual_avg_smb_),'Haute-Maurienne':copy.deepcopy(annual_avg_smb_), 'Belledonne':copy.deepcopy(annual_avg_smb_),
-                       'Grandes-Rousses':copy.deepcopy(annual_avg_smb_),'Oisans':copy.deepcopy(annual_avg_smb_),'Pelvoux':copy.deepcopy(annual_avg_smb_), 
-                       'Thabor':copy.deepcopy(annual_avg_smb_), 'Champsaur':copy.deepcopy(annual_avg_smb_), 'Ubaye':copy.deepcopy(annual_avg_smb_)}
+smb_massif_template = {'Chablais':copy.deepcopy(annual_avg_smb_), 'Haute-Tarantaise':copy.deepcopy(annual_avg_smb_), 'Mont-Blanc':copy.deepcopy(annual_avg_smb_),
+                       'Vanoise':copy.deepcopy(annual_avg_smb_), 'Maurienne':copy.deepcopy(annual_avg_smb_),'Haute-Maurienne':copy.deepcopy(annual_avg_smb_), 
+                       'Belledonne':copy.deepcopy(annual_avg_smb_), 'Grandes-Rousses':copy.deepcopy(annual_avg_smb_),'Oisans':copy.deepcopy(annual_avg_smb_),
+                       'Pelvoux':copy.deepcopy(annual_avg_smb_), 'Thabor':copy.deepcopy(annual_avg_smb_), 'Champsaur':copy.deepcopy(annual_avg_smb_), 
+                       'Ubaye':copy.deepcopy(annual_avg_smb_)}
 
 smb_massif = copy.deepcopy(smb_massif_template)
 mean_smb_glaciers, mean_area_glaciers, mean_slope_glaciers = np.zeros(661), np.zeros(661), np.zeros(661)
     
 fig1, ax1 = plt.subplots()
-ax1.set_ylabel('Glacier-wide SMB (m.w.e. $a^{-1}$)')
-ax1.set_xlabel('Year')
-ax1.set_title("Annual glacier-wide SMB of all French alpine glaciers")
+ax1.set_ylabel('Glacier-wide SMB (m.w.e. $a^{-1}$)', fontsize=16)
+ax1.set_xlabel('Year', fontsize=16)
+#ax1.set_title("Annual glacier-wide SMB of all French alpine glaciers")
 
 fig2, ax2 = plt.subplots()
-ax2.set_ylabel('Cumulative glacier-wide SMB (m.w.e)')
-ax2.set_xlabel('Year')
-ax2.set_title("Cumulative glacier-wide SMB of all French alpine glaciers")
+ax2.set_ylabel('Cumulative glacier-wide SMB (m.w.e)', fontsize=16)
+ax2.set_xlabel('Year', fontsize=16)
+#ax2.set_title("Cumulative glacier-wide SMB of all French alpine glaciers")
 
 
 # Iterate all glaciers with the full simulated period
@@ -193,8 +193,11 @@ for path_smb, path_area, path_slope in zip(path_smb_glaciers, path_area_glaciers
     mean_area_glaciers[glacier_idx] = np.nanmean(area_glacier)
     mean_slope_glaciers[glacier_idx] = slope_glacier[0]
     
-    line1, = ax1.plot(range(1967, 2016), smb_glacier, linewidth=linewidth)
-    line2, = ax2.plot(range(1967, 2016), np.cumsum(smb_glacier), linewidth=linewidth)
+    # TODO: see what to 2 with 2 glaciers with strange behaviour
+    # So far we filter them from the graphs
+    if(np.sum(smb_glacier[:-15]) < 0):
+        line1, = ax1.plot(range(1967, 2016), smb_glacier, linewidth=linewidth)
+        line2, = ax2.plot(range(1967, 2016), np.cumsum(smb_glacier), linewidth=linewidth)
     
     big_glacier, small_glacier, very_small_glacier = False, False, False
     
@@ -220,15 +223,16 @@ for path_smb, path_area, path_slope in zip(path_smb_glaciers, path_area_glaciers
                 very_small_glacier = True
         
     # TODO: erase after investigation of behaviour of last year
-    if(smb_glacier[-1] > -0.5):
-        print("\nStrange glacier")
-        print("Glacier: " + str(glacier_info['name']))
-        print("Massif: " + str(current_massif))
-        print("Zmean: " + str(glacier_info['mean_altitude'][-1]))
-        print("Area: " + str(area_glacier))
-        print("Slope: " + str(slope_glacier))
-        print("SMB: " + str(smb_glacier))
-        print("glacier_info: " + str(glacier_info))
+#    if(np.sum(smb_glacier[:-15]) > 0):
+#    if(smb_glacier[:-15].min() < -3):
+#        print("\nStrange glacier")
+#        print("Glacier: " + str(glacier_info['name']))
+#        print("Massif: " + str(current_massif))
+#        print("Zmean: " + str(glacier_info['mean_altitude'][-1]))
+#        print("Area: " + str(area_glacier))
+#        print("Slope: " + str(slope_glacier))
+#        print("SMB: " + str(smb_glacier))
+#        print("glacier_info: " + str(glacier_info))
     
     # All glaciers indexes
     glacier_idx = glacier_idx+1
@@ -317,11 +321,11 @@ print("\nMin SMB common variance: " + str(glacier_correlation.min()))
 print("\nAverage SMB common variance: " + str(glacier_correlation.mean()))
 
 # Area weighted mean
-line11, = ax1.plot(range(1967, 2016), a_avg_smb, linewidth=2, c='black', label='Area weighted mean')
-line12, = ax1.plot(range(1967, 2016), a_avg_smb_marzeion, linewidth=2, c='darkred', label='Area weighted mean (Marzeion et al.)')
+line11, = ax1.plot(range(1967, 2016), a_avg_smb, linewidth=2, c='midnightblue', label='Area weighted mean')
+#line12, = ax1.plot(range(1967, 2016), a_avg_smb_marzeion, linewidth=2, c='darkred', label='Area weighted mean (Marzeion et al.)')
 
-line2, = ax2.plot(range(1967, 2016), np.cumsum(a_avg_smb), linewidth=2, c='black', label='Area weighted mean')
-line2, = ax2.plot(range(1967, 2016), np.cumsum(a_avg_smb_marzeion), linewidth=2, c='black', label='Area weighted mean (Marzeion et al.)')
+line2, = ax2.plot(range(1967, 2016), np.cumsum(a_avg_smb), linewidth=2, c='midnightblue', label='Area weighted mean')
+#line2, = ax2.plot(range(1967, 2016), np.cumsum(a_avg_smb_marzeion), linewidth=2, c='darkred', label='Area weighted mean (Marzeion et al.)')
 
 ax1.axhline(y=0, color='black', linewidth=0.7, linestyle='-')
 ax1.legend()
