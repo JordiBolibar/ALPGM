@@ -5,3 +5,5 @@ glacier_data/glacier_rasters/glacier_thickness/dem_tif/glacier_evolution
 glacier_data/glacier_rasters/glacier_thickness/thickness_tif/glacier_evolution
 
 glacier_data/smb/smb_function/SAFRAN_1984-2015_backup/
+
+code/__pycache__/
