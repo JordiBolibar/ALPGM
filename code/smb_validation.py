@@ -118,6 +118,19 @@ def label_line(ax, line, label, color='0.5', fs=14, halign='left'):
     ax.set_ylim(ylim)
     return text
 
+def store_smb_data(file_name, data):
+    try:
+        np.savetxt(file_name, data, delimiter=";", fmt="%.7f")
+    except IOError:
+        print("File currently opened. Please close it to proceed.")
+        os.system('pause')
+        # We try again
+        try:
+            print("\nRetrying storing " + str(file_name))
+            np.savetxt(file_name, data, delimiter=";", fmt="%.7f")
+        except IOError:
+            print("File still not available. Aborting simulations.")
+
 def r2_keras(y_true, y_pred):
     SS_res =  K.sum(K.square(y_true - y_pred)) 
     SS_tot = K.sum(K.square(y_true - K.mean(y_true))) 
@@ -744,11 +757,13 @@ def main(compute, reconstruct):
                 print("\nNow we simulate the glacier-wide SMB for all the French alpine glaciers")
                 glacier_idx = 0
 #                # We retrie the ANN model
-                ann_model = load_model(path_ann + 'ann_glacier_model.h5', custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error})
+#                ann_model = load_model(path_ann + 'ann_glacier_model.h5', custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error})
                 
                 # We remove all previous simulations from the folder
                 if(os.path.exists(path_smb_all_glaciers)):
                     shutil.rmtree(path_smb_all_glaciers)
+                    
+                cumulative_smb_glaciers = []
                 
                 # We preload the ensemble SMB models to speed up the simulations
                 ensemble_SMB_models = preload_ensemble_SMB_models()
@@ -800,6 +815,9 @@ def main(compute, reconstruct):
                         else:
                             year_end_file = end_ref
                         
+                        # We store the cumulative SMB for all the glaciers with their RGI ID
+                        cumulative_smb_glaciers = np.concatenate((cumulative_smb_glaciers, np.array([glims_glacier['ID'], np.sum(SMB_nn)])))
+                        
                         # We store the simulated SMB 
                         store_file(SMB_nn, path_smb_all_glaciers_smb, "", "SMB", glimsID, start_ref, year_end_file+1)
                         store_file(glacier_area, path_smb_all_glaciers_area, "", "Area", glimsID, start_ref, year_end_file+1)
@@ -807,9 +825,15 @@ def main(compute, reconstruct):
                         
                         glacier_slope = np.repeat(x_reg_nn[0][5], year_end_file+1-start_ref)
                         store_file(glacier_slope, path_smb_all_glaciers_slope, "", "Slope_20", glimsID, start_ref, year_end_file+1)
-
+                        
                         
                     glacier_idx = glacier_idx+1
+                    
+                # End glacier loop
+                
+                # We store the cumulative glacier-wide SMB of all the glaciers in the French Alps
+                store_smb_data(path_smb_all_glaciers + 'cumulative_smb_all_glaciers.csv', cumulative_smb_glaciers)
+                
             else:
                 
                 # We make a deep copy to avoid issues when flattening for processing
