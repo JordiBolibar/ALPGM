@@ -1,4 +1,4 @@
-# ALPGM (ALpine Parameterized Glacier Model) v1.0
+# ALPGM (ALpine Parameterized Glacier Model) v1.1
 
 ![ALPGM](https://www.dropbox.com/s/8zycrf67lloppr5/algpm_logo2.png?raw=1)
 
@@ -11,13 +11,13 @@
 
 ## Overview
 <p>
-    ALPGM is a fully parameterized glacier evolution model based on deep and machine learning. Glacier-wide surface mass balance (SMB) are simulated using a deep artificial neural network (deep learning) or Lasso (regularized multilinear regression). 
+    ALPGM is a fully parameterized glacier evolution model based on data science. Glacier-wide surface mass balance (SMB) are simulated using a deep artificial neural network (i.e. deep learning) or Lasso (i.e. regularized multilinear regression). 
     Glacier dynamics are parameterized using glacier-specific delta-h functions (Huss et al. 2008). The model has so far been implemented with a dataset of French alpine glaciers, using climate forcings
     for past (SAFRAN, Durand et al. 1993) and future (ADAMONT, Verfaillie et al. 2018) periods.
 </p>
 
 <p>
-    The machine learning SMB modelling approach is built on widely used Python libraries (Keras, Scikit-learn and Statsmodels). 
+    The machine learning SMB modelling approach is built upon widely used Python libraries (Keras, Scikit-learn and Statsmodels). 
 </p>
 
 <p>
@@ -57,10 +57,7 @@
     <br><br>
     Two main models can be chosen for the SMB simulations:
     <br><br>
-    <b>Deep Artificial Neural Network</b>: A deep ANN, also know as deep learning, is a nonlinear statistical model capable of finding complex patters in data. This approach represents an improvement with 
-    respect to classical linear methods, such as multiple linear regression. They allow the use of sample weights in order to balance the training dataset to give equal importance to all the sample values. This can help
-    the ANN to better simulate extreme SMB values, thus increasing the explained variance of the model (r<sup>2</sup>) at the cost of sacrificing the overall accuracy of the model (RMSE). In order to use it for simulations, 
-    choose the "ann_weights" or "ann_no_weights" models in alpgm_interface.py
+    <b>Deep Artificial Neural Network</b>: A deep ANN, also know as deep learning, is a complex nonlinear statistical model optimized by gradient descent. The SMB ANN models are trained with the glacier_neural_network_keras.py script in the scripts folder. ALPGM comes with already trained glacier-wide SMB models which can be used for multiple spatiotemporal simulations. Sample weights can be used in order to balance SMB datasets to better represent extreme values. As explained in Bolibar et al. (2020), this comes at the cost of a RMSE/variance tradeoff. In order to use it for simulations, choose the "ann_weights" or "ann_no_weights" models in alpgm_interface.py
     <br><br>
     <b>Lasso</b>: The Lasso (Least absolute shrinkage and selection operator) (Tibshirani, 1996), is a shrinkage method which attempts to overcome the shortcomings of the simpler step-wise and all-possible regressions. 
 	In these two classical approaches, predictors are discarded in a discrete way, giving subsets of variables which have the lowest prediction error. However, due to its discrete selection, these different subsets can exhibit high variance, 
