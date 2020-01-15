@@ -73,9 +73,9 @@ cross_validation = "LSYGO"
 #######  single group of glaciers or cross-validation   ###############
 training = False
 # Train only the full model without training CV models
-final_model_only = False
+final_model_only = True
 # Activate the ensemble modelling approach
-final_model = False
+final_model = True
 ########################################
 
 if(cross_validation == 'LOGO'):
@@ -223,7 +223,7 @@ def create_loyo_model(n_features):
     return model
 
 
-def create_lsygo_model(n_features):
+def create_lsygo_model(n_features, final):
     model = Sequential()
     
     print("n_features:" + str(n_features))
@@ -235,29 +235,57 @@ def create_lsygo_model(n_features):
 #    model.add(GaussianNoise(0.2))
     
     # Hidden layers
-    model.add(Dense(40, kernel_initializer='he_normal'))
-    model.add(BatchNormalization())
-    model.add(LeakyReLU(alpha=0.05))
-    model.add(Dropout(0.3))
-#    model.add(Dropout(0.1))
+    if(final):
+        model.add(Dense(60, kernel_initializer='he_normal'))
+        model.add(BatchNormalization()) 
+        model.add(LeakyReLU(alpha=0.05))
+    #        
+        model.add(Dense(50, kernel_initializer='he_normal'))
+        model.add(BatchNormalization())  
+        model.add(LeakyReLU(alpha=0.05))
+        
+        model.add(Dense(40, kernel_initializer='he_normal'))
+        model.add(BatchNormalization())
+        model.add(LeakyReLU(alpha=0.05))
+        
+        model.add(Dense(30, kernel_initializer='he_normal'))
+        model.add(BatchNormalization())
+        model.add(LeakyReLU(alpha=0.05))
+        
+        model.add(Dense(20, kernel_initializer='he_normal'))
+        model.add(BatchNormalization()) 
+        model.add(LeakyReLU(alpha=0.05))
+        
+        model.add(Dense(10, kernel_initializer='he_normal'))
+        model.add(BatchNormalization()) 
+        model.add(LeakyReLU(alpha=0.05))
+        
+    else:
     
-    model.add(Dense(20, kernel_initializer='he_normal'))
-    model.add(BatchNormalization()) 
-    model.add(LeakyReLU(alpha=0.05))
-    model.add(Dropout(0.2))
-#    model.add(Dropout(0.1))
+        model.add(Dense(40, kernel_initializer='he_normal'))
+        model.add(BatchNormalization())
+        model.add(LeakyReLU(alpha=0.05))
+        model.add(Dropout(0.3))
+    #    model.add(Dropout(0.1))
+        
+        model.add(Dense(20, kernel_initializer='he_normal'))
+        model.add(BatchNormalization()) 
+        model.add(LeakyReLU(alpha=0.05))
+        model.add(Dropout(0.2))
+    #    model.add(Dropout(0.1))
+        
+        model.add(Dense(10, kernel_initializer='he_normal'))
+        model.add(BatchNormalization()) 
+        model.add(LeakyReLU(alpha=0.05))
+        model.add(Dropout(0.1))
+    #    model.add(Dropout(0.05))
+        
+        model.add(Dense(5, kernel_initializer='he_normal'))
+        model.add(BatchNormalization()) 
+        model.add(LeakyReLU(alpha=0.05))
+        model.add(Dropout(0.1))
+    #    model.add(Dropout(0.05))
     
-    model.add(Dense(10, kernel_initializer='he_normal'))
-    model.add(BatchNormalization()) 
-    model.add(LeakyReLU(alpha=0.05))
-    model.add(Dropout(0.1))
-#    model.add(Dropout(0.05))
-    
-    model.add(Dense(5, kernel_initializer='he_normal'))
-    model.add(BatchNormalization()) 
-    model.add(LeakyReLU(alpha=0.05))
-    model.add(Dropout(0.1))
-#    model.add(Dropout(0.05))
     
     # Output layer
     model.add(Dense(1))
@@ -636,7 +664,7 @@ else:
         n_epochs = 2000
     elif(cross_validation == 'LSYGO'):
         splits = zip(lsygo_train_folds, lsygo_test_folds)
-        full_model = create_lsygo_model(n_features)
+        full_model = create_lsygo_model(n_features, final=False)
         fold_filter = -1
         n_epochs = 2000
 #        n_epochs = 1000
@@ -650,7 +678,7 @@ else:
     if(not final_model_only):
         
         # TODO: remove after tests
-#        fold_filter = 1
+#        fold_filter = 27
 #        fold_filter = 50
         fold_count = 0
         average_overall_score = []
@@ -851,9 +879,8 @@ else:
                 full_model = create_loyo_model(n_features)
                 n_epochs = 2000
             elif(cross_validation == 'LSYGO'):
-                full_model = create_lsygo_model(n_features)
-#                n_epochs = 1500
-                n_epochs = 500
+                full_model = create_lsygo_model(n_features, final=True)
+                n_epochs = 2000
             elif(cross_validation == 'LSYGO_past'):
                 full_model = create_lsygo_model(n_features)
                 n_epochs = 2000

@@ -816,7 +816,8 @@ def main(compute, reconstruct):
                             year_end_file = end_ref
                         
                         # We store the cumulative SMB for all the glaciers with their RGI ID
-                        cumulative_smb_glaciers = np.concatenate((cumulative_smb_glaciers, np.array([glims_glacier['ID'], np.sum(SMB_nn)])))
+#                        cumulative_smb_glaciers = np.concatenate((cumulative_smb_glaciers, np.array([glims_glacier['ID'], np.sum(SMB_nn)])))
+                        cumulative_smb_glaciers.append([glims_glacier['ID'], np.sum(SMB_nn)])
                         
                         # We store the simulated SMB 
                         store_file(SMB_nn, path_smb_all_glaciers_smb, "", "SMB", glimsID, start_ref, year_end_file+1)
@@ -832,6 +833,7 @@ def main(compute, reconstruct):
                 # End glacier loop
                 
                 # We store the cumulative glacier-wide SMB of all the glaciers in the French Alps
+                cumulative_smb_glaciers = np.asarray(cumulative_smb_glaciers)
                 store_smb_data(path_smb_all_glaciers + 'cumulative_smb_all_glaciers.csv', cumulative_smb_glaciers)
                 
             else:
