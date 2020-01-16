@@ -7,7 +7,7 @@
 #### Author 
 <p><b>Jordi Bolíbar</b></p>
 <p>jordi.bolibar@univ-grenoble-alpes.fr</p>
-<p>Intitute of Environmental Geosciences (Université Grenoble Alpes)</p>
+<p>Institute of Environmental Geosciences (Université Grenoble Alpes)</p>
 
 ## Overview
 <p>
@@ -21,7 +21,7 @@
 </p>
 
 <p>
-    For more details regarding ALPGM and the deep learning modelling approach, I encourage you to read the Bolibar et al. (2019) paper in The Cryosphere: https://www.the-cryosphere-discuss.net/tc-2019-163/
+    For more details regarding ALPGM and the deep learning SMB modelling approach, I encourage you to read the Bolibar et al. (2019) paper in The Cryosphere: https://www.the-cryosphere-discuss.net/tc-2019-163/
 
 ## Workflow
 <p>
