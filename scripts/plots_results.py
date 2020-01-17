@@ -11,19 +11,20 @@ import numpy as np
 from numpy import genfromtxt
 import os
 import math
+from pathlib import Path
 
 ######   FILE PATHS    #######
     
 # Folders     
-workspace = 'C:\\Jordi\\PhD\\Python\\'
+workspace = str(Path(os.getcwd()).parent) + '\\'
 #path_obs = 'C:\\Jordi\\PhD\\Data\\Obs\\'
 path_smb = workspace + 'ALPGM\\glacier_data\\smb\\'
-#path_glacier_evolution = workspace + 'ALPGM\\glacier_data\\glacier_evolution\\'
-path_glacier_evolution = 'C:\\Jordi\\PhD\\Simulations\\AGU 2018\\'
-path_glacier_2003_shapefiles = workspace + 'ALPGM\\glacier_data\\glacier_shapefiles\\2003\\'
-path_glacier_2015_shapefiles = workspace + 'ALPGM\\glacier_data\\glacier_shapefiles\\2015\\'
-path_glacier_ID_rasters = workspace + 'ALPGM\\glacier_data\\glacier_rasters\\glacier_thickness_Huss\\thickness_tif\\'
-path_glacier_DEM_rasters = workspace + 'ALPGM\\glacier_data\\glacier_rasters\\glacier_thickness_Huss\\dem_tif\\'
+path_glacier_evolution = workspace + 'glacier_data\\glacier_evolution\\'
+#path_glacier_evolution = 'C:\\Jordi\\PhD\\Simulations\\AGU 2018\\'
+path_glacier_2003_shapefiles = workspace + 'glacier_data\\glacier_shapefiles\\2003\\'
+path_glacier_2015_shapefiles = workspace + 'glacier_data\\glacier_shapefiles\\2015\\'
+path_glacier_ID_rasters = workspace + 'glacier_data\\glacier_rasters\\glacier_thickness_Huss\\thickness_tif\\'
+path_glacier_DEM_rasters = workspace + 'glacier_data\\glacier_rasters\\glacier_thickness_Huss\\dem_tif\\'
 path_glacier_evolution_DEM_rasters = path_glacier_DEM_rasters + 'glacier_evolution\\' 
 path_glacier_evolution_ID_rasters = path_glacier_ID_rasters + 'glacier_evolution\\'
 path_smb_simulations = path_smb + 'smb_simulations\\'
@@ -34,7 +35,7 @@ path_glacier_zmean = path_glacier_evolution + 'glacier_zmean\\'
 path_glacier_slope20 = path_glacier_evolution + 'glacier_slope20\\'
 path_glacier_melt_years = path_glacier_evolution + 'glacier_melt_years\\'
 path_glacier_w_errors = path_glacier_evolution + 'glacier_w_errors\\'
-path_glims = workspace + 'ALPGM\\glacier_data\\GLIMS\\' 
+path_glims = workspace + 'glacier_data\\GLIMS\\' 
 path_safran_forcings = 'C:\\Jordi\\PhD\\Data\\SAFRAN-Nivo-2017\\'
 path_smb_function = path_smb + 'smb_function\\'
 global path_smb_function_safran 
@@ -95,7 +96,7 @@ for path_forcing_area, path_forcing_melt_years, path_forcing_slope20, path_forci
 #    print("path_volume_glaciers: " + str(path_volume_glaciers.size))
 ##    print("path_errors_glaciers: " + str(path_errors_glaciers.size))
 #    print("path_zmean_glaciers: " + str(path_zmean_glaciers.size))
-    scale_idx = 0
+    scale_idx = 1
     # Iterate all glaciers with the full simulated period
     for path_area_scaled, path_volume_scaled, path_zmean_scaled in zip(path_area_glaciers, path_volume_glaciers, path_zmean_glaciers):
         
@@ -143,9 +144,13 @@ for path_forcing_area, path_forcing_melt_years, path_forcing_slope20, path_forci
     avg_yearly_area, avg_yearly_volume, avg_yearly_zmean = np.zeros(86), np.zeros(86), np.empty(86)
     avg_yearly_area_07, avg_yearly_volume_07, avg_yearly_zmean_07 = np.zeros(86), np.zeros(86), np.empty(86)
     avg_yearly_area_13, avg_yearly_volume_13, avg_yearly_zmean_13 = np.zeros(86), np.zeros(86), np.empty(86)
+   
     for glacier_area, glacier_volume, glacier_zmean in zip(all_glacier_areas, all_glacier_volumes, all_glacier_zmean):
         year_idx = 0
         for area_y, volume_y, zmean_y in zip(glacier_area, glacier_volume, glacier_zmean):
+            area_y = area_y[1]
+            volume_y = volume_y[1]
+            zmean_y = zmean_y[1]
             if(not math.isnan(area_y)):
                 avg_yearly_area[year_idx] = avg_yearly_area[year_idx] + area_y
             if(not math.isnan(volume_y)):
@@ -158,35 +163,35 @@ for path_forcing_area, path_forcing_melt_years, path_forcing_slope20, path_forci
     #                print("avg_yearly_zmean[year_idx]: " + str(avg_yearly_zmean[year_idx]))
             year_idx = year_idx+1
     
-    for glacier_area_07, glacier_volume_07, glacier_zmean_07 in zip(all_glacier_areas_07, all_glacier_volumes_07, all_glacier_zmean_07):
-        year_idx = 0
-        for area_y_07, volume_y_07, zmean_y_07 in zip(glacier_area_07, glacier_volume_07, glacier_zmean_07):
-            if(not math.isnan(area_y_07)):
-                avg_yearly_area_07[year_idx] = avg_yearly_area_07[year_idx] + area_y_07
-            if(not math.isnan(volume_y_07)):
-                avg_yearly_volume_07[year_idx] = avg_yearly_volume_07[year_idx] + volume_y_07
-            if(not math.isnan(zmean_y_07)):
-                avg_yearly_zmean_07[year_idx] = avg_yearly_zmean_07[year_idx] + zmean_y_07
-            if(np.all(glacier_zmean_07 == all_glacier_zmean_07[-1])):
-#                print("avg_yearly_zmean[year_idx]: " + str(avg_yearly_zmean[year_idx]))
-                avg_yearly_zmean_07[year_idx] = np.nanmean(avg_yearly_zmean_07[year_idx])
-#                print("avg_yearly_zmean[year_idx]: " + str(avg_yearly_zmean[year_idx]))
-            year_idx = year_idx+1
-        
-    for glacier_area_13, glacier_volume_13, glacier_zmean_13 in zip(all_glacier_areas_13, all_glacier_volumes_13, all_glacier_zmean_13):
-        year_idx = 0
-        for area_y_13, volume_y_13, zmean_y_13 in zip(glacier_area_13, glacier_volume_13, glacier_zmean_13):
-            if(not math.isnan(area_y_13)):
-                avg_yearly_area_13[year_idx] = avg_yearly_area_13[year_idx] + area_y_13
-            if(not math.isnan(volume_y_13)):
-                avg_yearly_volume_13[year_idx] = avg_yearly_volume_13[year_idx] + volume_y_13
-            if(not math.isnan(zmean_y_13)):
-                avg_yearly_zmean_13[year_idx] = avg_yearly_zmean_13[year_idx] + zmean_y_13
-            if(np.all(glacier_zmean_13 == all_glacier_zmean_13[-1])):
-#                print("avg_yearly_zmean[year_idx]: " + str(avg_yearly_zmean[year_idx]))
-                avg_yearly_zmean_13[year_idx] = np.nanmean(avg_yearly_zmean_13[year_idx])
-#                print("avg_yearly_zmean[year_idx]: " + str(avg_yearly_zmean[year_idx]))
-            year_idx = year_idx+1
+#    for glacier_area_07, glacier_volume_07, glacier_zmean_07 in zip(all_glacier_areas_07, all_glacier_volumes_07, all_glacier_zmean_07):
+#        year_idx = 0
+#        for area_y_07, volume_y_07, zmean_y_07 in zip(glacier_area_07, glacier_volume_07, glacier_zmean_07):
+#            if(not math.isnan(area_y_07)):
+#                avg_yearly_area_07[year_idx] = avg_yearly_area_07[year_idx] + area_y_07
+#            if(not math.isnan(volume_y_07)):
+#                avg_yearly_volume_07[year_idx] = avg_yearly_volume_07[year_idx] + volume_y_07
+#            if(not math.isnan(zmean_y_07)):
+#                avg_yearly_zmean_07[year_idx] = avg_yearly_zmean_07[year_idx] + zmean_y_07
+#            if(np.all(glacier_zmean_07 == all_glacier_zmean_07[-1])):
+##                print("avg_yearly_zmean[year_idx]: " + str(avg_yearly_zmean[year_idx]))
+#                avg_yearly_zmean_07[year_idx] = np.nanmean(avg_yearly_zmean_07[year_idx])
+##                print("avg_yearly_zmean[year_idx]: " + str(avg_yearly_zmean[year_idx]))
+#            year_idx = year_idx+1
+#        
+#    for glacier_area_13, glacier_volume_13, glacier_zmean_13 in zip(all_glacier_areas_13, all_glacier_volumes_13, all_glacier_zmean_13):
+#        year_idx = 0
+#        for area_y_13, volume_y_13, zmean_y_13 in zip(glacier_area_13, glacier_volume_13, glacier_zmean_13):
+#            if(not math.isnan(area_y_13)):
+#                avg_yearly_area_13[year_idx] = avg_yearly_area_13[year_idx] + area_y_13
+#            if(not math.isnan(volume_y_13)):
+#                avg_yearly_volume_13[year_idx] = avg_yearly_volume_13[year_idx] + volume_y_13
+#            if(not math.isnan(zmean_y_13)):
+#                avg_yearly_zmean_13[year_idx] = avg_yearly_zmean_13[year_idx] + zmean_y_13
+#            if(np.all(glacier_zmean_13 == all_glacier_zmean_13[-1])):
+##                print("avg_yearly_zmean[year_idx]: " + str(avg_yearly_zmean[year_idx]))
+#                avg_yearly_zmean_13[year_idx] = np.nanmean(avg_yearly_zmean_13[year_idx])
+##                print("avg_yearly_zmean[year_idx]: " + str(avg_yearly_zmean[year_idx]))
+#            year_idx = year_idx+1
             
             
             
@@ -355,34 +360,34 @@ plt.show(block=False)
 
 ############################################
 
-mean_glacier_area_rcp_26_07 = (mean_glacier_area_rcp_26_07/mean_glacier_area_rcp_26_07[0])*100.0 -100
-mean_glacier_area_rcp_26_13 = (mean_glacier_area_rcp_26_13/mean_glacier_area_rcp_26_13[0])*100.0 -100
+#mean_glacier_area_rcp_26_07 = (mean_glacier_area_rcp_26_07/mean_glacier_area_rcp_26_07[0])*100.0 -100
+#mean_glacier_area_rcp_26_13 = (mean_glacier_area_rcp_26_13/mean_glacier_area_rcp_26_13[0])*100.0 -100
+#
+#mean_glacier_area_rcp_45_07 = (mean_glacier_area_rcp_45_07/mean_glacier_area_rcp_45_07[0])*100.0 -100
+#mean_glacier_area_rcp_45_13 = (mean_glacier_area_rcp_45_13/mean_glacier_area_rcp_45_13[0])*100.0 -100
+#
+#mean_glacier_area_rcp_85_07 = (mean_glacier_area_rcp_85_07/mean_glacier_area_rcp_85_07[0])*100.0 -100
+#mean_glacier_area_rcp_85_13 = (mean_glacier_area_rcp_85_13/mean_glacier_area_rcp_85_13[0])*100.0 -100
 
-mean_glacier_area_rcp_45_07 = (mean_glacier_area_rcp_45_07/mean_glacier_area_rcp_45_07[0])*100.0 -100
-mean_glacier_area_rcp_45_13 = (mean_glacier_area_rcp_45_13/mean_glacier_area_rcp_45_13[0])*100.0 -100
 
-mean_glacier_area_rcp_85_07 = (mean_glacier_area_rcp_85_07/mean_glacier_area_rcp_85_07[0])*100.0 -100
-mean_glacier_area_rcp_85_13 = (mean_glacier_area_rcp_85_13/mean_glacier_area_rcp_85_13[0])*100.0 -100
-
-
-nfigure = 2
-#plt.figure(nfigure, figsize=(10, 20))
-plt.figure(nfigure)
-#plt.subplot(211)
-
-plt.ylabel('Relative glacier area change (%)')
-plt.xlabel('Year')
-plt.title("Area evolution of French alpine glaciers with ice thickness uncertainties", y=1.05)
-axes2.fill_between(range(2014, 2100), mean_glacier_area_rcp_26_07, mean_glacier_area_rcp_26_13, facecolor = "navy", alpha=0.1)
-plt.plot(range(2014, 2100), mean_glacier_area_rcp_26, label = "RCP 2.6", color = "navy")
-axes2.fill_between(range(2014, 2100), mean_glacier_area_rcp_45_07, mean_glacier_area_rcp_45_13, facecolor = "forestgreen", alpha=0.1)
-plt.plot(range(2014, 2100), mean_glacier_area_rcp_45, label = "RCP 4.5", color = "forestgreen")
-axes2.fill_between(range(2014, 2100), mean_glacier_area_rcp_85_07, mean_glacier_area_rcp_85_13, facecolor = "red", alpha=0.1)
-plt.plot(range(2014, 2100), mean_glacier_area_rcp_85, label = "RCP 8.5", color = "red")
-
-plt.legend()
-plt.show(block=False)
-#plt.gca().invert_yaxis()
+#nfigure = 2
+##plt.figure(nfigure, figsize=(10, 20))
+#plt.figure(nfigure)
+##plt.subplot(211)
+#
+#plt.ylabel('Relative glacier area change (%)')
+#plt.xlabel('Year')
+#plt.title("Area evolution of French alpine glaciers with ice thickness uncertainties", y=1.05)
+#axes2.fill_between(range(2014, 2100), mean_glacier_area_rcp_26_07, mean_glacier_area_rcp_26_13, facecolor = "navy", alpha=0.1)
+#plt.plot(range(2014, 2100), mean_glacier_area_rcp_26, label = "RCP 2.6", color = "navy")
+#axes2.fill_between(range(2014, 2100), mean_glacier_area_rcp_45_07, mean_glacier_area_rcp_45_13, facecolor = "forestgreen", alpha=0.1)
+#plt.plot(range(2014, 2100), mean_glacier_area_rcp_45, label = "RCP 4.5", color = "forestgreen")
+#axes2.fill_between(range(2014, 2100), mean_glacier_area_rcp_85_07, mean_glacier_area_rcp_85_13, facecolor = "red", alpha=0.1)
+#plt.plot(range(2014, 2100), mean_glacier_area_rcp_85, label = "RCP 8.5", color = "red")
+#
+#plt.legend()
+#plt.show(block=False)
+##plt.gca().invert_yaxis()
 
 ############################################
 
@@ -420,33 +425,33 @@ plt.show(block=False)
 
 ###############################################
 
-mean_glacier_volume_rcp_26_07 = (mean_glacier_volume_rcp_26_07/mean_glacier_volume_rcp_26_07[0])*100.0 -100
-mean_glacier_volume_rcp_26_13 = (mean_glacier_volume_rcp_26_13/mean_glacier_volume_rcp_26_13[0])*100.0 -100
-
-mean_glacier_volume_rcp_45_07 = (mean_glacier_volume_rcp_45_07/mean_glacier_volume_rcp_45_07[0])*100.0 -100
-mean_glacier_volume_rcp_45_13 = (mean_glacier_volume_rcp_45_13/mean_glacier_volume_rcp_45_13[0])*100.0 -100
-
-mean_glacier_volume_rcp_85_07 = (mean_glacier_volume_rcp_85_07/mean_glacier_volume_rcp_85_07[0])*100.0 -100
-mean_glacier_volume_rcp_85_13 = (mean_glacier_volume_rcp_85_13/mean_glacier_volume_rcp_85_13[0])*100.0 -100
-
-nfigure = 4
-#plt.figure(nfigure, figsize=(10, 20))
-plt.figure(nfigure)
-#plt.subplot(211)
-
-plt.ylabel('Relative glacier volume change (%)')
-plt.xlabel('Year')
-plt.title("Volume evolution of French alpine glaciers with ice thickness uncertainties", y=1.05)
-axes4.fill_between(range(2014, 2100), mean_glacier_volume_rcp_26_07, mean_glacier_volume_rcp_26_13, facecolor = "navy", alpha=0.1)
-plt.plot(range(2014, 2100), mean_glacier_volume_rcp_26, label = "RCP 2.6", color = "navy")
-axes4.fill_between(range(2014, 2100), mean_glacier_volume_rcp_45_07, mean_glacier_volume_rcp_45_13, facecolor = "forestgreen", alpha=0.1)
-plt.plot(range(2014, 2100), mean_glacier_volume_rcp_45, label = "RCP 4.5", color = "forestgreen")
-axes4.fill_between(range(2014, 2100), mean_glacier_volume_rcp_85_07, mean_glacier_volume_rcp_85_13, facecolor = "red", alpha=0.1)
-plt.plot(range(2014, 2100), mean_glacier_volume_rcp_85, label = "RCP 8.5", color = "red")
-
-plt.legend()
-plt.show(block=False)
-#plt.gca().invert_yaxis()
+#mean_glacier_volume_rcp_26_07 = (mean_glacier_volume_rcp_26_07/mean_glacier_volume_rcp_26_07[0])*100.0 -100
+#mean_glacier_volume_rcp_26_13 = (mean_glacier_volume_rcp_26_13/mean_glacier_volume_rcp_26_13[0])*100.0 -100
+#
+#mean_glacier_volume_rcp_45_07 = (mean_glacier_volume_rcp_45_07/mean_glacier_volume_rcp_45_07[0])*100.0 -100
+#mean_glacier_volume_rcp_45_13 = (mean_glacier_volume_rcp_45_13/mean_glacier_volume_rcp_45_13[0])*100.0 -100
+#
+#mean_glacier_volume_rcp_85_07 = (mean_glacier_volume_rcp_85_07/mean_glacier_volume_rcp_85_07[0])*100.0 -100
+#mean_glacier_volume_rcp_85_13 = (mean_glacier_volume_rcp_85_13/mean_glacier_volume_rcp_85_13[0])*100.0 -100
+#
+#nfigure = 4
+##plt.figure(nfigure, figsize=(10, 20))
+#plt.figure(nfigure)
+##plt.subplot(211)
+#
+#plt.ylabel('Relative glacier volume change (%)')
+#plt.xlabel('Year')
+#plt.title("Volume evolution of French alpine glaciers with ice thickness uncertainties", y=1.05)
+#axes4.fill_between(range(2014, 2100), mean_glacier_volume_rcp_26_07, mean_glacier_volume_rcp_26_13, facecolor = "navy", alpha=0.1)
+#plt.plot(range(2014, 2100), mean_glacier_volume_rcp_26, label = "RCP 2.6", color = "navy")
+#axes4.fill_between(range(2014, 2100), mean_glacier_volume_rcp_45_07, mean_glacier_volume_rcp_45_13, facecolor = "forestgreen", alpha=0.1)
+#plt.plot(range(2014, 2100), mean_glacier_volume_rcp_45, label = "RCP 4.5", color = "forestgreen")
+#axes4.fill_between(range(2014, 2100), mean_glacier_volume_rcp_85_07, mean_glacier_volume_rcp_85_13, facecolor = "red", alpha=0.1)
+#plt.plot(range(2014, 2100), mean_glacier_volume_rcp_85, label = "RCP 8.5", color = "red")
+#
+#plt.legend()
+#plt.show(block=False)
+##plt.gca().invert_yaxis()
 
 #########################################
 

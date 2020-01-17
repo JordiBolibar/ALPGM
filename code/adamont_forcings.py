@@ -129,20 +129,20 @@ def main(compute):
         # Folders     
         workspace = str(Path(os.getcwd()).parent) + '\\'
         # Path to be updated with location of the ADAMONT forcings
+        path_adamont_forcings = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\treated\\'
 #        path_adamont_forcings = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\FORCING_ADAMONT_IGE_BERGER\\'
-        path_adamont_forcings = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\FORCING_ADAMONT_IGE_BERGER\\subset_AGU\\'
+#        path_adamont_forcings = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\FORCING_ADAMONT_IGE_BERGER\\subset_AGU\\'
         path_smb = workspace + 'glacier_data\\smb\\'
         path_smb_function_adamont = path_smb + 'smb_function\\ADAMONT\\'
 #        path_glacier_coordinates = workspace + 'glacier_data\\glacier_coordinates\\' 
         path_glims = workspace + 'glacier_data\\GLIMS\\' 
         
         # Files
-        forcing_daymean = settings.current_ADAMONT_forcing_mean
-        forcing_daysum = settings.current_ADAMONT_forcing_sum
+        forcing_daymean = settings.current_ADAMONT_model_daymean
+        forcing_daysum = settings.current_ADAMONT_model_daysum
         print("Current ADAMONT combination: " + str(forcing_daymean))
         
         # We read the glacier classification by SAFRAN massifs
-        
         glims_2015 = genfromtxt(path_glims + 'GLIMS_2015_massif.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('GLIMS_ID', '<a50'), ('Massif_SAFRAN', '<i8'), ('Aspect_num', '<i8')])
 #        glims_2003 = genfromtxt(path_glims + 'GLIMS_2003.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('GLIMS_ID', '<a50'), ('Massif_SAFRAN', '<i8'), ('Aspect_num', '<i8')])
         glims_rabatel = genfromtxt(path_glims + 'GLIMS_Rabatel_30_2003.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('slope20', '<f8'), ('GLIMS_ID', '<a50'), ('Massif_SAFRAN', '<f8'), ('Aspect_num', '<f8')])        
@@ -158,18 +158,21 @@ def main(compute):
             ADAMONT_coordinates.append(np.hstack((x, y)))
         ADAMONT_coordinates = np.asarray(ADAMONT_coordinates)
         
-        aspects = file_forcing_daymean.variables['aspect'][:]
+#        import pdb; pdb.set_trace()
+        
+#        aspects = file_forcing_daymean.variables['aspect'][:]
+        aspects = []
     
 #        import pdb; pdb.set_trace()
         
         zs = file_forcing_daymean.variables['ZS'][:]
-        massif_number = file_forcing_daymean.variables['massif_number'][:]
+        massif_number = file_forcing_daymean.variables['MASSIF_NUMBER'][:]
         
         # Temperatures (from K to C)
         temps_mean = file_forcing_daymean.variables['Tair'][:] -273.15
-        rain_sum = file_forcing_daysum.variables['Rainf'][:] * 3600
-        snow_sum = file_forcing_daysum.variables['Snowf'][:] * 3600
-        times = file_forcing_daysum.variables['time'][:]
+        rain_sum = file_forcing_daysum.variables['RAIN'][:] * 3600
+        snow_sum = file_forcing_daysum.variables['SNOW'][:] * 3600
+        times = file_forcing_daysum.variables['TIME'][:]
         
         start = np.datetime64('2005-08-01 06:00:00')
         year_start = 2006
@@ -315,6 +318,12 @@ def main(compute):
 #                    start_y_ablation_1 = np.where(integ_temp_1 > integ_temp_1.max()/start_div)[0]
                     end_y_ablation = np.where(integ_temp > (integ_temp.max() - integ_temp.max()/end_div))[0]
 #                    end_y_ablation_1 = np.where(integ_temp_1 > (integ_temp_1.max() - integ_temp_1.max()/end_div))[0]
+                    
+#                    print(glacier_name)
+#                    print(glacier_idx)
+                    
+#                    if(glacier_idx == 165 or glacier_idx == 166):
+#                        import pdb; pdb.set_trace()
                     
                     start_ablation = start_y_ablation[0] 
                     end_ablation = end_y_ablation[0] 

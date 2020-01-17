@@ -32,7 +32,7 @@ print("-----------------------------------------------")
 #########    SETTINGS      ##############################################################################
 # projection == True -> Projections with ADAMONT for the 21st century
 # projection == False -> Historical simulations for the 1984 - 2015 period with SAFRAN
-historical_forcing, projection_forcing, simulation_type = settings.simulation_settings(projection = False)
+historical_forcing, projection_forcing, simulation_type = settings.simulation_settings(projection = True)
 
 ### Global variables  ###
 # Set the glacier index to start the simulations
@@ -50,8 +50,8 @@ settings.init(historical_forcing, projection_forcing, simulation_type, smb_model
 ##########    SMB SIMULATION   ######################################
 # SMB machine learning models generation
 
-settings.train_smb_model(historical_forcing, compute_forcing = False, 
-                                                 train_model = False)
+settings.train_smb_model(historical_forcing, compute_forcing = False, # Computer historical climate forcings
+                                                 train_model = False) # Re-train SMB machine learning models
 
 ##########     DELTA H FUNCTIONS GENERATION   #######################
 
@@ -60,9 +60,9 @@ settings.glacier_parameterized_functions(compute = False,
 
 ##########     SMB PROJECTION + GLACIER GEOMETRY EVOLUTION    #######
 settings.glacier_simulation(simulation_type, counter_threshold,
-                                           validate_SMB = True, # SMB LOGO validation
+                                           validate_SMB = False, # SMB LOGO validation
                             compute_projection_forcings = False, # Compute projection climate forcings
-                                      compute_evolution = False, # Compute glacier evolution
+                                      compute_evolution = True, # Compute glacier evolution
                                              reconstruct = True, # Reconstruct glacier-wide SMB timeseries
                                                overwrite = True)
 

@@ -215,22 +215,24 @@ def create_input_array(season_anomalies_y, monthly_anomalies_y, mean_alt_y, max_
 def preload_ensemble_SMB_models():
     # CV ensemble
 #    path_CV_ensemble = workspace + 'glacier_data\\smb\\ANN\\LSYGO\\CV\\'
-    path_CV_ensemble = workspace + 'glacier_data\\smb\\ANN\\LOGO\\CV\\'
+#    path_CV_ensemble = workspace + 'glacier_data\\smb\\ANN\\LOGO\\CV\\'
+    path_CV_ensemble = settings.path_cv_ann
     path_CV_ensemble_members = np.asarray(os.listdir(path_CV_ensemble))
     
     # Full model ensemble
 #    path_ensemble = workspace + 'glacier_data\\smb\\ANN\\LSYGO\\ensemble\\'
-    path_ensemble = workspace + 'glacier_data\\smb\\ANN\\LOGO\\ensemble\\'
+#    path_ensemble = workspace + 'glacier_data\\smb\\ANN\\LOGO\\ensemble\\'
+    path_ensemble = settings.path_ensemble_ann
     path_ensemble_members = np.asarray(os.listdir(path_ensemble))
     
     CV_ensemble_members, ensemble_members = [],[]
     glacier_n = 1
-    print("\nPreloading CV ensemble SMB models...")
-    for path_CV_member in path_CV_ensemble_members:
-        # We retrieve the ensemble member ANN model
-        ann_CV_member_model = load_model(path_CV_ensemble + path_CV_member, custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error}, compile=False)
-        CV_ensemble_members.append(ann_CV_member_model)
-        print("|", end="", flush=True)
+#    print("\nPreloading CV ensemble SMB models...")
+#    for path_CV_member in path_CV_ensemble_members:
+#        # We retrieve the ensemble member ANN model
+#        ann_CV_member_model = load_model(path_CV_ensemble + path_CV_member, custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error}, compile=False)
+#        CV_ensemble_members.append(ann_CV_member_model)
+#        print("|", end="", flush=True)
     
     print("\n\nPreloading ensemble full SMB models...")
     for path_member in path_ensemble_members:
@@ -445,6 +447,16 @@ def crop_inital_rasters_to_GLIMS(path_glacier_ID_rasters, path_glacier_DEM_raste
 #        print("Clipping raster to GLIMS extent... ")
 #        clipRaster_with_polygon(path_glacier_ID_GLIMS, current_glacier_ice_depth, path_glacier_outline)
 #        clipRaster_with_polygon(path_glacier_DEM_GLIMS, current_glacier_DEM, path_glacier_outline)
+        
+    elif(year_start == 2019):
+        if(glacierID == 3651): # If Tré la Tête glacier, use field data
+            path_glacier_ID_GLIMS = path_glacier_ID_rasters + "interp_cleaned_masked_newh_25m.tif"
+            path_glacier_DEM_GLIMS = path_glacier_DEM_rasters + "masked_dem_lidar_25m.tif"
+            path_glacier_DEM_2003 = ''
+            path_glacier_ID_2003 = ''
+        else:
+            print("\nWARNING: No ice thickness data for this glacier!")
+            
         
     return path_glacier_ID_GLIMS, path_glacier_DEM_GLIMS, path_glacier_DEM_2003, path_glacier_ID_2003
 
@@ -858,7 +870,7 @@ def get_default_ADAMONT_forcings(year_start, year_end, midfolder):
             massif_number = np.load(massif_f)
         with open(path_aspect, 'rb') as aspects_f:
             aspects = np.load(aspects_f)
-            
+        
         daily_meteo_data = {'temps':daily_temps_years, 'snow': daily_snow_years, 'rain': daily_rain_years, 'dates': daily_datetimes, 'zs': zs}
     else:
         # We read all the files
@@ -1214,7 +1226,7 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
                       daily_meteo_data, meteo_anomalies,
                       flowline, raster_current_DEM, current_glacier_DEM, store_plots, 
                       glacierName, glacierID, glimsID, massif, lat, lon, aspect,
-                      midfolder, pixel_area, glaciers_with_errors, 
+                      midfolder, pixel_area, glaciers_with_errors, glims_rabatel,
                       lasso_scaler, lasso_model, ann_model, ensemble_SMB_models,
                       year_range, ref_start, ref_end, SAFRAN_idx, overwrite):
     
@@ -1298,9 +1310,8 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
                 SMB_y = lasso_model.predict(lasso_scaler.transform(x_lasso.reshape(1,-1)))
             elif(settings.smb_model_type == "ann_no_weights" or settings.smb_model_type == "ann_weights"):
                 # We use an ensemble approach to compute the glacier-wide SMB
-                # TODO: replace after full training
-#                SMB_y = make_ensemble_simulation(ensemble_SMB_models, x_ann, batch_size=34, evolution=True)
-                SMB_y = ann_model.predict(x_ann.reshape(1,-1), batch_size=34)[0][0]
+                batch_size = 34
+                SMB_y = make_ensemble_simulation(ensemble_SMB_models, x_ann, batch_size, glimsID, glims_rabatel, evolution=True)
             
             yearly_simulated_SMB.append(SMB_y)
             print("Simulated SMB: " + str(SMB_y))
@@ -1409,7 +1420,7 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
 
 
 
-def main(compute, overwrite_flag, counter_threshold, thickness_idx):
+def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickness_idx):
 
     ##################################################################################
     ##################		                MAIN                #####################
@@ -1470,8 +1481,10 @@ def main(compute, overwrite_flag, counter_threshold, thickness_idx):
             ref_start = 1959
             ref_end = 2015
         elif(settings.simulation_type == "future"):
-            year_start = 2015  
+            year_start = 2019  
             year_end = 2099
+            ref_start = 2006
+            ref_end = 2099
         
         #### ONLY HISTORICAL SAFRAN DATA FOR REFS  ####
         # We load the compacted seasonal and monthly meteo forcings
@@ -1544,10 +1557,7 @@ def main(compute, overwrite_flag, counter_threshold, thickness_idx):
         glacier_counter = 1
         glaciers_with_errors, melted_glaciers = [],[]
         
-        # Preload the ensemble SMB models to speed up simulations
-        # TODO: uncomment after full training
-#        ensemble_SMB_models = preload_ensemble_SMB_models()
-        ensemble_SMB_models = []
+#        ensemble_SMB_models = []
         
         ####  ITERATING ALL THE GLACIERS  ####
         idx = 0
@@ -1581,7 +1591,10 @@ def main(compute, overwrite_flag, counter_threshold, thickness_idx):
                 glacier_length = glacier.GetField("Length")
                 print("GLIMS ID: " + str(glimsID))
                 # We process only the non-discarded glaciers with a delta h function and those greater than 0.5 km2
-                if(True):
+#                if(True):
+#                print('glacierID: ' + str(glacierID))
+#                print("glacierArea: " + str(glacierArea))
+                if(glacierID == 3651 and glacier_counter == 35): # Tré la Tête
 #                if(glacierName == "d'Argentiere"):
 #                if(glacierName == "d'Argentiere" or glacierName == "Mer de Glace"):
 #                if(np.any(glimsID.encode('ascii') == glims_rabatel['GLIMS_ID']) and (glacierName[-1] != '2' and glacierName[-1] != '3' and glacierName[-1] != '4')):
@@ -1695,7 +1708,7 @@ def main(compute, overwrite_flag, counter_threshold, thickness_idx):
                                                                                                 flowline, raster_current_DEM, current_glacier_DEM,
                                                                                                 store_plots, glacierName, 
                                                                                                 glacierID, glimsID, massif, lat, lon, aspect,
-                                                                                                midfolder, pixel_area, glaciers_with_errors,
+                                                                                                midfolder, pixel_area, glaciers_with_errors, glims_rabatel,
                                                                                                 lasso_scaler, lasso_model, ann_model, ensemble_SMB_models,
                                                                                                 year_range, ref_start, ref_end, SAFRAN_idx, overwrite) 
                     

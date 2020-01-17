@@ -45,16 +45,19 @@ def init(hist_forcing, proj_forcing, simu_type, smb_model):
     
     global path_ann
     global path_cv_ann
+    global path_ensemble_ann
     global smb_model_type
     if(smb_model == 'ann_no_weights'):
         path_ann = path_smb + 'ANN\\LSYGO\\no_weights\\'
 #        path_ann = path_smb + 'ANN\\LOGO\\no_weights\\'
 #        path_ann = path_smb + 'ANN\\LOYO\\no_weights\\'
         path_cv_ann = path_ann + 'CV\\'
+        path_ensemble_ann = path_ann + 'ensemble\\'
         smb_model_type = smb_model
     elif(smb_model == 'ann_weights'):
         path_ann = path_smb + 'ANN\\LSYGO\\weights\\'
         path_cv_ann = path_ann + 'CV\\'
+        path_ensemble_ann = path_ann + 'ensemble\\'
         smb_model_type = smb_model
     elif(smb_model == 'lasso'):
         smb_model_type = smb_model 
@@ -85,6 +88,8 @@ def adamont_simulation(simulation_type, compute_projection_forcings, compute_evo
     counter = 0
     forcing_threshold = 0
     if(simulation_type == 'future'):
+        # Preload the ensemble SMB models to speed up simulations
+        ensemble_SMB_models = glacier_evolution.preload_ensemble_SMB_models()
 #        for thickness_idx in range(0,3):
         thickness_idx = 0
 #        for thickness_idx in range(0,2):
@@ -95,7 +100,7 @@ def adamont_simulation(simulation_type, compute_projection_forcings, compute_evo
                 current_ADAMONT_forcing_mean = 'projections\\' + ADAMONT_proj_filepaths[i]
                 current_ADAMONT_forcing_sum =  'projections\\' + ADAMONT_proj_filepaths[i+1]
                 adamont_forcings.main(compute_projection_forcings)
-                glacier_evolution.main(compute_evolution, overwrite, counter_threshold, thickness_idx)
+                glacier_evolution.main(compute_evolution, ensemble_SMB_models, overwrite, counter_threshold, thickness_idx)
             counter = counter+1
 
 def glacier_simulation(simulation_type, counter_threshold, validate_SMB, compute_projection_forcings, compute_evolution, reconstruct, overwrite):
@@ -107,9 +112,11 @@ def glacier_simulation(simulation_type, counter_threshold, validate_SMB, compute
         adamont_simulation(simulation_type, compute_projection_forcings, compute_evolution, counter_threshold, overwrite)
     elif(simulation_type == "historical"):
         smb_validation.main(validate_SMB, reconstruct)
+        # Preload the ensemble SMB models to speed up simulations
+        ensemble_SMB_models = glacier_evolution.preload_ensemble_SMB_models()
 #        for thickness_idx in range(0,3):
         # 0 = original ice thickness / 1 = 1.3*ice thickness /  2 =  0.7*ice thickness 
-        glacier_evolution.main(compute_evolution, overwrite, counter_threshold, 0) # thickness idx = 0 by default
+        glacier_evolution.main(compute_evolution, ensemble_SMB_models, overwrite, counter_threshold, 0) # thickness idx = 0 by default
     else:
         print("\n[ERROR] Wrong type of projection!")
         
