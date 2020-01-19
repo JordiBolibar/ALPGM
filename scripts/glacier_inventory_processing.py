@@ -38,5 +38,5 @@ for glacier_67 in glims_1967:
         print("Glacier " + str(glacier_67['Glacier']) + " found")
 
 print("Saving processed 1967 file")
-import pdb; pdb.set_trace()
+#import pdb; pdb.set_trace()
 np.savetxt(path_glims + 'GLIMS_1967_GLIMS_ID.csv', glims_1967['GLIMS_ID'], delimiter=";", fmt="%s")

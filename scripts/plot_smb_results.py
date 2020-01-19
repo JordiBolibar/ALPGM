@@ -15,7 +15,7 @@ import copy
 import csv
 from pathlib import Path
 from matplotlib.lines import Line2D
-import numpy.polynomial.polynomial as poly
+#import numpy.polynomial.polynomial as poly
 import statsmodels.api as sm
 from scipy import stats
 #from sklearn.metrics import r2_score

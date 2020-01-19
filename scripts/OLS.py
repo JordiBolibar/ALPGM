@@ -7,12 +7,12 @@ Created on Mon Oct 22 10:43:57 2018
 
 
 ## Dependencies: ##
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import numpy as np
 from numpy import genfromtxt
-import numpy.polynomial.polynomial as poly
-from scipy import stats
-from scipy.optimize import curve_fit
+#import numpy.polynomial.polynomial as poly
+#from scipy import stats
+#from scipy.optimize import curve_fit
 
 ######   FILE PATHS    #######
     

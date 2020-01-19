@@ -19,7 +19,7 @@ import math
 from numpy import genfromtxt
 from pathlib import Path
 import shutil
-from sklearn.model_selection import LeaveOneGroupOut, KFold
+from sklearn.model_selection import LeaveOneGroupOut
 #from sklearn.preprocessing import StandardScaler, normalize
 #from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score
@@ -541,7 +541,7 @@ if(training):
     elif(cross_validation == 'LOGO'):
         model = create_logo_model(n_features, final=False)
     elif(cross_validation == 'LSYGO' or cross_validation == 'LSYGO_past'):
-        model = create_lsygo_model(n_features)
+        model = create_lsygo_model(n_features, final=False)
         
 #    train_idx = np.asarray(train_idx)
 #    test_idx = np.asarray(test_idx)
@@ -671,7 +671,7 @@ else:
 #        n_epochs = 800
     elif(cross_validation == 'LSYGO_past'):
         splits = zip(past_folds_train, past_folds_test)
-        full_model = create_lsygo_model(n_features)
+        full_model = create_lsygo_model(n_features, final=False)
         fold_filter = -1
         n_epochs = 2000
         
@@ -723,10 +723,10 @@ else:
                     model = create_loyo_model(n_features)
                     file_name = 'best_model_LOYO.h5'
                 elif(cross_validation == "LSYGO"):
-                    model = create_lsygo_model(n_features)
+                    model = create_lsygo_model(n_features, final=False)
                     file_name = 'best_model_LSYGO.h5'
                 elif(cross_validation == "LSYGO_past"):
-                    model = create_lsygo_model(n_features)
+                    model = create_lsygo_model(n_features, final=False)
                     file_name = 'best_model_LSYGO_past.h5'
                 
                 es = EarlyStopping(monitor='val_loss', mode='min', min_delta=0.01, patience=1000)
@@ -882,7 +882,7 @@ else:
                 full_model = create_lsygo_model(n_features, final=True)
                 n_epochs = 2000
             elif(cross_validation == 'LSYGO_past'):
-                full_model = create_lsygo_model(n_features)
+                full_model = create_lsygo_model(n_features, final=True)
                 n_epochs = 2000
              
             es = EarlyStopping(monitor='loss', mode='min', min_delta=0.01, patience=1000)
