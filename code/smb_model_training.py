@@ -437,7 +437,7 @@ def generate_SMB_models(SMB_raw, season_raw_meteo_anomalies_SMB, mon_temp_anomal
     
     #############################################
 
-     ### Lasso CV
+    ### Lasso CV
     x_reg_full_array = np.asarray(x_reg_full_array)
     x_reg_full_array = x_reg_full_array[0,:,:]
     
@@ -672,7 +672,7 @@ def generate_SMB_models(SMB_raw, season_raw_meteo_anomalies_SMB, mon_temp_anomal
     
     lasso_cv_models = np.asarray(lasso_cv_models)
     
-     #####  OLS   ##############
+    #####  OLS   ##############
     # Calculate the point density
     xy = np.vstack([SMB_ols_ref,SMB_ols])
     z = gaussian_kde(xy)(xy)

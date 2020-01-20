@@ -864,7 +864,7 @@ def main(compute, reconstruct):
                 
                 sample_weights = np.reshape(sample_weights_flat, smb_matrix_shp)
                 
-                 # We filter the NaN values
+                # We filter the NaN values
                 finite_mask = np.isfinite(SMB_raw)
                 SMB_raw = SMB_raw[finite_mask]
                 
@@ -966,7 +966,7 @@ def main(compute, reconstruct):
                         
                         # We store all the glacier's data to be compared later
                         print("\nStoring data...")
-                         # We store the simulated SMB 
+                        # We store the simulated SMB 
                          
                         store_file(SMB_nn, path_training_data, "SMB\\", "SMB", glimsID, start_ref, end_ref+1)
                         store_glacier_info(glacier_info, path_training_data + 'glacier_info\\')

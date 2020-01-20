@@ -704,7 +704,7 @@ for massif, color, marker in zip(avg_smb_massif, colors, markers):
     avg_smb_per_massif[massif][0] = np.nanmean(avg_smb_massif[massif])
     # SMB mean per glacier per massif
     finite_mask_glacier = np.isfinite(glacier_smb_per_massif[massif])
-    finite_mask_glacier = np.where(finite_mask_glacier == True)[0]
+    finite_mask_glacier = np.where(finite_mask_glacier is True)[0]
     avg_glacier_smb_per_massif[massif][0] = np.average(np.asarray(glacier_smb_per_massif[massif])[finite_mask_glacier], weights=np.asarray(glacier_area_per_massif[massif])[finite_mask_glacier])
     avg_glacier_smb_per_massif[massif][1] = avg_glacier_smb_per_massif[massif][0]*49
     line101, = ax10.plot(range(1967, 2016), avg_smb_massif[massif], color=color, marker=marker, linewidth=1, label=massif)

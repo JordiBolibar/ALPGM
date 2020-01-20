@@ -178,7 +178,7 @@ def main(compute):
         year_start = 2006
         year_end = 2099
         
-         # We compute the yearly CPDD and snow accumulation only if it not yet available
+        # We compute the yearly CPDD and snow accumulation only if it not yet available
         season_meteo_generated = os.path.exists(path_smb_function_adamont+'season_meteo.txt')
         monthly_meteo_generated = os.path.exists(path_smb_function_adamont+'glacier_winter_snow.txt')
         

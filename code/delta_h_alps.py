@@ -114,7 +114,7 @@ def dh_FlatFilter(dh, dem):
 def apply_BaseFilter(dem, deltah, multimask):
     i = 0
     for altitude, thickness in zip(dem.flatten(), deltah.flatten()):
-        if((multimask[i] == False) and dh_BaseFilter(thickness, altitude)):
+        if((multimask[i] is False) and dh_BaseFilter(thickness, altitude)):
             multimask[i] = True
         i=i+1
     return multimask
@@ -422,7 +422,7 @@ def main(compute, overwrite):
                 
                 # We create a new mask merging the DEM and ice thickness ones in order to keep only the pixels which are valid
                 # in both rasters
-                multimask = ((masked_dh_currentGlacier.mask == True) | (masked_DEM_currentGlacier.mask == True)).flatten()
+                multimask = ((masked_dh_currentGlacier.mask is True) | (masked_DEM_currentGlacier.mask is True)).flatten()
                 DEM_currentGlacier_nodata = np.ma.array(current_glacier_array_DEM, mask = multimask, fill_value = nodata_DEM_current_glacier)
                 deltah_currentGlacier_nodata = np.ma.array(current_glacier_array_dh, mask = multimask, fill_value = nodata_dh_current_glacier)
         
