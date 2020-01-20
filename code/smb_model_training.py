@@ -496,7 +496,7 @@ def generate_SMB_models(SMB_raw, season_raw_meteo_anomalies_SMB, mon_temp_anomal
             elif(spatiotemporal_flag == 'temporal'):
                 loyo_fold = LeaveOneGroupOut()
                 year_groups_u = year_groups[year_groups != fold_idx]
-                lasso_fold_splits = loyo_fold.split(scaled_X_train, groups=year_groups_u)
+#                lasso_fold_splits = loyo_fold.split(scaled_X_train, groups=year_groups_u)
                 
 #            logo_model_lasso = LassoLarsIC(criterion='bic').fit(scaled_X_train, y[train_idx])
             cv_model_lasso = LassoCV(cv=150, selection='random').fit(scaled_X_train, y[train_idx])

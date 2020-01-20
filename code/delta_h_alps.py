@@ -19,7 +19,7 @@ import matplotlib.backends.backend_pdf
 #from scipy.optimize import curve_fit
 import numpy as np
 import numpy.polynomial.polynomial as poly
-from numpy import genfromtxt
+#from numpy import genfromtxt
 import pandas as pd
 import unicodedata
 import shutil

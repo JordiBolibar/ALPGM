@@ -474,7 +474,7 @@ def get_point_values(flowline_feature, dem_raster):
         px = int((mx - gt[0]) / gt[1]) 
         py = int((my - gt[3]) / gt[5]) 
         alt = rb.ReadAsArray(px,py,1,1)
-        if(alt != None):
+        if(alt is not None):
             flowline_altitudes.append(rb.ReadAsArray(px,py,1,1)[0][0])
             flowline_coordinates.append(point)
         else:
@@ -1048,7 +1048,7 @@ def get_adjusted_glacier_ADAMONT_forcings(year, year_start, glacier_mean_altitud
             accum_temp_idx = range(0, start_ablation)
         else:
             start_y_ablation = np.where(integ_temp > integ_temp.max()/start_div)[0]
-            start_y_ablation_1 = np.where(integ_temp_1 > integ_temp_1.max()/start_div)[0]
+#            start_y_ablation_1 = np.where(integ_temp_1 > integ_temp_1.max()/start_div)[0]
         #            start_y_ablation = np.where(integ_temp > 30)[0]
             end_y_ablation = np.where(integ_temp > (integ_temp.max() - integ_temp.max()/end_div))[0]
             end_y_ablation_1 = np.where(integ_temp_1 > (integ_temp_1.max() - integ_temp_1.max()/end_div))[0]
@@ -1058,7 +1058,7 @@ def get_adjusted_glacier_ADAMONT_forcings(year, year_start, glacier_mean_altitud
             
             start_ablation = start_y_ablation[0] 
             end_ablation = end_y_ablation[0] 
-            start_ablation_1 = start_y_ablation_1[0] 
+#            start_ablation_1 = start_y_ablation_1[0] 
             end_ablation_1 = end_y_ablation_1[0] 
             
             # We get the indexes for the ablation and accumulation periods
@@ -1275,7 +1275,6 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
             masked_ID_previous_glacier_u = copy.deepcopy(masked_ID_current_glacier_u)
             print("\n--- Hydrological year: " + str(year-1) + "-" + str(year) + " ---\n")
             print("Glacier front: " + str(DEM_sorted_current_glacier_u[0]) + " meters")
-            print
             
             ####  RECALCULATION OF TOPOGRAPHICAL PARAMETERS  ####
             mean_glacier_alt = masked_DEM_current_glacier_u.mean()

@@ -37,7 +37,7 @@ from sklearn.utils.class_weight import compute_sample_weight
 from keras import backend as K
 #from keras import optimizers
 from keras.models import load_model
-import tensorflow as tf
+#import tensorflow as tf
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
@@ -91,8 +91,8 @@ def label_line(ax, line, label, color='0.5', fs=14, halign='left'):
     xdata, ydata = line.get_data()
     x1 = xdata[0]
     x2 = xdata[-1]
-    y1 = ydata[0]
-    y2 = ydata[-1]
+#    y1 = ydata[0]
+#    y2 = ydata[-1]
 
     if halign.startswith('l'):
         xx = x1
@@ -850,8 +850,8 @@ def main(compute, reconstruct):
                 SMB_flat = SMB_raw.flatten()
                 smb_matrix_shp = SMB_raw.shape
                 finite_mask = np.isfinite(SMB_flat)
-                temp_smb = np.where(np.isnan(SMB_raw), -99, SMB_raw)
-                zero_idx = np.argwhere(temp_smb == -99)
+#                temp_smb = np.where(np.isnan(SMB_raw), -99, SMB_raw)
+#                zero_idx = np.argwhere(temp_smb == -99)
                 
                 sample_weights_flat = np.sqrt(compute_sample_weight(class_weight="balanced", y=SMB_flat[finite_mask]))
                 
