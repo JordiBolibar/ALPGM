@@ -55,6 +55,7 @@ path_area_glaciers = np.asarray(os.listdir(path_area_safran))
 path_slope_glaciers = np.asarray(os.listdir(path_slope_safran))
 
 glims_2003 = genfromtxt(path_glims + 'GLIMS_2003.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('GLIMS_ID', '<a50'), ('Massif_SAFRAN', '<i8'), ('Aspect_num', '<i8'), ('ID', '<i8')])
+glims_rabatel = genfromtxt(path_glims + 'GLIMS_Rabatel_30_2003.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('slope20', '<f8'), ('GLIMS_ID', '<a50'), ('Massif_SAFRAN', '<f8'), ('Aspect_num', '<f8')])        
 SMB_raw = genfromtxt(path_smb + 'SMB_raw_temporal.csv', delimiter=';', dtype=float)
 
 all_glacier_smb, flat_all_glacier_smb  = [],[]
@@ -124,8 +125,12 @@ for glacier in SMB_raw:
     
 annual_avg_smb_obs = []
 for year in annual_smb_obs:
-    annual_avg_smb_obs.append(np.nanmean(year))
+    nan_idx = ~np.isnan(year)
+#    annual_avg_smb_obs.append(np.nanmean(year))
+    annual_avg_smb_obs.append(np.average(np.asarray(year)[nan_idx], weights=glims_rabatel['Area'][nan_idx]))
 annual_avg_smb_obs = np.asarray(annual_avg_smb_obs)
+
+#import pdb; pdb.set_trace()
 
 line0, = ax0.plot(range(1967, 2016), annual_avg_smb_obs, linewidth=3, label='Average SMB', c='midnightblue')
 ax0.legend()
@@ -354,16 +359,16 @@ a_avg_smb, a_avg_smb_marzeion, a_avg_smb_big, a_avg_smb_small, a_avg_smb_v_small
 
 for avg_smb, avg_smb_marzeion, avg_smb_big, avg_smb_medium, avg_smb_small, avg_area, avg_area_marzeion in zip(annual_avg_smb_, annual_avg_smb_marzeion, annual_avg_smb_big_glaciers_, annual_avg_smb_small_glaciers_, annual_avg_smb_very_small_glaciers_, annual_avg_area, annual_avg_area_marzeion):
     # Area weighted mean
-#    a_avg_smb.append(np.average(avg_smb, weights=avg_area))
-#    a_avg_smb_marzeion.append(np.average(avg_smb_marzeion, weights=avg_area_marzeion))
-#    a_avg_smb_big.append(np.asarray(avg_smb_big).mean())
-#    a_avg_smb_small.append(np.asarray(avg_smb_medium).mean())
-#    a_avg_smb_v_small.append(np.asarray(avg_smb_small).mean())
-    a_avg_smb.append(np.average(avg_smb))
-    a_avg_smb_marzeion.append(np.average(avg_smb_marzeion))
+    a_avg_smb.append(np.average(avg_smb, weights=avg_area))
+    a_avg_smb_marzeion.append(np.average(avg_smb_marzeion, weights=avg_area_marzeion))
     a_avg_smb_big.append(np.asarray(avg_smb_big).mean())
     a_avg_smb_small.append(np.asarray(avg_smb_medium).mean())
     a_avg_smb_v_small.append(np.asarray(avg_smb_small).mean())
+#    a_avg_smb.append(np.average(avg_smb))
+#    a_avg_smb_marzeion.append(np.average(avg_smb_marzeion))
+#    a_avg_smb_big.append(np.asarray(avg_smb_big).mean())
+#    a_avg_smb_small.append(np.asarray(avg_smb_medium).mean())
+#    a_avg_smb_v_small.append(np.asarray(avg_smb_small).mean())
 
 avg_smb_massif = copy.deepcopy(smb_massif_template)  
 for massif, avg_massif in zip(smb_massif, avg_smb_massif):
@@ -704,7 +709,7 @@ for massif, color, marker in zip(avg_smb_massif, colors, markers):
     avg_smb_per_massif[massif][0] = np.nanmean(avg_smb_massif[massif])
     # SMB mean per glacier per massif
     finite_mask_glacier = np.isfinite(glacier_smb_per_massif[massif])
-    finite_mask_glacier = np.where(finite_mask_glacier is True)[0]
+    finite_mask_glacier = np.where(finite_mask_glacier == True)[0]
     avg_glacier_smb_per_massif[massif][0] = np.average(np.asarray(glacier_smb_per_massif[massif])[finite_mask_glacier], weights=np.asarray(glacier_area_per_massif[massif])[finite_mask_glacier])
     avg_glacier_smb_per_massif[massif][1] = avg_glacier_smb_per_massif[massif][0]*49
     line101, = ax10.plot(range(1967, 2016), avg_smb_massif[massif], color=color, marker=marker, linewidth=1, label=massif)

@@ -74,6 +74,8 @@ path_glacier_zmean = path_glacier_evolution + 'glacier_zmean\\'
 path_glacier_slope20 = path_glacier_evolution + 'glacier_slope20\\'
 path_glacier_melt_years = path_glacier_evolution + 'glacier_melt_years\\'
 path_glacier_w_errors = path_glacier_evolution + 'glacier_w_errors\\'
+path_glacier_CPDDs = path_glacier_evolution + 'glacier_CPDDs\\'
+path_glacier_snowfall = path_glacier_evolution + 'glacier_snowfall\\'
 # GLIMS data
 path_glims = workspace + 'glacier_data\\GLIMS\\' 
 # SAFRAN climate forcings
@@ -254,7 +256,9 @@ def preload_ensemble_SMB_models():
 # Evolution flag = True for glacier_evolution.py format and False for smb_validation.py format
 def make_ensemble_simulation(ensemble_SMB_models, x_ann, batch_size, glimsID, glims_rabatel, evolution):
     SMB_ensemble = []
+    training_areas = glims_rabatel['Area']
     first = True
+    CV_ensemble = False
     member_idx = 0
     
     # Depending if glacier is present in training dataset we use the CV or full model
@@ -263,6 +267,7 @@ def make_ensemble_simulation(ensemble_SMB_models, x_ann, batch_size, glimsID, gl
         print("\nFull ensemble models")
     else:
         SMB_ensemble_members = ensemble_SMB_models['CV']
+        V_ensemble = True
         print("\nCross-validation ensemble models")
     
     # We iterate the previously loaded ensemble models
@@ -285,8 +290,15 @@ def make_ensemble_simulation(ensemble_SMB_models, x_ann, batch_size, glimsID, gl
     
     # We compute the ensemble average value
     if(evolution):
-        ensemble_simulation = np.average(SMB_ensemble)
+    # Glacier evolution modelling
+        if(CV_ensemble):
+            # Inversed area-weighted ensemble
+            ensemble_simulation = np.average(SMB_ensemble, weights=(1/training_areas))
+        else:
+            # Unweighted ensemble average
+            ensemble_simulation = np.average(SMB_ensemble)
     else:
+    # SMB reconstruction
         # We initialize the empty struture to fill with annual data
         ensemble_data, ensemble_simulation = [],[]
         for year in SMB_ensemble[0]:
@@ -299,7 +311,13 @@ def make_ensemble_simulation(ensemble_SMB_models, x_ann, batch_size, glimsID, gl
                 year_idx = year_idx+1
         # We compute the average annual value
         for year in ensemble_data:
-            ensemble_simulation.append(np.average(year))
+            if(CV_ensemble):
+                # Inversed area-weighted ensemble
+                ensemble_simulation.append(np.average(year, weights=(1/training_areas)))
+            else:
+                # Unweighted ensemble average
+                ensemble_simulation.append(np.average(year))
+            
         ensemble_simulation = np.asarray(ensemble_simulation)
     
 #    print("\nAverage simulation: " + str(ensemble_simulation))
@@ -949,7 +967,7 @@ def get_default_ADAMONT_forcings(year_start, year_end, midfolder):
         # We create the folder if it's not there
         if(not os.path.exists(path_smb_function_adamont+midfolder)):
             os.makedirs(path_smb_function_adamont+midfolder)
-     
+            
         with open(path_smb_function_adamont+midfolder+'daily_temps_years_' + str(year_start) + '-' + str(year_end) + '.txt', 'wb') as dtemp_f:
                             np.save(dtemp_f, daily_temps_years)
         with open(path_smb_function_adamont+midfolder+'daily_snow_years_' + str(year_start) + '-' + str(year_end) + '.txt', 'wb') as dsnow_f:
@@ -1268,7 +1286,7 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
         yearly_simulated_SMB = []
         year_range = np.asarray(year_range)
         
-        mean_CPDD, mean_w_snow, mean_s_snow = [] , [] ,[]
+        mean_CPDD, mean_snow = [],[]
         
         for year in year_range:
 #        for CPDD_Anomaly, winter_snow_Anomaly, summer_snow_Anomaly in zip(raw_CPDD_LocalAnomaly, raw_winter_snow_LocalAnomaly, raw_summer_snow_LocalAnomaly):
@@ -1295,10 +1313,6 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
                 season_anomalies_y, monthly_anomalies_y = get_adjusted_glacier_ADAMONT_forcings(year, year_start, 
                                                                                              masked_DEM_current_glacier_u.compressed().mean(), SAFRAN_idx, 
                                                                                              daily_meteo_data, meteo_anomalies)
-            
-            mean_CPDD.append(season_anomalies_y['CPDD'])
-            mean_w_snow.append(season_anomalies_y['winter_snow'])
-            mean_s_snow.append(season_anomalies_y['summer_snow'])
             
             ####  CREATION OF THE MODEL TEST DATASET  ####
             x_lasso, x_ann = create_input_array(season_anomalies_y, monthly_anomalies_y, mean_glacier_alt, max_glacier_alt, slope20, current_glacierArea, lat, lon, aspect)
@@ -1341,9 +1355,13 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
             
             ice_idx = np.where(masked_ID_current_glacier_u > 0)
             current_glacierArea = pixel_area*(masked_ID_current_glacier_u[ice_idx]).size
+            # Gather topographical data evolution
             yearly_glacier_area.append(copy.deepcopy(current_glacierArea))
-            yearly_glacier_volume.append(current_glacierArea*(np.sum(masked_ID_current_glacier_u[ice_idx])))
+            yearly_glacier_volume.append(pixel_area*(np.sum(masked_ID_current_glacier_u[ice_idx])))
             yearly_glacier_slope20.append(slope20)
+            # Gather climate data evolution
+            mean_CPDD.append(season_anomalies_y['CPDD'])
+            mean_snow.append(season_anomalies_y['winter_snow'] + season_anomalies_y['summer_snow'])
             
             ID_difference_current_glacier = masked_ID_current_glacier_u - masked_ID_previous_glacier_u
             masked_DEM_current_glacier_u = masked_DEM_current_glacier_u + ID_difference_current_glacier
@@ -1409,6 +1427,10 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
                 os.makedirs(path_glacier_melt_years)
             glacier_melt_year = np.asarray(glacier_melt_year)
             np.savetxt(path_glacier_melt_years + glimsID + '_melt_year.csv', glacier_melt_year, delimiter=";", fmt="%.7f")
+        # CPDD
+        store_file(mean_CPDD, path_glacier_CPDDs, midfolder, "CPDD", glimsID, year_start, year)
+        # Snowfall
+        store_file(mean_snow, path_glacier_snowfall, midfolder, "snowfall", glimsID, year_start, year)
         
     else:
         print("Glacier previously processed. Skipping...")
@@ -1522,6 +1544,7 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
             midfolder_base = str(settings.current_ADAMONT_forcing_mean[:-11]) + "\\"
             daily_meteo_data, massif_number, aspects, year_end = get_default_ADAMONT_forcings(year_start, year_end, midfolder_base)
 #            all_glacier_coordinates = get_ADAMONT_glacier_coordinates(glims_2015, massif_number, zs_years)
+            print("\nCurrent RCP-GCM-RCM member: " + str(settings.current_ADAMONT_forcing_mean))
         else:
             midfolder_base = 'SAFRAN\\'
             daily_meteo_data = get_default_SAFRAN_forcings(ref_start, ref_end)
@@ -1557,6 +1580,8 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
         glaciers_with_errors, melted_glaciers = [],[]
         
 #        ensemble_SMB_models = []
+        
+        print("\nStarting simulations for " + str(year_start) + "-" + str(year_end) + " period")
         
         ####  ITERATING ALL THE GLACIERS  ####
         idx = 0
