@@ -726,6 +726,10 @@ def main(compute, reconstruct):
         with open(path_smb_function_forcing+'all_glacier_coordinates.txt', 'rb') as coords_f:
             all_glacier_coordinates = np.load(coords_f)
             
+        # CV model RMSE to compute the dynamic ensemble weights
+        with open(settings.path_ann +'RMSE_per_fold.txt', 'rb') as rmse_f:
+            CV_RMSE = np.load(rmse_f)
+            
         # We extract the simulation interval in years
         # [()] needed to access the dictionary
         year_start = int(season_meteo_anomalies_SMB[()]['CPDD'][0]['CPDD'][0])
@@ -794,7 +798,7 @@ def main(compute, reconstruct):
                         x_reg_array, x_reg_full, x_reg_nn = create_spatiotemporal_matrix(season_anomalies, mon_anomalies, glims_glacier, glacier_mean_altitude, glacier_area, best_models)
                         
                         #####  Machine learning SMB simulations   ###################
-                        SMB_nn = make_ensemble_simulation(ensemble_SMB_models, x_reg_nn, 34, glimsID, glims_rabatel, evolution=False)
+                        SMB_nn, SMB_ensemble = make_ensemble_simulation(ensemble_SMB_models, CV_RMSE, x_reg_nn, 34, glimsID, glims_rabatel, evolution=False)
 #                        SMB_nn = ann_model.predict(x_reg_nn, batch_size = 34)
 #                        SMB_nn = np.asarray(SMB_nn)[:,0].flatten()
                         
@@ -826,6 +830,13 @@ def main(compute, reconstruct):
                         
                         glacier_slope = np.repeat(x_reg_nn[0][5], year_end_file+1-start_ref)
                         store_file(glacier_slope, path_smb_all_glaciers_slope, "", "Slope_20", glimsID, start_ref, year_end_file+1)
+                        
+                        # We store all the ensemble predictions of SMB
+                        ensemble_path = path_smb_all_glaciers_smb + glimsID + '_ensemble_SMB.txt'
+                        if(os.path.exists(ensemble_path)):
+                            ensemble_path = path_smb_all_glaciers_smb + glimsID + '_ensemble_SMB_2.txt'
+                        with open(ensemble_path, 'wb') as ensemble_smb_f:
+                            np.save(ensemble_smb_f, SMB_ensemble)
                         
                         
                     glacier_idx = glacier_idx+1

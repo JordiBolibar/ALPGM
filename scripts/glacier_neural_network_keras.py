@@ -65,17 +65,19 @@ path_ann_LSYGO_past = path_smb + 'ANN\\LSYGO_past\\'
 ######################################
 #  Training with or without weights  #
 w_weights = False
-#cross_validation = "LOGO"
+cross_validation = "LOGO"
 #cross_validation = "LOYO"
-cross_validation = "LSYGO"
+#cross_validation = "LSYGO"
 #cross_validation = "LSYGO_past"
 #######  Flag to switch between training with a         ###############
 #######  single group of glaciers or cross-validation   ###############
 training = False
 # Train only the full model without training CV models
-final_model_only = True
+final_model_only = False
 # Activate the ensemble modelling approach
-final_model = True
+final_model = False
+# Only re-calculate fold performances based on previously trained models
+recalculate_performance = True
 ########################################
 
 if(cross_validation == 'LOGO'):
@@ -701,72 +703,91 @@ else:
                 
                 print("\nTesting SMB values: " + str(y_test))
                 
-    #            if(cross_validation == 'LSYGO'):
-    #                print("test_idx: " + str(np.where(test_idx == True)))
+                # Recalculate performance of previously trained models
+                if(recalculate_performance):
+                    SMB_model = load_model(path_cv_ann + 'glacier_' + str(fold_count+1) + '_model.h5', custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error}, compile=False)
                     
-    #                print("\nglaciers test: " + str(groups[test_idx]))
-    #                print("years test: " + str(year_groups[test_idx]))
-    #                
-    #                print("\nglaciers train: " + str(groups[train_idx]))
-    #                print("years train: " + str(year_groups[train_idx]))
-    #                print("train_idx: " + str(np.where(train_idx == True)))
+                    SMB_nn = SMB_model.predict(X_test, batch_size = 32)
+                    SMB_nn_all = np.concatenate((SMB_nn_all, SMB_nn), axis=None)
                     
-    #                import pdb; pdb.set_trace()
-                
-                weights_train = weights_full[train_idx]
-                weights_test = weights_full[test_idx]
-                
-                if(cross_validation == "LOGO"):
-                    model = create_logo_model(n_features, final=False)
-                    file_name = 'best_model_LOGO.h5'
-                elif(cross_validation == "LOYO"):
-                    model = create_loyo_model(n_features)
-                    file_name = 'best_model_LOYO.h5'
-                elif(cross_validation == "LSYGO"):
-                    model = create_lsygo_model(n_features, final=False)
-                    file_name = 'best_model_LSYGO.h5'
-                elif(cross_validation == "LSYGO_past"):
-                    model = create_lsygo_model(n_features, final=False)
-                    file_name = 'best_model_LSYGO_past.h5'
-                
-                es = EarlyStopping(monitor='val_loss', mode='min', min_delta=0.01, patience=1000)
-                mc = ModelCheckpoint(path_ann + str(file_name), monitor='val_loss', mode='min', save_best_only=True, verbose=1)
-        
-                if(w_weights):
-                    # Training with weights
-                    print("\nMax weight " + str(weights_full.max()) + " for " + str(np.where(weights_full == 50)[0].size) + " values")
-                    #TODO: decide if use MC or not
-                    history = model.fit(X_train, y_train, validation_data = (X_test, y_test), epochs=n_epochs, batch_size = 32, callbacks=[es, mc], sample_weight = weights_train, verbose=1)
-                    
-                    SMB_fold_pred = model.predict(X_test)
-                    
-#                    print("\nReference SMB: " + str(y_test))
-#                    print("\nPredicted SMB: " + str(SMB_fold_pred))
-                    
-#                    # summarize history for loss
-#                    plt.plot(history.history['loss'])
-#                    plt.plot(history.history['val_loss'])
-#                    plt.title('model loss')
-#                    plt.ylabel('loss')
-#                    plt.ylim(0, 2)
-#                    plt.xlabel('epoch')
-#                    plt.legend(['train', 'test'], loc='upper left')
-#                    plt.show()
+                # Train new models
                 else:
-                    # Training without weights
-                    history = model.fit(X_train, y_train, validation_data = (X_test, y_test), epochs=n_epochs, batch_size = 32, callbacks=[es, mc], verbose=1)
                 
-                # load the saved model
-                best_model = load_model(path_ann  + str(file_name), custom_objects={"r2_keras": r2_keras, "r2_keras_loss": r2_keras_loss, "root_mean_squared_error": root_mean_squared_error})
+        #            if(cross_validation == 'LSYGO'):
+        #                print("test_idx: " + str(np.where(test_idx == True)))
+                        
+        #                print("\nglaciers test: " + str(groups[test_idx]))
+        #                print("years test: " + str(year_groups[test_idx]))
+        #                
+        #                print("\nglaciers train: " + str(groups[train_idx]))
+        #                print("years train: " + str(year_groups[train_idx]))
+        #                print("train_idx: " + str(np.where(train_idx == True)))
+                        
+        #                import pdb; pdb.set_trace()
+                    
+                    weights_train = weights_full[train_idx]
+                    weights_test = weights_full[test_idx]
+                    
+                    if(cross_validation == "LOGO"):
+                        model = create_logo_model(n_features, final=False)
+                        file_name = 'best_model_LOGO.h5'
+                    elif(cross_validation == "LOYO"):
+                        model = create_loyo_model(n_features)
+                        file_name = 'best_model_LOYO.h5'
+                    elif(cross_validation == "LSYGO"):
+                        model = create_lsygo_model(n_features, final=False)
+                        file_name = 'best_model_LSYGO.h5'
+                    elif(cross_validation == "LSYGO_past"):
+                        model = create_lsygo_model(n_features, final=False)
+                        file_name = 'best_model_LSYGO_past.h5'
+                    
+                    es = EarlyStopping(monitor='val_loss', mode='min', min_delta=0.01, patience=1000)
+                    mc = ModelCheckpoint(path_ann + str(file_name), monitor='val_loss', mode='min', save_best_only=True, verbose=1)
+            
+                    if(w_weights):
+                        # Training with weights
+                        print("\nMax weight " + str(weights_full.max()) + " for " + str(np.where(weights_full == 50)[0].size) + " values")
+                        #TODO: decide if use MC or not
+                        history = model.fit(X_train, y_train, validation_data = (X_test, y_test), epochs=n_epochs, batch_size = 32, callbacks=[es, mc], sample_weight = weights_train, verbose=1)
+                        
+                        SMB_fold_pred = model.predict(X_test)
+                        
+    #                    print("\nReference SMB: " + str(y_test))
+    #                    print("\nPredicted SMB: " + str(SMB_fold_pred))
+                        
+    #                    # summarize history for loss
+    #                    plt.plot(history.history['loss'])
+    #                    plt.plot(history.history['val_loss'])
+    #                    plt.title('model loss')
+    #                    plt.ylabel('loss')
+    #                    plt.ylim(0, 2)
+    #                    plt.xlabel('epoch')
+    #                    plt.legend(['train', 'test'], loc='upper left')
+    #                    plt.show()
+                    else:
+                        # Training without weights
+                        history = model.fit(X_train, y_train, validation_data = (X_test, y_test), epochs=n_epochs, batch_size = 32, callbacks=[es, mc], verbose=1)
+                    
+                    # load the saved model
+                    best_model = load_model(path_ann  + str(file_name), custom_objects={"r2_keras": r2_keras, "r2_keras_loss": r2_keras_loss, "root_mean_squared_error": root_mean_squared_error})
+                    
+                    score = best_model.evaluate(X_test, y_test)
+                    print(best_model.metrics_names)
+                    print(score)
+                    average_overall_score.append(score[0])
+                    print("\nAverage overall score so far: " + str(np.average(average_overall_score)))
+                    
+                    SMB_nn = best_model.predict(X_test, batch_size = 32)
+                    SMB_nn_all = np.concatenate((SMB_nn_all, SMB_nn), axis=None)
+                    
+                    #### We store the CV model
+                    if not os.path.exists(path_cv_ann):
+                        os.makedirs(path_cv_ann)
+                    ##### We save the model in HDF5 format
+                    best_model.save(path_cv_ann + 'glacier_' + str(fold_idx) + '_model.h5')
+                    print("CV model saved to disk")
                 
-                score = best_model.evaluate(X_test, y_test)
-                print(best_model.metrics_names)
-                print(score)
-                average_overall_score.append(score[0])
-                print("\nAverage overall score so far: " + str(np.average(average_overall_score)))
-                
-                SMB_nn = best_model.predict(X_test, batch_size = 32)
-                SMB_nn_all = np.concatenate((SMB_nn_all, SMB_nn), axis=None)
+                # Compute the performance of the current model
                 
                 print("Manual r2: " + str(r2_score(y_test, SMB_nn)))
                 print("Manual RMSE: " + str(math.sqrt(mean_squared_error(y_test, SMB_nn))))
@@ -786,13 +807,6 @@ else:
                 if(w_weights):
                     r2_nn_all_w = np.concatenate((r2_nn_all_w, r2_score(y_test, SMB_nn, weights_test)), axis=None)
                     RMSE_nn_all_w = np.concatenate((RMSE_nn_all_w, math.sqrt(mean_squared_error(y_test, SMB_nn, weights_test))), axis=None)
-                
-                #### We store the CV model
-                if not os.path.exists(path_cv_ann):
-                    os.makedirs(path_cv_ann)
-                ##### We save the model in HDF5 format
-                best_model.save(path_cv_ann + 'glacier_' + str(fold_idx) + '_model.h5')
-                print("CV model saved to disk")
                 
                 # Clear tensorflow graph to avoid slowing CPU down
                 if(fold_idx != 64):
@@ -830,6 +844,9 @@ else:
         print("\nRMSE per fold: " + str(RMSE_nn_all))
         
         print("\nAverage bias: " + str(np.average(SMB_nn_all - SMB_ref_all)))
+        
+        with open(path_ann + 'RMSE_per_fold.txt', 'wb') as rmse_f: 
+            np.save(rmse_f, RMSE_nn_all)
         
 #        import pdb; pdb.set_trace()
         

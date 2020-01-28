@@ -48,9 +48,9 @@ def init(hist_forcing, proj_forcing, simu_type, smb_model):
     global path_ensemble_ann
     global smb_model_type
     if(smb_model == 'ann_no_weights'):
-        path_ann = path_smb + 'ANN\\LSYGO\\no_weights\\'
-#        path_ann = path_smb + 'ANN\\LOGO\\no_weights\\'
-#        path_ann = path_smb + 'ANN\\LOYO\\no_weights\\'
+#        path_ann = path_smb + 'ANN\\LSYGO\\'
+        path_ann = path_smb + 'ANN\\LOGO\\'
+#        path_ann = path_smb + 'ANN\\LOYO\\'
         path_cv_ann = path_ann + 'CV\\'
         path_ensemble_ann = path_ann + 'ensemble\\'
         smb_model_type = smb_model
@@ -112,8 +112,10 @@ def glacier_simulation(simulation_type, counter_threshold, validate_SMB, compute
         adamont_simulation(simulation_type, compute_projection_forcings, compute_evolution, counter_threshold, overwrite)
     elif(simulation_type == "historical"):
         smb_validation.main(validate_SMB, reconstruct)
-        # Preload the ensemble SMB models to speed up simulations
-        ensemble_SMB_models = glacier_evolution.preload_ensemble_SMB_models()
+        ensemble_SMB_models = []
+        if(compute_evolution):
+            # Preload the ensemble SMB models to speed up simulations
+            ensemble_SMB_models = glacier_evolution.preload_ensemble_SMB_models()
 #        for thickness_idx in range(0,3):
         # 0 = original ice thickness / 1 = 1.3*ice thickness /  2 =  0.7*ice thickness 
         glacier_evolution.main(compute_evolution, ensemble_SMB_models, overwrite, counter_threshold, 0) # thickness idx = 0 by default

@@ -31,6 +31,7 @@ from netCDF4 import Dataset
 import settings
 import pandas as pd
 from pathlib import Path
+from sklearn.preprocessing import StandardScaler, normalize
 
 from keras import backend as K
 from keras.models import load_model
@@ -216,32 +217,36 @@ def create_input_array(season_anomalies_y, monthly_anomalies_y, mean_alt_y, max_
 # Preloads in memory all the ANN SMB ensemble models to speed up the simulations
 def preload_ensemble_SMB_models():
     # CV ensemble
-#    path_CV_ensemble = workspace + 'glacier_data\\smb\\ANN\\LSYGO\\CV\\'
-#    path_CV_ensemble = workspace + 'glacier_data\\smb\\ANN\\LOGO\\CV\\'
     path_CV_ensemble = settings.path_cv_ann
     path_CV_ensemble_members = np.asarray(os.listdir(path_CV_ensemble))
     
     # Full model ensemble
-#    path_ensemble = workspace + 'glacier_data\\smb\\ANN\\LSYGO\\ensemble\\'
-#    path_ensemble = workspace + 'glacier_data\\smb\\ANN\\LOGO\\ensemble\\'
     path_ensemble = settings.path_ensemble_ann
     path_ensemble_members = np.asarray(os.listdir(path_ensemble))
     
-    CV_ensemble_members, ensemble_members = [],[]
-    glacier_n = 1
-#    print("\nPreloading CV ensemble SMB models...")
-#    for path_CV_member in path_CV_ensemble_members:
-#        # We retrieve the ensemble member ANN model
-#        ann_CV_member_model = load_model(path_CV_ensemble + path_CV_member, custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error}, compile=False)
-#        CV_ensemble_members.append(ann_CV_member_model)
-#        print("|", end="", flush=True)
+#    CV_ensemble_members, ensemble_members = [],[]
+    CV_ensemble_members = np.ndarray(path_CV_ensemble_members.shape, dtype=np.object)
+    ensemble_members = np.ndarray(path_ensemble_members.shape, dtype=np.object)
     
+    member_idx = 0
+    print("\nPreloading CV ensemble SMB models...")
+    for path_CV_member in path_CV_ensemble_members:
+        # We retrieve the ensemble member ANN model
+        ann_CV_member_model = load_model(path_CV_ensemble + path_CV_member, custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error}, compile=False)
+#        CV_ensemble_members.append(ann_CV_member_model)
+        CV_ensemble_members[member_idx] = ann_CV_member_model
+        print("|", end="", flush=True)
+        member_idx = member_idx+1
+    
+    member_idx = 0
     print("\n\nPreloading ensemble full SMB models...")
     for path_member in path_ensemble_members:
         # We retrieve the ensemble member ANN model
         ann_member_model = load_model(path_ensemble + path_member + '\\ann_glacier_model.h5', custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error}, compile=False)
-        ensemble_members.append(ann_member_model)
+#        ensemble_members.append(ann_member_model)
+        ensemble_members[member_idx] = ann_member_model
         print("|", end="", flush=True)
+        member_idx = member_idx+1
         
     CV_ensemble_members = np.asarray(CV_ensemble_members)
     ensemble_members = np.asarray(ensemble_members)
@@ -252,14 +257,39 @@ def preload_ensemble_SMB_models():
     
     return ensemble_member_models
 
+def compute_generalization_error_weights(CV_RMSE, SMB_members, SMB_mean):
+    # We compute the generalization errors to weight the average
+    ge_weights, ambiguities = [],[]
+    # Pre-compute the ambiguities
+    for SMB_member in SMB_members:
+        ambiguities.append((SMB_member - SMB_mean)**2)
+    ambiguities = np.asarray(ambiguities)
+    
+    for RMSE_i, ambiguity_i in zip(CV_RMSE, ambiguities):
+        # Generalization error = RMSE_ensemble  - ensemble_ambiguity
+        # Both values are normalized in order to make them comparable
+        # RMSE is inversed for weighting
+        inv_RMSE_i_norm = (1/RMSE_i - np.min(1/CV_RMSE))/np.ptp(1/CV_RMSE)
+        ambiguity_i_norm = (ambiguity_i - np.min(ambiguities))/np.ptp(ambiguities)
+        # The generalization error is inversed in order to be used as weights
+        ge_weights.append(inv_RMSE_i_norm + ambiguity_i_norm)
+    
+    ge_weights = np.asarray(ge_weights)
+    
+    return ge_weights
+
 # Makes an ANN glacier-wide SMB simulation using an ensemble approach
 # Evolution flag = True for glacier_evolution.py format and False for smb_validation.py format
-def make_ensemble_simulation(ensemble_SMB_models, x_ann, batch_size, glimsID, glims_rabatel, evolution):
+def make_ensemble_simulation(ensemble_SMB_models, CV_RMSE, x_ann, batch_size, glimsID, glims_rabatel, evolution):
     SMB_ensemble = []
-    training_areas = glims_rabatel['Area']
+    training_slopes = glims_rabatel['slope20']
+    ref_slope = np.median(x_ann[:,5])
     first = True
     CV_ensemble = False
     member_idx = 0
+    
+    # We compute the quadratic slope difference 
+    slope_dist = (training_slopes - ref_slope)**2
     
     # Depending if glacier is present in training dataset we use the CV or full model
     if(np.any(glims_rabatel['GLIMS_ID'] == glimsID.encode('utf-8'))):
@@ -267,7 +297,7 @@ def make_ensemble_simulation(ensemble_SMB_models, x_ann, batch_size, glimsID, gl
         print("\nFull ensemble models")
     else:
         SMB_ensemble_members = ensemble_SMB_models['CV']
-        V_ensemble = True
+        CV_ensemble = True
         print("\nCross-validation ensemble models")
     
     # We iterate the previously loaded ensemble models
@@ -289,11 +319,17 @@ def make_ensemble_simulation(ensemble_SMB_models, x_ann, batch_size, glimsID, gl
         member_idx = member_idx+1
     
     # We compute the ensemble average value
+    SMB_ensemble = np.asarray(SMB_ensemble)
+    
     if(evolution):
     # Glacier evolution modelling
         if(CV_ensemble):
-            # Inversed area-weighted ensemble
-            ensemble_simulation = np.average(SMB_ensemble, weights=(1/training_areas))
+            # We generate the weights for the ensemble averaging
+#            ge_weights = compute_generalization_error_weights(CV_RMSE, SMB_ensemble, SMB_ensemble.mean())
+            # Generalization error weighted ensemble
+            ensemble_simulation = np.average(SMB_ensemble, weights=ge_weights)
+            # Inverse slope difference weighted ensemble
+#            ensemble_simulation = np.average(SMB_ensemble, weights=1/slope_dist)
         else:
             # Unweighted ensemble average
             ensemble_simulation = np.average(SMB_ensemble)
@@ -309,21 +345,29 @@ def make_ensemble_simulation(ensemble_SMB_models, x_ann, batch_size, glimsID, gl
             for year in member:
                 ensemble_data[year_idx].append(year)
                 year_idx = year_idx+1
+                
         # We compute the average annual value
         for year in ensemble_data:
             if(CV_ensemble):
-                # Inversed area-weighted ensemble
-                ensemble_simulation.append(np.average(year, weights=(1/training_areas)))
+                # We generate the weights for the ensemble averaging
+#                ge_weights = compute_generalization_error_weights(CV_RMSE, year, np.average(year))
+                # Generalization error weighted ensemble
+#                ensemble_simulation.append(np.average(year, weights=ge_weights))
+                # Inverse slope difference weighted ensemble
+#                ensemble_simulation.append(np.average(year, weights=1/slope_dist))
+                ensemble_simulation.append(np.average(year))
             else:
                 # Unweighted ensemble average
                 ensemble_simulation.append(np.average(year))
+                
+        
             
         ensemble_simulation = np.asarray(ensemble_simulation)
     
 #    print("\nAverage simulation: " + str(ensemble_simulation))
     
     # We return the average value of all the ensemble members
-    return ensemble_simulation
+    return ensemble_simulation, SMB_ensemble
         
     
 def getRasterInfo(raster_current_F19):
@@ -1245,7 +1289,7 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
                       flowline, raster_current_DEM, current_glacier_DEM, store_plots, 
                       glacierName, glacierID, glimsID, massif, lat, lon, aspect,
                       midfolder, pixel_area, glaciers_with_errors, glims_rabatel,
-                      lasso_scaler, lasso_model, ann_model, ensemble_SMB_models,
+                      lasso_scaler, lasso_model, ann_model, ensemble_SMB_models, CV_RMSE,
                       year_range, ref_start, ref_end, SAFRAN_idx, overwrite):
     
     print("Applying glacier evolution...")
@@ -1324,7 +1368,7 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
             elif(settings.smb_model_type == "ann_no_weights" or settings.smb_model_type == "ann_weights"):
                 # We use an ensemble approach to compute the glacier-wide SMB
                 batch_size = 34
-                SMB_y = make_ensemble_simulation(ensemble_SMB_models, x_ann, batch_size, glimsID, glims_rabatel, evolution=True)
+                SMB_y, SMB_ensemble = make_ensemble_simulation(ensemble_SMB_models, CV_RMSE, x_ann, batch_size, glimsID, glims_rabatel, evolution=True)
             
             yearly_simulated_SMB.append(SMB_y)
             print("Simulated SMB: " + str(SMB_y))
@@ -1518,6 +1562,9 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
         # Deep learning
         # ANN nonlinear model
         ann_model = load_model(path_ann + 'ann_glacier_model.h5', custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error})
+        # CV model RMSE to compute the dynamic ensemble weights
+        with open(settings.path_ann +'RMSE_per_fold.txt', 'rb') as rmse_f:
+            CV_RMSE = np.load(rmse_f)
         
         # Lasso
         # Data scaler
@@ -1615,10 +1662,10 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
                 glacier_length = glacier.GetField("Length")
                 print("GLIMS ID: " + str(glimsID))
                 # We process only the non-discarded glaciers with a delta h function and those greater than 0.5 km2
-#                if(True):
+                if(True):
 #                print('glacierID: ' + str(glacierID))
 #                print("glacierArea: " + str(glacierArea))
-                if(glacierID == 3651 and glacier_counter == 35): # Tré la Tête
+#                if(glacierID == 3651 and glacier_counter == 35): # Tré la Tête
 #                if(glacierName == "d'Argentiere"):
 #                if(glacierName == "d'Argentiere" or glacierName == "Mer de Glace"):
 #                if(np.any(glimsID.encode('ascii') == glims_rabatel['GLIMS_ID']) and (glacierName[-1] != '2' and glacierName[-1] != '3' and glacierName[-1] != '4')):
@@ -1733,7 +1780,7 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
                                                                                                 store_plots, glacierName, 
                                                                                                 glacierID, glimsID, massif, lat, lon, aspect,
                                                                                                 midfolder, pixel_area, glaciers_with_errors, glims_rabatel,
-                                                                                                lasso_scaler, lasso_model, ann_model, ensemble_SMB_models,
+                                                                                                lasso_scaler, lasso_model, ann_model, ensemble_SMB_models, CV_RMSE,
                                                                                                 year_range, ref_start, ref_end, SAFRAN_idx, overwrite) 
                     
                     if(glacier_melted_flag):
