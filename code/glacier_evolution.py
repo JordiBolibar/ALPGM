@@ -113,22 +113,19 @@ def shorten_name(glacierName):
 def empty_folder(path):
     if(os.path.exists(path)):
         shutil.rmtree(path)
-
-def store_file(data, path, midfolder, file_description, glimsID, year_start, year):
-    stored = False
-    year_range = np.asarray(range(year_start, year))
-    data =  np.asarray(data).reshape(-1,1)
-    data_w_years = np.column_stack((year_range, data))
-    path_midfolder = path + midfolder
-    if not os.path.exists(path_midfolder):
-        os.makedirs(path_midfolder)
-    file_name = path + midfolder + glimsID + "_" + str(file_description) + '.csv'
+        
+def automatic_file_name_save(file_name_h, file_name_t, data, f_format):
+    file_name = file_name_h + file_name_t
     appendix = 2
+    stored = False
     while not stored:
         if not os.path.exists(file_name):
             try:
-                np.savetxt(file_name, data_w_years, delimiter=";", fmt="%.7f")
-#                print("File saved: " + str(file_name))
+                if(f_format == 'csv'):
+                    np.savetxt(file_name, data, delimiter=";", fmt="%.7f")
+                else:
+                    with open(file_name, 'wb') as file_f:
+                        np.save(file_f, data)
                 stored = True
             except IOError:
                 print("File currently opened. Please close it to proceed.")
@@ -136,14 +133,32 @@ def store_file(data, path, midfolder, file_description, glimsID, year_start, yea
                 # We try again
                 try:
                     print("\nRetrying storing " + str(file_name))
-                    np.savetxt(file_name, data_w_years, delimiter=";", fmt="%.7f")
+                    if(f_format == 'csv'):
+                        np.savetxt(file_name, data, delimiter=";", fmt="%.7f")
+                    else:
+                        with open(file_name, 'wb') as file_f:
+                            np.save(file_f, data)
                     stored = True
                 except IOError:
                     print("File still not available. Aborting simulations.")
         else:
-            file_name = path + midfolder + glimsID + "_" + str(appendix) + "_" + str(file_description) + '.csv'
+            file_name = file_name_h + str(appendix) + "_" + file_name_t
             appendix = appendix+1
 
+def store_file(data, path, midfolder, file_description, glimsID, year_start, year):
+    year_range = np.asarray(range(year_start, year))
+    data =  np.asarray(data).reshape(-1,1)
+    data_w_years = np.column_stack((year_range, data))
+    path_midfolder = path + midfolder
+    if not os.path.exists(path_midfolder):
+        os.makedirs(path_midfolder)
+        
+#    file_name = path + midfolder + glimsID + "_" + str(file_description) + '.csv'
+    file_name_h = path + midfolder + glimsID + "_"
+    file_name_t = str(file_description) + '.csv'
+    # We save the file with an unexisting name
+    automatic_file_name_save(file_name_h, file_name_t, data_w_years, 'csv')
+    
 @jit
 def similar(a, b):
     ratios = []

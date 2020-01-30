@@ -28,7 +28,7 @@ from netCDF4 import Dataset
 import sys
 import pandas as pd
 from pathlib import Path
-from glacier_evolution import store_file, get_aspect_deg, empty_folder, make_ensemble_simulation, preload_ensemble_SMB_models
+from glacier_evolution import store_file, get_aspect_deg, empty_folder, make_ensemble_simulation, preload_ensemble_SMB_models, automatic_file_name_save
 
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import r2_score
@@ -60,6 +60,7 @@ path_safran_forcings = 'C:\\Jordi\\PhD\\Data\\SAFRAN-Nivo-2017\\'
 path_smb_function_safran = path_smb + 'smb_function\\SAFRAN\\'
 path_smb_all_glaciers = path_smb + 'smb_simulations\\SAFRAN\\1\\all_glaciers_1967_2015\\'
 path_smb_all_glaciers_smb = path_smb + 'smb_simulations\\SAFRAN\\1\\all_glaciers_1967_2015\\smb\\'
+path_smb_all_ensemble_smb = path_smb + 'smb_simulations\\SAFRAN\\1\\all_glaciers_1967_2015\\ensemble_smb\\'
 path_smb_all_glaciers_area = path_smb + 'smb_simulations\\SAFRAN\\1\\all_glaciers_1967_2015\\area\\'
 path_smb_all_glaciers_slope = path_smb + 'smb_simulations\\SAFRAN\\1\\all_glaciers_1967_2015\\slope\\'
 path_training_data = workspace + 'glacier_data\\glacier_evolution\\training\\'
@@ -68,55 +69,6 @@ global path_slope20
 path_slope20 = workspace + 'glacier_data\\glacier_evolution\\glacier_slope20\\SAFRAN\\1\\'
 
 ######     FUNCTIONS     ######
-
-def label_line(ax, line, label, color='0.5', fs=14, halign='left'):
-    """Add an annotation to the given line with appropriate placement and rotation.
-    Based on code from:
-        [How to rotate matplotlib annotation to match a line?]
-        (http://stackoverflow.com/a/18800233/230468)
-        User: [Adam](http://stackoverflow.com/users/321772/adam)
-    Arguments
-    ---------
-    ax : `matplotlib.axes.Axes` object
-        Axes on which the label should be added.
-    line : `matplotlib.lines.Line2D` object
-        Line which is being labeled.
-    label : str
-        Text which should be drawn as the label.
-    ...
-    Returns
-    -------
-    text : `matplotlib.text.Text` object
-    """
-    xdata, ydata = line.get_data()
-    x1 = xdata[0]
-    x2 = xdata[-1]
-#    y1 = ydata[0]
-#    y2 = ydata[-1]
-
-    if halign.startswith('l'):
-        xx = x1
-        halign = 'left'
-    elif halign.startswith('r'):
-        xx = x2
-        halign = 'right'
-    elif halign.startswith('c'):
-        xx = 0.5*(x1 + x2)
-        halign = 'center'
-    else:
-        raise ValueError("Unrecogznied `halign` = '{}'.".format(halign))
-
-    yy = np.interp(xx, xdata, ydata)
-
-    ylim = ax.get_ylim()
-    # xytext = (10, 10)
-    xytext = (25, 0)
-    text = ax.annotate(label, xy=(xx, yy), xytext=xytext, textcoords='offset pixels',
-                       size=fs, color=color, zorder=1,
-                       horizontalalignment=halign, verticalalignment='center_baseline')
-
-    ax.set_ylim(ylim)
-    return text
 
 def store_smb_data(file_name, data):
     try:
@@ -832,12 +784,11 @@ def main(compute, reconstruct):
                         store_file(glacier_slope, path_smb_all_glaciers_slope, "", "Slope_20", glimsID, start_ref, year_end_file+1)
                         
                         # We store all the ensemble predictions of SMB
-                        ensemble_path = path_smb_all_glaciers_smb + glimsID + '_ensemble_SMB.txt'
-                        if(os.path.exists(ensemble_path)):
-                            ensemble_path = path_smb_all_glaciers_smb + glimsID + '_ensemble_SMB_2.txt'
-                        with open(ensemble_path, 'wb') as ensemble_smb_f:
-                            np.save(ensemble_smb_f, SMB_ensemble)
-                        
+                        if not os.path.exists(path_smb_all_ensemble_smb):
+                            os.makedirs(path_smb_all_ensemble_smb)
+                        file_name_h = path_smb_all_ensemble_smb + glimsID + '_'
+                        file_name_t = 'ensemble_SMB.txt'
+                        automatic_file_name_save(file_name_h, file_name_t, SMB_ensemble, 'txt')
                         
                     glacier_idx = glacier_idx+1
                     

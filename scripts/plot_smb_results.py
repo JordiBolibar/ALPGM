@@ -64,10 +64,9 @@ all_glacier_smb, flat_all_glacier_smb  = [],[]
 all_glaciers_avg_smb = {'avg_smb':[], 'GLIMS_ID':[], 'glacier_name':[]}
 annual_smb_obs = [] 
 annual_avg_smb_, annual_avg_smb_marzeion = [],[]
-annual_avg_smb_big_glaciers_ = []
-annual_avg_smb_small_glaciers_ = []
-annual_avg_smb_very_small_glaciers_ = []
-annual_avg_smb_extremely_small_glaciers_ = []
+
+annual_smb_area = {'big':[], 'small':[], 'v_small':[], 'x_small':[]}
+annual_smb_slope = {'0_20':[], '20_30':[], '30_40':[], '40_50':[]}
 annual_avg_area, annual_ensemble_avg_area, annual_avg_area_marzeion, annual_avg_slope = [],[],[],[]
 flat_big_glaciers, flat_medium_glaciers, flat_small_glaciers, flat_ext_small_glaciers = [],[],[],[]
 avg_big_glaciers, avg_medium_glaciers, avg_small_glaciers, avg_ext_small_glaciers = [],[],[],[]
@@ -78,10 +77,9 @@ for year_idx in range(0, 49):
     annual_smb_obs.append([])
     annual_avg_smb_.append([])
     annual_avg_smb_marzeion.append([])
-    annual_avg_smb_big_glaciers_.append([])
-    annual_avg_smb_small_glaciers_.append([])
-    annual_avg_smb_very_small_glaciers_.append([])
-    annual_avg_smb_extremely_small_glaciers_.append([])
+    for size, slope in zip(annual_smb_area, annual_smb_slope):
+        annual_smb_area[size].append([])
+        annual_smb_slope[slope].append([])
     annual_avg_area.append([])
     annual_ensemble_avg_area.append([])
     annual_avg_area_marzeion.append([])
@@ -208,6 +206,7 @@ glacier_idx, glacier_idx_2015 = 0, 0
 glaciers_not_2015 = 0
 big_glaciers, small_glaciers, very_small_glaciers, ext_small_glaciers = 0, 0, 0, 0
 big_glaciers_2015, small_glaciers_2015, very_small_glaciers_2015, ext_small_glaciers_2015 = 0, 0, 0, 0
+n_0_20, n_20_30, n_30_40, n_40_50 = 0, 0, 0, 0
 
 RGI_IDs = glims_2003['ID']
 
@@ -258,6 +257,7 @@ for path_smb, path_ensemble_smb, path_area, path_slope in zip(path_smb_glaciers,
         glaciers_not_2015 = glaciers_not_2015+1
     else:
         area_glacier_i = area_glacier[-15]
+        slope_glacier_i = slope_glacier[-15]
         
     if(area_glacier_i < 0.1):
         linewidth = 0.08
@@ -290,6 +290,7 @@ for path_smb, path_ensemble_smb, path_area, path_slope in zip(path_smb_glaciers,
 #        line2, = ax2.plot(range(1967, 2016), np.cumsum(smb_glacier), linewidth=linewidth)
     
     big_glacier, small_glacier, very_small_glacier, extremely_small_glacier = False, False, False, False
+    s_0_20, s_20_30, s_30_40, s_40_50 = False, False, False, False
     
     # We compute the overall average SMB glacier by glacier
     avg_glacier_smb.append(np.nanmean(smb_glacier))
@@ -314,24 +315,34 @@ for path_smb, path_ensemble_smb, path_area, path_slope in zip(path_smb_glaciers,
                 member_idx = 0
                 annual_ensemble_avg_area[year_idx].append(area_glacier_i)
                 for smb_member in ensemble_smb_glacier:
-                    if(glacier_idx==64):
-                        import pdb; pdb.set_trace()
                     ensemble_avg_annual_smb[member_idx][year_idx].append(smb_member[year_idx])
                     member_idx=member_idx+1
-            
+            # We filter glaciers by area size
             if(area_glacier_i >= 2):
-                annual_avg_smb_big_glaciers_[year_idx].append(smb_glacier[year_idx])
+                annual_smb_area['big'][year_idx].append(smb_glacier[year_idx])
                 big_glacier = True
             elif(area_glacier_i > 0.5):
-                annual_avg_smb_small_glaciers_[year_idx].append(smb_glacier[year_idx])
+                annual_smb_area['small'][year_idx].append(smb_glacier[year_idx])
                 small_glacier = True
             elif(area_glacier_i > 0.1):
-                annual_avg_smb_very_small_glaciers_[year_idx].append(smb_glacier[year_idx])
+                annual_smb_area['v_small'][year_idx].append(smb_glacier[year_idx])
                 very_small_glacier = True
             else:
-                annual_avg_smb_extremely_small_glaciers_[year_idx].append(smb_glacier[year_idx])
+                annual_smb_area['x_small'][year_idx].append(smb_glacier[year_idx])
                 extremely_small_glacier = True    
-                annual_avg_smb_extremely_small_glaciers_
+            # We filter glaciers by slope
+            if(slope_glacier_i >= 40):
+                annual_smb_slope['40_50'][year_idx].append(smb_glacier[year_idx])
+                s_40_50 = True
+            elif(slope_glacier_i > 30):
+                annual_smb_slope['30_40'][year_idx].append(smb_glacier[year_idx])
+                s_30_40 = True
+            elif(slope_glacier_i > 20):
+                annual_smb_slope['20_30'][year_idx].append(smb_glacier[year_idx])
+                s_20_30 = True
+            else:
+                annual_smb_slope['0_20'][year_idx].append(smb_glacier[year_idx])
+                s_0_20 = True  
                 
     # TODO: erase after investigation of behaviour of last year
 #    if(np.sum(smb_glacier[:-15]) > 0):
@@ -364,6 +375,15 @@ for path_smb, path_ensemble_smb, path_area, path_slope in zip(path_smb_glaciers,
         ext_small_glaciers = ext_small_glaciers+1
         avg_ext_small_glaciers.append(np.average(smb_glacier))
     
+    if(s_0_20):
+        n_0_20 = n_0_20+1
+    elif(s_20_30):
+        n_20_30 = n_20_30+1
+    elif(s_30_40):
+        n_30_40 = n_30_40+1
+    elif(s_40_50):
+        n_40_50 = n_40_50+1
+        
     # 2003-2015 glacier indexes
     if(not np.isnan(smb_glacier[-1])):
         glacier_idx_2015 = glacier_idx_2015+1
@@ -378,10 +398,15 @@ for path_smb, path_ensemble_smb, path_area, path_slope in zip(path_smb_glaciers,
     print("Glacier #" + str(glacier_idx))
     
 
-print("big glaciers: " + str(big_glaciers))
+print("\nbig glaciers: " + str(big_glaciers))
 print("medium glaciers: " + str(small_glaciers))
 print("small glaciers: " + str(very_small_glaciers))
 print("extremely small glaciers: " + str(ext_small_glaciers))
+
+print("\nGlaciers with slopes 0 - 20: " + str(n_0_20))
+print("Glaciers with slopes 20 - 30: " + str(n_20_30))
+print("Glaciers with slopes 30 - 40: " + str(s_30_40))
+print("Glaciers with slopes 40 - 50: " + str(n_40_50))
 
 avg_glacier_smb = np.asarray(avg_glacier_smb)
 area_glaciers = np.asarray(area_glaciers)
@@ -395,24 +420,32 @@ mean_fullperiod_slope_glaciers = np.asarray(mean_fullperiod_slope_glaciers)
 # All glaciers
 all_glacier_smb = np.asarray(all_glacier_smb) 
 flat_all_glacier_smb = np.asarray(flat_all_glacier_smb)
-a_avg_smb, a_median_smb, a_avg_smb_marzeion, a_avg_smb_big, a_avg_smb_small, a_avg_smb_v_small, a_avg_smb_vv_small = [],[],[],[],[],[],[]
+a_avg_smb, a_median_smb, a_avg_smb_marzeion = [],[],[]
+annual_avg_smb_area = {'big':[], 'small':[], 'v_small':[], 'x_small':[]}
+annual_avg_smb_slope = {'0_20':[], '20_30':[], '30_40':[], '40_50':[]}
 
 year_idx = 0
-for avg_smb, avg_smb_marzeion, avg_smb_big, avg_smb_medium, avg_smb_small, avg_smb_ext_small, avg_area, avg_area_marzeion in zip(annual_avg_smb_, annual_avg_smb_marzeion, annual_avg_smb_big_glaciers_, annual_avg_smb_small_glaciers_, annual_avg_smb_very_small_glaciers_, annual_avg_smb_extremely_small_glaciers_, annual_avg_area, annual_avg_area_marzeion):
+for avg_smb, avg_smb_marzeion, avg_area, avg_area_marzeion in zip(annual_avg_smb_, annual_avg_smb_marzeion, annual_avg_area, annual_avg_area_marzeion):
     # Area weighted mean
 #    a_avg_smb.append(np.average(avg_smb, weights=avg_area))
 #    a_avg_smb_marzeion.append(np.average(avg_smb_marzeion, weights=avg_area_marzeion))
-#    a_avg_smb_big.append(np.asarray(avg_smb_big).mean())
-#    a_avg_smb_small.append(np.asarray(avg_smb_medium).mean())
-#    a_avg_smb_v_small.append(np.asarray(avg_smb_small).mean())
+#    a_avg_smb_big.append(np.asarray(annual_smb_area['big'][year_idx]).mean())
+#    a_avg_smb_small.append(np.asarray(annual_smb_area['small'][year_idx]).mean())
+#    a_avg_smb_v_small.append(np.asarray(annual_smb_area['v_small'][year_idx]).mean())
+#    a_avg_smb_v_small.append(np.asarray(annual_smb_area['x_small'][year_idx]).mean())
     
     a_avg_smb.append(np.average(avg_smb))
     a_median_smb.append(np.median(avg_smb))
     a_avg_smb_marzeion.append(np.average(avg_smb_marzeion))
-    a_avg_smb_big.append(np.asarray(avg_smb_big).mean())
-    a_avg_smb_small.append(np.asarray(avg_smb_medium).mean())
-    a_avg_smb_v_small.append(np.asarray(avg_smb_small).mean())
-    a_avg_smb_vv_small.append(np.asarray(avg_smb_ext_small).mean())
+    annual_avg_smb_area['big'].append(np.asarray(annual_smb_area['big'][year_idx]).mean())
+    annual_avg_smb_area['small'].append(np.asarray(annual_smb_area['small'][year_idx]).mean())
+    annual_avg_smb_area['v_small'].append(np.asarray(annual_smb_area['v_small'][year_idx]).mean())
+    annual_avg_smb_area['x_small'].append(np.asarray(annual_smb_area['x_small'][year_idx]).mean())
+    
+    annual_avg_smb_slope['0_20'].append(np.asarray(annual_smb_slope['0_20'][year_idx]).mean())
+    annual_avg_smb_slope['20_30'].append(np.asarray(annual_smb_slope['20_30'][year_idx]).mean())
+    annual_avg_smb_slope['30_40'].append(np.asarray(annual_smb_slope['30_40'][year_idx]).mean())
+    annual_avg_smb_slope['40_50'].append(np.asarray(annual_smb_slope['40_50'][year_idx]).mean())
     
     # We do the same for each ensemble member
     member_idx=0
@@ -438,10 +471,14 @@ a_avg_smb = np.asarray(a_avg_smb)
 a_median_smb = np.asarray(a_median_smb)
 a_avg_ensemble_smb = np.asarray(a_avg_ensemble_smb)
 a_avg_smb_marzeion = np.asarray(a_avg_smb_marzeion)
-a_avg_smb_big = np.asarray(a_avg_smb_big)
-a_avg_smb_small = np.asarray(a_avg_smb_small)
-a_avg_smb_v_small = np.asarray(a_avg_smb_v_small)
-a_avg_smb_vv_small = np.asarray(a_avg_smb_vv_small)
+annual_avg_smb_area['big'] = np.asarray(annual_avg_smb_area['big'])
+annual_avg_smb_area['small'] = np.asarray(annual_avg_smb_area['small'])
+annual_avg_smb_area['v_small'] = np.asarray(annual_avg_smb_area['v_small'])
+annual_avg_smb_area['x_small'] = np.asarray(annual_avg_smb_area['x_small'])
+annual_avg_smb_slope['0_20'] = np.asarray(annual_avg_smb_slope['0_20'])
+annual_avg_smb_slope['20_30'] = np.asarray(annual_avg_smb_slope['20_30'])
+annual_avg_smb_slope['30_40'] = np.asarray(annual_avg_smb_slope['30_40'])
+annual_avg_smb_slope['40_50'] = np.asarray(annual_avg_smb_slope['40_50'])
 
 flat_big_glaciers = np.asarray(flat_big_glaciers)
 flat_medium_glaciers = np.asarray(flat_medium_glaciers)
@@ -493,61 +530,134 @@ ax2.legend(fontsize='x-large')
 
 print("\nNumber of glaciers disappeared between 2003 and 2015: " + str(glaciers_not_2015))
 
-
-### Average plots for glacier size
+######    Influence of glacier area on glacier-wide SMB signal  #################
 fig3, (ax3, ax4) = plt.subplots(1,2, figsize=(10,5))
 ax3.axhline(y=0, color='black', linewidth=0.7, linestyle='-')
-ax3.set_ylabel('Topographical influence on climate signal (m.w.e. $a^{-1}$)', fontsize=9)
+ax3.set_ylabel('Area influence on glacier-wide SMB signal (m.w.e. $a^{-1}$)', fontsize=9)
 ax3.set_xlabel('Year', fontsize=9)
 ax3.tick_params(labelsize=9)
 line15, = ax3.plot(range(1967, 2016)[-32:], (annual_avg_smb_obs - a_avg_smb)[-32:], linestyle='--', linewidth=2, label='Observations (n = 32)', c='olivedrab')
-line14, = ax3.plot(range(1967, 2016)[-32:], (a_avg_smb_vv_small - a_avg_smb)[-32:], linewidth=2, label='Glaciers < 0.1 km$^2$ (n = 312)', c='darkred')
-line14, = ax3.plot(range(1967, 2016)[-32:], (a_avg_smb_v_small - a_avg_smb)[-32:], linewidth=2, label='Glaciers 0.1 - 0.5 km$^2$ (n = 183)', c='crimson')
-line13, = ax3.plot(range(1967, 2016)[-32:], (a_avg_smb_small - a_avg_smb)[-32:], linewidth=2, label='Glaciers 0.5 - 2 km$^2$ (n = 84)', c='darkorange')
-line12, = ax3.plot(range(1967, 2016)[-32:], (a_avg_smb_big - a_avg_smb)[-32:], linewidth=2, label='Glaciers > 2 km$^2$ (n = 29)', c='tan')
+line14, = ax3.plot(range(1967, 2016)[-32:], (annual_avg_smb_area['x_small'] - a_avg_smb)[-32:], linewidth=2, label='Glaciers < 0.1 km$^2$ (n = ' + str(ext_small_glaciers) + ')', c='darkred')
+line14, = ax3.plot(range(1967, 2016)[-32:], (annual_avg_smb_area['v_small'] - a_avg_smb)[-32:], linewidth=2, label='Glaciers 0.1 - 0.5 km$^2$ (n = ' + str(very_small_glaciers) + ')', c='crimson')
+line13, = ax3.plot(range(1967, 2016)[-32:], (annual_avg_smb_area['small'] - a_avg_smb)[-32:], linewidth=2, label='Glaciers 0.5 - 2 km$^2$ (n = ' + str(small_glaciers) + ')', c='darkorange')
+line12, = ax3.plot(range(1967, 2016)[-32:], (annual_avg_smb_area['big'] - a_avg_smb)[-32:], linewidth=2, label='Glaciers > 2 km$^2$ (n = ' + str(big_glaciers) + ')', c='tan')
 ax3.legend(fontsize='small')
 
 ax4.axhline(y=0, color='black', linewidth=0.7, linestyle='-')
-ax4.set_ylabel('Cumulative topographical influence on climate signal (m.w.e.)', fontsize=9)
+ax4.set_ylabel('Cumulative area influence on glacier-wide SMB signal (m.w.e.)', fontsize=9)
 ax4.set_xlabel('Year', fontsize=9)
 ax4.tick_params(labelsize=9)
 line25, = ax4.plot(range(1967, 2016)[-32:], annual_avg_smb_obs[-32:], linestyle=':', linewidth=1, label='Reconstructed SMB', c='black')
 line25, = ax4.plot(range(1967, 2016)[-32:], np.cumsum(annual_avg_smb_obs[-32:] - a_avg_smb[-32:]), linestyle='--', linewidth=2, label='Observations', c='olivedrab')
-line14, = ax4.plot(range(1967, 2016)[-32:],  np.cumsum(a_avg_smb_vv_small[-32:] - a_avg_smb[-32:]), linewidth=2, label='Glaciers < 0.1 km$^2$', c='darkred')
-line24, = ax4.plot(range(1967, 2016)[-32:], np.cumsum(a_avg_smb_v_small[-32:] - a_avg_smb[-32:]), linewidth=2, label='Glaciers 0.1 - 0.5 km$^2$', c='crimson')
-line23, = ax4.plot(range(1967, 2016)[-32:], np.cumsum(a_avg_smb_small[-32:] - a_avg_smb[-32:]), linewidth=2, label='Glaciers 0.5 - 2 km$^2$', c='darkorange')
-line22, = ax4.plot(range(1967, 2016)[-32:], np.cumsum(a_avg_smb_big[-32:] - a_avg_smb[-32:]), linewidth=2, label='Glaciers > 2 km$^2$', c='tan')
+line14, = ax4.plot(range(1967, 2016)[-32:],  np.cumsum(annual_avg_smb_area['x_small'][-32:] - a_avg_smb[-32:]), linewidth=2, label='Glaciers < 0.1 km$^2$', c='darkred')
+line24, = ax4.plot(range(1967, 2016)[-32:], np.cumsum(annual_avg_smb_area['v_small'][-32:] - a_avg_smb[-32:]), linewidth=2, label='Glaciers 0.1 - 0.5 km$^2$', c='crimson')
+line23, = ax4.plot(range(1967, 2016)[-32:], np.cumsum(annual_avg_smb_area['small'][-32:] - a_avg_smb[-32:]), linewidth=2, label='Glaciers 0.5 - 2 km$^2$', c='darkorange')
+line22, = ax4.plot(range(1967, 2016)[-32:], np.cumsum(annual_avg_smb_area['big'][-32:] - a_avg_smb[-32:]), linewidth=2, label='Glaciers > 2 km$^2$', c='tan')
 ax4.legend(fontsize='small')
 
-### Average plots for glacier size
+########### Influence of glacier slope on glacier-wide SMB signal    ################
+##############  Full period  #######################
+fig33, (ax33, ax43) = plt.subplots(1,2, figsize=(10,5))
+ax33.axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+ax33.set_ylabel('Slope (°) influence on glacier-wide SMB signal (m.w.e. $a^{-1}$)', fontsize=9)
+ax33.set_xlabel('Year', fontsize=9)
+ax33.tick_params(labelsize=9)
+#line15, = ax33.plot(range(1967, 2016), (annual_avg_smb_obs - a_avg_smb), linestyle='--', linewidth=2, label='Observations (n = 32)', c='olivedrab')
+line14, = ax33.plot(range(1967, 2016), (annual_avg_smb_slope['40_50'] - a_avg_smb), linewidth=2, label='Slope 40 - 50° (n = ' + str(n_40_50) + ')', c='darkred')
+line14, = ax33.plot(range(1967, 2016), (annual_avg_smb_slope['30_40'] - a_avg_smb), linewidth=2, label='Slope 30 - 40° (n = ' + str(n_30_40) + ')', c='crimson')
+line13, = ax33.plot(range(1967, 2016), (annual_avg_smb_slope['20_30'] - a_avg_smb), linewidth=2, label='Slope 20 - 30° (n = ' + str(n_20_30) + ')', c='darkorange')
+line12, = ax33.plot(range(1967, 2016), (annual_avg_smb_slope['0_20'] - a_avg_smb), linewidth=2, label='Slope 0 - 20°  (n = ' + str(n_0_20) + ')', c='tan')
+ax33.legend(fontsize='small')
+
+ax43.axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+ax43.set_ylabel('Cumulative slope (°) influence on glacier-wide SMB signal (m.w.e.)', fontsize=9)
+ax43.set_xlabel('Year', fontsize=9)
+ax43.tick_params(labelsize=9)
+line25, = ax43.plot(range(1967, 2016), annual_avg_smb_obs, linestyle=':', linewidth=1, label='Reconstructed SMB', c='black')
+line25, = ax43.plot(range(1967, 2016), np.cumsum(annual_avg_smb_obs - a_avg_smb), linestyle='--', linewidth=2, label='Observations', c='olivedrab')
+line14, = ax43.plot(range(1967, 2016),  np.cumsum(annual_avg_smb_slope['40_50'] - a_avg_smb), linewidth=2, label='Slope 40 - 50°', c='darkred')
+line24, = ax43.plot(range(1967, 2016), np.cumsum(annual_avg_smb_slope['30_40'] - a_avg_smb), linewidth=2, label='Slope 30 - 40°', c='crimson')
+line23, = ax43.plot(range(1967, 2016), np.cumsum(annual_avg_smb_slope['20_30'] - a_avg_smb), linewidth=2, label='Slope 20 - 30°', c='darkorange')
+line22, = ax43.plot(range(1967, 2016), np.cumsum(annual_avg_smb_slope['0_20'] - a_avg_smb), linewidth=2, label='Slope 0 - 20°', c='tan')
+ax43.legend(fontsize='small')
+
+
+################ Last 30 years  #################
+fig34, (ax34, ax44) = plt.subplots(1,2, figsize=(10,5))
+ax34.axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+ax34.set_ylabel('Slope (°) influence on glacier-wide SMB signal (m.w.e. $a^{-1}$)', fontsize=9)
+ax34.set_xlabel('Year', fontsize=9)
+ax34.tick_params(labelsize=9)
+line15, = ax34.plot(range(1967, 2016)[-32:], (annual_avg_smb_obs - a_avg_smb)[-32:], linestyle='--', linewidth=2, label='Observations (n = 32)', c='olivedrab')
+line14, = ax34.plot(range(1967, 2016)[-32:], (annual_avg_smb_slope['40_50'] - a_avg_smb)[-32:], linewidth=2, label='Slope 40 - 50° (n = ' + str(n_40_50) + ')', c='darkred')
+line14, = ax34.plot(range(1967, 2016)[-32:], (annual_avg_smb_slope['30_40'] - a_avg_smb)[-32:], linewidth=2, label='Slope 30 - 40° (n = ' + str(n_30_40) + ')', c='crimson')
+line13, = ax34.plot(range(1967, 2016)[-32:], (annual_avg_smb_slope['20_30'] - a_avg_smb)[-32:], linewidth=2, label='Slope 20 - 30° (n = ' + str(n_20_30) + ')', c='darkorange')
+line12, = ax34.plot(range(1967, 2016)[-32:], (annual_avg_smb_slope['0_20'] - a_avg_smb)[-32:], linewidth=2, label='Slope 0 - 20°  (n = ' + str(n_0_20) + ')', c='tan')
+ax34.legend(fontsize='small')
+
+ax44.axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+ax44.set_ylabel('Cumulative slope (°) influence on glacier-wide SMB signal (m.w.e.)', fontsize=9)
+ax44.set_xlabel('Year', fontsize=9)
+ax44.tick_params(labelsize=9)
+line25, = ax44.plot(range(1967, 2016)[-32:], annual_avg_smb_obs[-32:], linestyle=':', linewidth=1, label='Reconstructed SMB', c='black')
+line25, = ax44.plot(range(1967, 2016)[-32:], np.cumsum(annual_avg_smb_obs[-32:] - a_avg_smb[-32:]), linestyle='--', linewidth=2, label='Observations', c='olivedrab')
+line14, = ax44.plot(range(1967, 2016)[-32:],  np.cumsum(annual_avg_smb_slope['40_50'][-32:] - a_avg_smb[-32:]), linewidth=2, label='Slope 40 - 50°', c='darkred')
+line24, = ax44.plot(range(1967, 2016)[-32:], np.cumsum(annual_avg_smb_slope['30_40'][-32:] - a_avg_smb[-32:]), linewidth=2, label='Slope 30 - 40°', c='crimson')
+line23, = ax44.plot(range(1967, 2016)[-32:], np.cumsum(annual_avg_smb_slope['20_30'][-32:] - a_avg_smb[-32:]), linewidth=2, label='Slope 20 - 30°', c='darkorange')
+line22, = ax44.plot(range(1967, 2016)[-32:], np.cumsum(annual_avg_smb_slope['0_20'][-32:] - a_avg_smb[-32:]), linewidth=2, label='Slope 0 - 20°', c='tan')
+ax44.legend(fontsize='small')
+
+##################   Average plots for glacier size  ###########################
 fig32, (ax32, ax42) = plt.subplots(1,2, figsize=(10,5))
 ax32.axhline(y=0, color='black', linewidth=0.7, linestyle='-')
 ax32.set_ylabel('Glacier-wide SMB (m.w.e. $a^{-1}$)', fontsize=10)
 ax32.set_xlabel('Year', fontsize=10)
-line14, = ax32.plot(range(1967, 2016), a_avg_smb_v_small, linewidth=1, label='Glaciers < 0.5 km$^2$', c='darkred')
-line13, = ax32.plot(range(1967, 2016), a_avg_smb_small, linewidth=1, label='Glaciers 0.5 - 2 km$^2$', c='C1')
-line12, = ax32.plot(range(1967, 2016), a_avg_smb_big, linewidth=1, label='Glaciers > 2 km$^2$', c='C0')
+line15, = ax32.plot(range(1967, 2016), annual_avg_smb_area['x_small'], linewidth=1, label='Glaciers < 0.1 km$^2$', c='darkred')
+line14, = ax32.plot(range(1967, 2016), annual_avg_smb_area['v_small'], linewidth=1, label='Glaciers 0.1 - 0.5 km$^2$', c='crimson')
+line13, = ax32.plot(range(1967, 2016), annual_avg_smb_area['small'], linewidth=1, label='Glaciers 0.5 - 2 km$^2$', c='darkorange')
+line12, = ax32.plot(range(1967, 2016), annual_avg_smb_area['big'], linewidth=1, label='Glaciers > 2 km$^2$', c='tan')
 ax32.legend()
 
 ax42.axhline(y=0, color='black', linewidth=0.7, linestyle='-')
 ax42.set_ylabel('Cumulative glacier-wide SMB (m.w.e.)', fontsize=10)
 ax42.set_xlabel('Year', fontsize=10)
-line24, = ax42.plot(range(1967, 2016), np.cumsum(a_avg_smb_v_small), linewidth=1, label='Glaciers < 0.5 km$^2$ (n = 534)', c='darkred')
-line23, = ax42.plot(range(1967, 2016), np.cumsum(a_avg_smb_small), linewidth=1, label='Glaciers 0.5 - 2 km$^2$ (n = 93)', c='C1')
-line22, = ax42.plot(range(1967, 2016), np.cumsum(a_avg_smb_big), linewidth=1, label='Glaciers > 2 km$^2$ (n = 34)', c='C0')
+line25, = ax42.plot(range(1967, 2016), np.cumsum(annual_avg_smb_area['x_small']), linewidth=1, label='Glaciers < 0.1 km$^2$ (n = 312)', c='darkred')
+line24, = ax42.plot(range(1967, 2016), np.cumsum(annual_avg_smb_area['v_small']), linewidth=1, label='Glaciers 0.1 - 0.5 km$^2$ (n = 183)', c='crimson')
+line23, = ax42.plot(range(1967, 2016), np.cumsum(annual_avg_smb_area['small']), linewidth=1, label='Glaciers 0.5 - 2 km$^2$ (n = 84)', c='darkorange')
+line22, = ax42.plot(range(1967, 2016), np.cumsum(annual_avg_smb_area['big']), linewidth=1, label='Glaciers > 2 km$^2$ (n = 29)', c='tan')
 ax42.legend()
 
-annual_smb_big_glaciers_flat = np.asarray(annual_avg_smb_big_glaciers_).flatten()
+################# Average plots for glacier slope  ################################
+fig322, (ax322, ax422) = plt.subplots(1,2, figsize=(10,5))
+ax322.axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+ax322.set_ylabel('Glacier-wide SMB (m.w.e. $a^{-1}$)', fontsize=10)
+ax322.set_xlabel('Year', fontsize=10)
+line15, = ax322.plot(range(1967, 2016), annual_avg_smb_slope['40_50'], linewidth=1, label='Slope 40 - 50°', c='darkred')
+line14, = ax322.plot(range(1967, 2016), annual_avg_smb_slope['30_40'], linewidth=1, label='Slope 30 - 40°', c='crimson')
+line13, = ax322.plot(range(1967, 2016), annual_avg_smb_slope['20_30'], linewidth=1, label='Slope 20 - 30°', c='darkorange')
+line12, = ax322.plot(range(1967, 2016), annual_avg_smb_slope['0_20'], linewidth=1, label='Slope 0 - 20°', c='tan')
+ax322.legend()
 
-annual_avg_smb_small_glaciers_flat_s = np.asarray(annual_avg_smb_small_glaciers_).flatten()
-annual_smb_small_glaciers_flat = []
-for value in annual_avg_smb_small_glaciers_flat_s:
-    annual_smb_small_glaciers_flat = np.concatenate((annual_smb_small_glaciers_flat, value), axis=0)
-    
-annual_avg_smb_very_small_glaciers_flat_s = np.asarray(annual_avg_smb_very_small_glaciers_).flatten()
-annual_smb_very_small_glaciers_flat = []
-for value in annual_avg_smb_very_small_glaciers_flat_s:
-    annual_smb_very_small_glaciers_flat = np.concatenate((annual_smb_very_small_glaciers_flat, value), axis=0)
+ax422.axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+ax422.set_ylabel('Cumulative glacier-wide SMB (m.w.e.)', fontsize=10)
+ax422.set_xlabel('Year', fontsize=10)
+line25, = ax422.plot(range(1967, 2016), np.cumsum(annual_avg_smb_slope['40_50']), linewidth=1, label='Slope 40 - 50° (n = ' + str(n_40_50) + ')', c='darkred')
+line24, = ax422.plot(range(1967, 2016), np.cumsum(annual_avg_smb_slope['30_40']), linewidth=1, label='Slope 30 - 40° (n = ' + str(n_30_40) + ')', c='crimson')
+line23, = ax422.plot(range(1967, 2016), np.cumsum(annual_avg_smb_slope['20_30']), linewidth=1, label='Slope 20 - 30° (n = ' + str(n_20_30) + ')', c='darkorange')
+line22, = ax422.plot(range(1967, 2016), np.cumsum(annual_avg_smb_slope['0_20']), linewidth=1, label='Slope 0 - 20° (n = ' + str(n_0_20) + ')', c='tan')
+ax422.legend()
+
+#annual_smb_big_glaciers_flat = np.asarray(annual_avg_smb_area['big']).flatten()
+#
+#annual_avg_smb_small_glaciers_flat_s = np.asarray(annual_avg_smb_area['small']).flatten()
+#annual_smb_small_glaciers_flat = []
+#for value in annual_avg_smb_small_glaciers_flat_s:
+#    annual_smb_small_glaciers_flat = np.concatenate((annual_smb_small_glaciers_flat, value), axis=0)
+#    
+#annual_avg_smb_very_small_glaciers_flat_s = np.asarray(annual_avg_smb_area['v_small']).flatten()
+#annual_smb_very_small_glaciers_flat = []
+#for value in annual_avg_smb_very_small_glaciers_flat_s:
+#    annual_smb_very_small_glaciers_flat = np.concatenate((annual_smb_very_small_glaciers_flat, value), axis=0)
 
 big_avg_smbs, small_avg_smbs, very_small_avg_smbs = [],[],[] 
 big_avg_areas, small_avg_areas, very_small_avg_areas = [],[],[] 
@@ -579,9 +689,10 @@ print("Medium glaciers: " + str(np.nanmean(flat_medium_glaciers)))
 print("Small glaciers: " + str(np.nanmean(flat_small_glaciers)))
 
 print("\nMean (per year) annual glacier-wide SMB per glacier size: ")
-print("Big glaciers: " + str(np.average(a_avg_smb_big)))
-print("Medium glaciers: " + str(np.average(a_avg_smb_small)))
-print("Small glaciers: " + str(np.average(a_avg_smb_v_small)))
+print("Big glaciers: " + str(np.average(annual_avg_smb_area['big'])))
+print("Small/medium glaciers: " + str(np.average(annual_avg_smb_area['small'])))
+print("Small glaciers: " + str(np.average(annual_avg_smb_area['v_small'])))
+print("Extremely small glaciers: " + str(np.average(annual_avg_smb_area['x_small'])))
 
 print("\nMean (per glacier) annual glacier-wide SMB per glacier size: ")
 print("Big glaciers: " + str(np.average(big_avg_smbs, weights=big_avg_areas)))
@@ -823,8 +934,10 @@ plt.tight_layout()
 plt.subplots_adjust(hspace = 0.08)
 
 # Let's print the average glacier-wide SMB per massif
-print("Average glacier-wide SMB per massif: " + str(avg_glacier_smb_per_massif))
-print('Average decadal glacier-wide SMB: " + ' + str(avg_decadal_smb_g))
+print("\nAverage glacier-wide SMB per massif: ")
+for massif in avg_smb_massif:
+    print(str(massif) + ' average / cumulative SMB: ' + str(np.average(avg_smb_massif[massif])) + ' / ' + str(np.sum(avg_smb_massif[massif])))
+print('\nAverage decadal glacier-wide SMB: " + ' + str(avg_decadal_smb_g))
 
 #import pdb; pdb.set_trace()
 
