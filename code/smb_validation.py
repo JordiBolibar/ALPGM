@@ -169,7 +169,10 @@ def interpolate_extended_glims_variable(variable_name, glims_glacier, glims_2015
 #        var_1967 = var_1967/1000000  # from m2 to km2 (1967)
 #    import pdb; pdb.set_trace()
     
-    if(var_2015.size == 0): # If there's no data in 2015, we fill with NaNs the 2003-2015 period
+    extra_idxs = np.array(['4', '5', '6', '7'])
+    # If there's no data in 2015 or the glacier is split into more than 4, 
+    # we fill with NaNs the 2003-2015 period
+    if(var_2015.size == 0 or np.any(glims_glacier['Glacier'].decode('ascii')[-1] == extra_idxs)): 
         interp_1967_1984 = np.linspace(var_1967, var_1985, num=(1984-1967))
         interp_1984_2003 = np.linspace(var_1985, var_2003, num=(2003-1984)+1)
 #        interp_2003_2015 = np.empty((2015-2003)+1)
@@ -770,7 +773,7 @@ def main(compute, reconstruct):
                             year_end_file = 2003
                         else:
                             year_end_file = end_ref
-                        
+                            
                         # We store the cumulative SMB for all the glaciers with their RGI ID
 #                        cumulative_smb_glaciers = np.concatenate((cumulative_smb_glaciers, np.array([glims_glacier['ID'], np.sum(SMB_nn)])))
                         cumulative_smb_glaciers.append([glims_glacier['ID'], np.sum(SMB_nn)])

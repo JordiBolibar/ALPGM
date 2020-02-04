@@ -14,7 +14,7 @@ import copy
 from pathlib import Path
 
 ###### FLAGS  #########
-with_26 = True
+with_26 = False
 
 ######   FILE PATHS    #######
     
@@ -225,7 +225,8 @@ for member_85 in RCP_members['85']['volume']['data']:
             ax11.plot(RCP_means['85']['volume']['year'], member_85, linewidth=0.1, alpha=0.5, c='red')
     
 # Plot the average of each RCP
-line111, = ax11.plot(RCP_means['26']['volume']['year'][:-1], RCP_means['26']['volume']['data'][:-1], linewidth=3, label='RCP 2.6', c='blue')
+if(with_26):
+    line111, = ax11.plot(RCP_means['26']['volume']['year'][:-1], RCP_means['26']['volume']['data'][:-1], linewidth=3, label='RCP 2.6', c='blue')
 line112, = ax11.plot(RCP_means['45']['volume']['year'][:-1], RCP_means['45']['volume']['data'][:-1], linewidth=3, label='RCP 4.5', c='green')
 line113, = ax11.plot(RCP_means['85']['volume']['year'][:-1], RCP_means['85']['volume']['data'][:-1], linewidth=3, label='RCP 8.5', c='red')
 ax11.legend()
@@ -252,7 +253,8 @@ for member_85 in RCP_members['85']['area']['data']:
         else:
             ax12.plot(RCP_means['85']['area']['year'], member_85, linewidth=0.1, alpha=0.5, c='red')
 
-line121, = ax12.plot(RCP_means['26']['area']['year'][:-1], RCP_means['26']['area']['data'][:-1], linewidth=3, label='RCP 2.6', c='blue')
+if(with_26):
+    line121, = ax12.plot(RCP_means['26']['area']['year'][:-1], RCP_means['26']['area']['data'][:-1], linewidth=3, label='RCP 2.6', c='blue')
 line122, = ax12.plot(RCP_means['45']['area']['year'][:-1], RCP_means['45']['area']['data'][:-1], linewidth=3, label='RCP 4.5', c='green')
 line123, = ax12.plot(RCP_means['85']['area']['year'][:-1], RCP_means['85']['area']['data'][:-1], linewidth=3, label='RCP 8.5', c='red')
 ax12.legend()
@@ -267,7 +269,8 @@ ax21.set_ylabel('Mean glacier altitude (m)')
 ax21.set_xlabel('Year')
 
 # Mean altitude
-line211, = ax21.plot(RCP_means['26']['zmean']['year'][:-1], RCP_means['26']['zmean']['data'][:-1], linewidth=3, label='RCP 2.6', c='blue')
+if(with_26):
+    line211, = ax21.plot(RCP_means['26']['zmean']['year'][:-1], RCP_means['26']['zmean']['data'][:-1], linewidth=3, label='RCP 2.6', c='blue')
 line212, = ax21.plot(RCP_means['45']['zmean']['year'][:-1], RCP_means['45']['zmean']['data'][:-1], linewidth=3, label='RCP 4.5', c='green')
 line213, = ax21.plot(RCP_means['85']['zmean']['year'][:-1], RCP_means['85']['zmean']['data'][:-1], linewidth=3, label='RCP 8.5', c='red')
 ax21.legend()
@@ -275,7 +278,8 @@ ax21.legend()
 # Slope 20% altitudinal range
 ax22.set_ylabel('Slope of 20% altitudinal range (°)')
 ax22.set_xlabel('Year')
-line221, = ax22.plot(RCP_means['26']['slope20']['year'][:-1], RCP_means['26']['slope20']['data'][:-1], linewidth=3, label='RCP 2.6', c='blue')
+if(with_26):
+    line221, = ax22.plot(RCP_means['26']['slope20']['year'][:-1], RCP_means['26']['slope20']['data'][:-1], linewidth=3, label='RCP 2.6', c='blue')
 line222, = ax22.plot(RCP_means['45']['slope20']['year'][:-1], RCP_means['45']['slope20']['data'][:-1], linewidth=3, label='RCP 4.5', c='green')
 line223, = ax22.plot(RCP_means['85']['slope20']['year'][:-1], RCP_means['85']['slope20']['data'][:-1], linewidth=3, label='RCP 8.5', c='red')
 ax22.legend()
@@ -310,7 +314,8 @@ for member_85 in RCP_members['85']['CPDD']['data']:
         else:
             ax31.plot(RCP_means['85']['CPDD']['year'], member_85, linewidth=0.1, alpha=0.3, c='red')
 
-line311, = ax31.plot(RCP_means['26']['CPDD']['year'][:-1], RCP_means['26']['CPDD']['data'][:-1], linewidth=3, label='RCP 2.6', c='blue')
+if(with_26):
+    line311, = ax31.plot(RCP_means['26']['CPDD']['year'][:-1], RCP_means['26']['CPDD']['data'][:-1], linewidth=3, label='RCP 2.6', c='blue')
 line312, = ax31.plot(RCP_means['45']['CPDD']['year'][:-1], RCP_means['45']['CPDD']['data'][:-1], linewidth=3, label='RCP 4.5', c='green')
 line313, = ax31.plot(RCP_means['85']['CPDD']['year'][:-1], RCP_means['85']['CPDD']['data'][:-1], linewidth=3, label='RCP 8.5', c='red')
 ax31.legend()
@@ -338,7 +343,8 @@ for member_85 in RCP_members['85']['snowfall']['data']:
 ax32.set_ylabel('Annual cumulative snowfall anomaly (1984-2015)')
 ax32.set_xlabel('Year')
 ax32.axhline(y=0, color='black', linewidth=0.7, linestyle='-')
-line321, = ax32.plot(RCP_means['26']['snowfall']['year'][:-1], RCP_means['26']['snowfall']['data'][:-1], linewidth=3, label='RCP 2.6', c='blue')
+if(with_26):
+    line321, = ax32.plot(RCP_means['26']['snowfall']['year'][:-1], RCP_means['26']['snowfall']['data'][:-1], linewidth=3, label='RCP 2.6', c='blue')
 line322, = ax32.plot(RCP_means['45']['snowfall']['year'][:-1], RCP_means['45']['snowfall']['data'][:-1], linewidth=3, label='RCP 4.5', c='green')
 line323, = ax32.plot(RCP_means['85']['snowfall']['year'][:-1], RCP_means['85']['snowfall']['data'][:-1], linewidth=3, label='RCP 8.5', c='red')
 ax32.legend()
@@ -372,7 +378,8 @@ for member_85 in RCP_members['85']['SMB']['data']:
         else:
             ax41.plot(RCP_means['85']['SMB']['year'], member_85, linewidth=0.1, alpha=0.3, c='red')
 
-line41, = ax41.plot(RCP_means['26']['SMB']['year'][:-1], RCP_means['26']['SMB']['data'][:-1], linewidth=3, label='RCP 2.6', c='blue')
+if(with_26):
+    line41, = ax41.plot(RCP_means['26']['SMB']['year'][:-1], RCP_means['26']['SMB']['data'][:-1], linewidth=3, label='RCP 2.6', c='blue')
 line42, = ax41.plot(RCP_means['45']['SMB']['year'][:-1], RCP_means['45']['SMB']['data'][:-1], linewidth=3, label='RCP 4.5', c='green')
 line43, = ax41.plot(RCP_means['85']['SMB']['year'][:-1], RCP_means['85']['SMB']['data'][:-1], linewidth=3, label='RCP 8.5', c='red')
 ax41.legend()
