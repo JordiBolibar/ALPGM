@@ -732,6 +732,7 @@ def main(compute, reconstruct):
 #                    if(glacier_idx == 421):
                     if(True):
                         glimsID = glims_glacier['GLIMS_ID'].decode('ascii')
+                        rgiID = glims_glacier['ID']
 #                    if(glimsID == 'G006934E45883N' or glimsID == 'G006985E45951N'):
                         glacier_name = glims_glacier['Glacier'].decode('ascii')
                         massif_safran = glims_glacier['Massif_SAFRAN']
@@ -761,7 +762,7 @@ def main(compute, reconstruct):
                         print("\nGlacier: " + str(glacier_name))
                         print("Cumulative SMB: " + str(np.sum(SMB_nn)))
                         print("Area: " + str(glacier_area[-1]))
-                        print("SMB: " + str(SMB_nn))
+#                        print("SMB: " + str(SMB_nn))
                         
                         # TODO: remove after test
 #                        if(glimsID == 'G006934E45883N' or glimsID == 'G006985E45951N'):
@@ -776,20 +777,21 @@ def main(compute, reconstruct):
                             
                         # We store the cumulative SMB for all the glaciers with their RGI ID
 #                        cumulative_smb_glaciers = np.concatenate((cumulative_smb_glaciers, np.array([glims_glacier['ID'], np.sum(SMB_nn)])))
-                        cumulative_smb_glaciers.append([glims_glacier['ID'], np.sum(SMB_nn)])
+                        cumulative_smb_glaciers.append([rgiID, np.sum(SMB_nn)])
                         
                         # We store the simulated SMB 
-                        store_file(SMB_nn, path_smb_all_glaciers_smb, "", "SMB", glimsID, start_ref, year_end_file+1)
-                        store_file(glacier_area, path_smb_all_glaciers_area, "", "Area", glimsID, start_ref, year_end_file+1)
+                        combined_ID = str(glimsID) + "_" + str(rgiID) 
+                        store_file(SMB_nn, path_smb_all_glaciers_smb, "", "SMB", combined_ID, start_ref, year_end_file+1)
+                        store_file(glacier_area, path_smb_all_glaciers_area, "", "Area", combined_ID, start_ref, year_end_file+1)
                         store_glacier_info(glacier_info, path_smb_all_glaciers_area)
                         
                         glacier_slope = np.repeat(x_reg_nn[0][5], year_end_file+1-start_ref)
-                        store_file(glacier_slope, path_smb_all_glaciers_slope, "", "Slope_20", glimsID, start_ref, year_end_file+1)
+                        store_file(glacier_slope, path_smb_all_glaciers_slope, "", "Slope_20", combined_ID, start_ref, year_end_file+1)
                         
                         # We store all the ensemble predictions of SMB
                         if not os.path.exists(path_smb_all_ensemble_smb):
                             os.makedirs(path_smb_all_ensemble_smb)
-                        file_name_h = path_smb_all_ensemble_smb + glimsID + '_'
+                        file_name_h = path_smb_all_ensemble_smb + str(combined_ID) + '_'
                         file_name_t = 'ensemble_SMB.txt'
                         automatic_file_name_save(file_name_h, file_name_t, SMB_ensemble, 'txt')
                         

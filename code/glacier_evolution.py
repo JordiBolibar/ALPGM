@@ -154,7 +154,7 @@ def store_file(data, path, midfolder, file_description, glimsID, year_start, yea
         os.makedirs(path_midfolder)
         
 #    file_name = path + midfolder + glimsID + "_" + str(file_description) + '.csv'
-    file_name_h = path + midfolder + glimsID + "_"
+    file_name_h = path + midfolder + str(glimsID) + "_"
     file_name_t = str(file_description) + '.csv'
     # We save the file with an unexisting name
     automatic_file_name_save(file_name_h, file_name_t, data_w_years, 'csv')
