@@ -21,7 +21,7 @@
 </p>
 
 <p>
-    For more details regarding ALPGM and the deep learning SMB modelling approach, I encourage you to read the Bolibar et al. (2019) paper in The Cryosphere: https://www.the-cryosphere-discuss.net/tc-2019-163/
+    For more details regarding ALPGM and the deep learning SMB modelling approach, I encourage you to read the Bolibar et al. (2020) paper in The Cryosphere: https://www.the-cryosphere.net/14/565/2020/
 
 ## Workflow
 <p>
