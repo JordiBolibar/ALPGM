@@ -47,7 +47,7 @@ path_snowfall_root = np.asarray(os.listdir(path_glacier_snowfall + "projections\
 path_SMB_root = np.asarray(os.listdir(path_smb_simulations + "projections\\"))
 
 proj_blob = {'year':[], 'data':[]}
-annual_mean = {'SMB':copy.deepcopy(proj_blob), 'area':copy.deepcopy(proj_blob), 'volume':copy.deepcopy(proj_blob), 'zmean':copy.deepcopy(proj_blob), 'slope20':copy.deepcopy(proj_blob), 'CPDD':copy.deepcopy(proj_blob), 'snowfall':copy.deepcopy(proj_blob)}
+annual_mean = {'SMB':copy.deepcopy(proj_blob), 'area':copy.deepcopy(proj_blob), 'volume':copy.deepcopy(proj_blob), 'zmean':copy.deepcopy(proj_blob), 'slope20':copy.deepcopy(proj_blob), 'CPDD':copy.deepcopy(proj_blob), 'snowfall':copy.deepcopy(proj_blob), 'discharge':copy.deepcopy(proj_blob)}
 # Data structure composed by annual values clusters
 RCP_data = {'26':copy.deepcopy(annual_mean), '45':copy.deepcopy(annual_mean), '85':copy.deepcopy(annual_mean)}
 first_26, first_45, first_85 = True, True, True
@@ -55,7 +55,7 @@ first_26, first_45, first_85 = True, True, True
 RCP_members = copy.deepcopy(RCP_data)
 
 # Array of indexes of the data structure to iterate
-data_idxs = ['SMB','area','volume','zmean','slope20','CPDD','snowfall']
+data_idxs = ['SMB','area','volume','zmean','slope20','CPDD','snowfall', 'discharge']
 
 members_with_26 = np.array(['KNMI-RACMO22E_MOHC-HadGEM2-ES', 'MPI-CSC-REMO2009_MPI-M-MPI-ESM-LR', 'SMHI-RCA4_ICHEC-EC-EARTH'])
 
@@ -144,6 +144,10 @@ for path_forcing_SMB, path_forcing_area, path_forcing_melt_years, path_forcing_s
                     RCP_data[current_RCP]['slope20']['data'][year_idx].append(slope20_y[1])
                     RCP_data[current_RCP]['CPDD']['data'][year_idx].append(CPDD_y[1])
                     RCP_data[current_RCP]['snowfall']['data'][year_idx].append(snowfall_y[1])
+                    annual_discharge = -1*area_y[1]*SMB_y[1]
+                    if(annual_discharge < 0):
+                        annual_discharge = 0
+                    RCP_data[current_RCP]['discharge']['data'][year_idx].append(annual_discharge)
     #                print("year_idx: " + str(year_idx))
                     year_idx = year_idx+1
                 
@@ -155,6 +159,7 @@ for path_forcing_SMB, path_forcing_area, path_forcing_melt_years, path_forcing_s
                     RCP_members[current_RCP]['slope20']['data'][member_idx].append(slope20_y[1])
                     RCP_members[current_RCP]['CPDD']['data'][member_idx].append(CPDD_y[1])
                     RCP_members[current_RCP]['snowfall']['data'][member_idx].append(snowfall_y[1])
+                    RCP_members[current_RCP]['discharge']['data'][member_idx].append(annual_discharge)
     #                print("member_idx: " + str(member_idx))
     #                print("current_RCP: " + str(current_RCP))
     #                import pdb; pdb.set_trace()
@@ -172,7 +177,7 @@ print("Post-processing data...")
 
 # Compute overall average values per year
 proj_blob = {'year':[], 'data':[]}
-overall_annual_mean = {'area':copy.deepcopy(proj_blob), 'volume':copy.deepcopy(proj_blob), 'zmean':copy.deepcopy(proj_blob), 'slope20':copy.deepcopy(proj_blob)}          
+overall_annual_mean = {'area':copy.deepcopy(proj_blob), 'volume':copy.deepcopy(proj_blob), 'zmean':copy.deepcopy(proj_blob), 'slope20':copy.deepcopy(proj_blob), 'discharge':copy.deepcopy(proj_blob)}          
 RCP_means = {'26':copy.deepcopy(annual_mean), '45':copy.deepcopy(annual_mean), '85':copy.deepcopy(annual_mean)}
 
 for RCP in ['26', '45', '85']:
@@ -193,6 +198,10 @@ for RCP in ['26', '45', '85']:
         RCP_means[RCP]['CPDD']['year'] = np.array(RCP_data[RCP]['CPDD']['year'], dtype=int)
         RCP_means[RCP]['snowfall']['data'].append(np.average(annual_snowfall))
         RCP_means[RCP]['snowfall']['year'] = np.array(RCP_data[RCP]['snowfall']['year'], dtype=int)
+        annual_discharge = -1*np.average(np.asarray(annual_SMB)*np.asarray(annual_area))
+        annual_discharge = np.where(annual_discharge < 0, 0, annual_discharge)
+        RCP_means[RCP]['discharge']['data'].append(annual_discharge)
+        RCP_means[RCP]['discharge']['year'] = np.array(RCP_data[RCP]['snowfall']['year'], dtype=int)
         
 #print(overall_annual_mean)
 #import pdb; pdb.set_trace()
@@ -202,7 +211,7 @@ for RCP in ['26', '45', '85']:
 #############       Plot each one of the RCP-GCM-RCM combinations       #############################################
 fig1, (ax11, ax12) = plt.subplots(1,2, figsize=(10, 6))
 fig1.suptitle("Tré-la-Tête glacier projections under climate change")
-ax11.set_ylabel('Volume (m$^3$)')
+ax11.set_ylabel('Volume (m$^3$ 10$^6$)')
 ax11.set_xlabel('Year')
 
 for member_26 in RCP_members['26']['volume']['data']:
@@ -298,55 +307,55 @@ ax31.set_xlabel('Year')
 for member_26 in RCP_members['26']['CPDD']['data']:
     if(len(member_26) > 0):
         if(len(RCP_means['26']['CPDD']['year']) > len(member_26)):
-            ax31.plot(RCP_means['26']['CPDD']['year'][:-1], member_26, linewidth=0.1, alpha=0.3, c='blue')
+            ax31.plot(RCP_means['26']['CPDD']['year'][1:-1], member_26[1:], linewidth=0.1, alpha=0.3, c='blue')
         else:
-            ax31.plot(RCP_means['26']['CPDD']['year'], member_26, linewidth=0.1, alpha=0.3, c='blue')
+            ax31.plot(RCP_means['26']['CPDD']['year'][1:], member_26[1:], linewidth=0.1, alpha=0.3, c='blue')
 for member_45 in RCP_members['45']['CPDD']['data']:
     if(len(member_45) > 0):
         if(len(RCP_means['45']['CPDD']['year']) > len(member_45)):
-            ax31.plot(RCP_means['45']['CPDD']['year'][:-1], member_45, linewidth=0.1, alpha=0.3, c='green')
+            ax31.plot(RCP_means['45']['CPDD']['year'][1:-1], member_45[1:], linewidth=0.1, alpha=0.3, c='green')
         else:
-            ax31.plot(RCP_means['45']['CPDD']['year'], member_45, linewidth=0.1, alpha=0.3, c='green')
+            ax31.plot(RCP_means['45']['CPDD']['year'][1:], member_45[1:], linewidth=0.1, alpha=0.3, c='green')
 for member_85 in RCP_members['85']['CPDD']['data']:
     if(len(member_85) > 0):
         if(len(RCP_means['85']['CPDD']['year']) > len(member_85)):
-            ax31.plot(RCP_means['85']['CPDD']['year'][:-1], member_85, linewidth=0.1, alpha=0.3, c='red')
+            ax31.plot(RCP_means['85']['CPDD']['year'][1:-1], member_85[1:], linewidth=0.1, alpha=0.3, c='red')
         else:
-            ax31.plot(RCP_means['85']['CPDD']['year'], member_85, linewidth=0.1, alpha=0.3, c='red')
+            ax31.plot(RCP_means['85']['CPDD']['year'][1:], member_85[1:], linewidth=0.1, alpha=0.3, c='red')
 
 if(with_26):
-    line311, = ax31.plot(RCP_means['26']['CPDD']['year'][:-1], RCP_means['26']['CPDD']['data'][:-1], linewidth=3, label='RCP 2.6', c='blue')
-line312, = ax31.plot(RCP_means['45']['CPDD']['year'][:-1], RCP_means['45']['CPDD']['data'][:-1], linewidth=3, label='RCP 4.5', c='green')
-line313, = ax31.plot(RCP_means['85']['CPDD']['year'][:-1], RCP_means['85']['CPDD']['data'][:-1], linewidth=3, label='RCP 8.5', c='red')
+    line311, = ax31.plot(RCP_means['26']['CPDD']['year'][1:-1], RCP_means['26']['CPDD']['data'][1:-1], linewidth=3, label='RCP 2.6', c='blue')
+line312, = ax31.plot(RCP_means['45']['CPDD']['year'][1:-1], RCP_means['45']['CPDD']['data'][1:-1], linewidth=3, label='RCP 4.5', c='green')
+line313, = ax31.plot(RCP_means['85']['CPDD']['year'][1:-1], RCP_means['85']['CPDD']['data'][1:-1], linewidth=3, label='RCP 8.5', c='red')
 ax31.legend()
 
 # Snowfall
 for member_26 in RCP_members['26']['snowfall']['data']:
     if(len(member_26) > 0):
         if(len(RCP_means['26']['snowfall']['year']) > len(member_26)):
-            ax32.plot(RCP_means['26']['snowfall']['year'][:-1], member_26, linewidth=0.1, alpha=0.3, c='blue')
+            ax32.plot(RCP_means['26']['snowfall']['year'][1:-1], member_26[1:], linewidth=0.1, alpha=0.3, c='blue')
         else:
-            ax32.plot(RCP_means['26']['snowfall']['year'], member_26, linewidth=0.1, alpha=0.3, c='blue')
+            ax32.plot(RCP_means['26']['snowfall']['year'][1:], member_26[1:], linewidth=0.1, alpha=0.3, c='blue')
 for member_45 in RCP_members['45']['snowfall']['data']:
     if(len(member_45) > 0):
         if(len(RCP_means['45']['snowfall']['year']) > len(member_45)):
-            ax32.plot(RCP_means['45']['snowfall']['year'][:-1], member_45, linewidth=0.1, alpha=0.3, c='green')
+            ax32.plot(RCP_means['45']['snowfall']['year'][1:-1], member_45[1:], linewidth=0.1, alpha=0.3, c='green')
         else:
-            ax32.plot(RCP_means['45']['snowfall']['year'], member_45, linewidth=0.1, alpha=0.3, c='green')
+            ax32.plot(RCP_means['45']['snowfall']['year'][1:], member_45[1:], linewidth=0.1, alpha=0.3, c='green')
 for member_85 in RCP_members['85']['snowfall']['data']:
     if(len(member_85) > 0):
         if(len(RCP_means['85']['snowfall']['year']) > len(member_85)):
-            ax32.plot(RCP_means['85']['snowfall']['year'][:-1], member_85, linewidth=0.1, alpha=0.3, c='red')
+            ax32.plot(RCP_means['85']['snowfall']['year'][1:-1], member_85[1:], linewidth=0.1, alpha=0.3, c='red')
         else:
-            ax32.plot(RCP_means['85']['snowfall']['year'], member_85, linewidth=0.1, alpha=0.3, c='red')
+            ax32.plot(RCP_means['85']['snowfall']['year'][1:], member_85[1:], linewidth=0.1, alpha=0.3, c='red')
 
 ax32.set_ylabel('Annual cumulative snowfall anomaly (1984-2015)')
 ax32.set_xlabel('Year')
 ax32.axhline(y=0, color='black', linewidth=0.7, linestyle='-')
 if(with_26):
-    line321, = ax32.plot(RCP_means['26']['snowfall']['year'][:-1], RCP_means['26']['snowfall']['data'][:-1], linewidth=3, label='RCP 2.6', c='blue')
-line322, = ax32.plot(RCP_means['45']['snowfall']['year'][:-1], RCP_means['45']['snowfall']['data'][:-1], linewidth=3, label='RCP 4.5', c='green')
-line323, = ax32.plot(RCP_means['85']['snowfall']['year'][:-1], RCP_means['85']['snowfall']['data'][:-1], linewidth=3, label='RCP 8.5', c='red')
+    line321, = ax32.plot(RCP_means['26']['snowfall']['year'][1:-1], RCP_means['26']['snowfall']['data'][1:-1], linewidth=3, label='RCP 2.6', c='blue')
+line322, = ax32.plot(RCP_means['45']['snowfall']['year'][1:-1], RCP_means['45']['snowfall']['data'][1:-1], linewidth=3, label='RCP 4.5', c='green')
+line323, = ax32.plot(RCP_means['85']['snowfall']['year'][1:-1], RCP_means['85']['snowfall']['data'][1:-1], linewidth=3, label='RCP 8.5', c='red')
 ax32.legend()
 
 # Save as PDF
@@ -362,29 +371,64 @@ ax41.set_xlabel('Year')
 for member_26 in RCP_members['26']['SMB']['data']:
     if(len(member_26) > 0):
         if(len(RCP_means['26']['SMB']['year']) > len(member_26)):
-            ax41.plot(RCP_means['26']['SMB']['year'][:-1], member_26, linewidth=0.1, alpha=0.3, c='blue')
+            ax41.plot(RCP_means['26']['SMB']['year'][1:-1], member_26[1:], linewidth=0.1, alpha=0.3, c='blue')
         else:
-            ax41.plot(RCP_means['26']['SMB']['year'], member_26, linewidth=0.1, alpha=0.3, c='blue')
+            ax41.plot(RCP_means['26']['SMB']['year'][1:], member_26[1:], linewidth=0.1, alpha=0.3, c='blue')
 for member_45 in RCP_members['45']['SMB']['data']:
     if(len(member_45) > 0):
         if(len(RCP_means['45']['SMB']['year']) > len(member_45)):
-            ax41.plot(RCP_means['45']['SMB']['year'][:-1], member_45, linewidth=0.1, alpha=0.3, c='green')
+            ax41.plot(RCP_means['45']['SMB']['year'][1:-1], member_45[1:], linewidth=0.1, alpha=0.3, c='green')
         else:
-            ax41.plot(RCP_means['45']['SMB']['year'], member_45, linewidth=0.1, alpha=0.3, c='green')
+            ax41.plot(RCP_means['45']['SMB']['year'][1:], member_45[1:], linewidth=0.1, alpha=0.3, c='green')
 for member_85 in RCP_members['85']['SMB']['data']:
     if(len(member_85) > 0):
         if(len(RCP_means['85']['SMB']['year']) > len(member_85)):
-            ax41.plot(RCP_means['85']['SMB']['year'][:-1], member_85, linewidth=0.1, alpha=0.3, c='red')
+            ax41.plot(RCP_means['85']['SMB']['year'][1:-1], member_85[1:], linewidth=0.1, alpha=0.3, c='red')
         else:
-            ax41.plot(RCP_means['85']['SMB']['year'], member_85, linewidth=0.1, alpha=0.3, c='red')
+            ax41.plot(RCP_means['85']['SMB']['year'][1:], member_85[1:], linewidth=0.1, alpha=0.3, c='red')
 
 if(with_26):
-    line41, = ax41.plot(RCP_means['26']['SMB']['year'][:-1], RCP_means['26']['SMB']['data'][:-1], linewidth=3, label='RCP 2.6', c='blue')
-line42, = ax41.plot(RCP_means['45']['SMB']['year'][:-1], RCP_means['45']['SMB']['data'][:-1], linewidth=3, label='RCP 4.5', c='green')
-line43, = ax41.plot(RCP_means['85']['SMB']['year'][:-1], RCP_means['85']['SMB']['data'][:-1], linewidth=3, label='RCP 8.5', c='red')
+    line41, = ax41.plot(RCP_means['26']['SMB']['year'][1:-1], RCP_means['26']['SMB']['data'][1:-1], linewidth=3, label='RCP 2.6', c='blue')
+line42, = ax41.plot(RCP_means['45']['SMB']['year'][1:-1], RCP_means['45']['SMB']['data'][1:-1], linewidth=3, label='RCP 4.5', c='green')
+line43, = ax41.plot(RCP_means['85']['SMB']['year'][1:-1], RCP_means['85']['SMB']['data'][1:-1], linewidth=3, label='RCP 8.5', c='red')
 ax41.legend()
 
 # Save as PDF
 save_plot_as_pdf(fig4, 'SMB', with_26)
+
+###############     Plot the glacier meltwater discharge   ####################################
+fig5, (ax51) = plt.subplots(1,1, figsize=(10, 6))
+ax51.axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+fig5.suptitle("Tré-la-Tête meltwater discharge evolution under climate change")
+ax51.set_ylabel('Volume (m$^3$ 10$^6$)')
+ax51.set_xlabel('Year')
+
+for member_26 in RCP_members['26']['discharge']['data']:
+    if(len(member_26) > 0):
+        if(len(RCP_means['26']['discharge']['year']) > len(member_26)):
+            ax51.plot(RCP_means['26']['discharge']['year'][1:-1], member_26[1:], linewidth=0.1, alpha=0.3, c='blue')
+        else:
+            ax51.plot(RCP_means['26']['discharge']['year'][1:], member_26[1:], linewidth=0.1, alpha=0.3, c='blue')
+for member_45 in RCP_members['45']['discharge']['data']:
+    if(len(member_45) > 0):
+        if(len(RCP_means['45']['discharge']['year']) > len(member_45)):
+            ax51.plot(RCP_means['45']['discharge']['year'][1:-1], member_45[1:], linewidth=0.1, alpha=0.3, c='green')
+        else:
+            ax51.plot(RCP_means['45']['discharge']['year'][1:], member_45[1:], linewidth=0.1, alpha=0.3, c='green')
+for member_85 in RCP_members['85']['discharge']['data']:
+    if(len(member_85) > 0):
+        if(len(RCP_means['85']['discharge']['year']) > len(member_85)):
+            ax51.plot(RCP_means['85']['discharge']['year'][1:-1], member_85[1:], linewidth=0.1, alpha=0.3, c='red')
+        else:
+            ax51.plot(RCP_means['85']['discharge']['year'][1:], member_85[1:], linewidth=0.1, alpha=0.3, c='red')
+
+if(with_26):
+    line41, = ax51.plot(RCP_means['26']['SMB']['year'][1:-1], RCP_means['26']['discharge']['data'][1:-1], linewidth=3, label='RCP 2.6', c='blue')
+line42, = ax51.plot(RCP_means['45']['discharge']['year'][1:-1], RCP_means['45']['discharge']['data'][1:-1], linewidth=3, label='RCP 4.5', c='green')
+line43, = ax51.plot(RCP_means['85']['discharge']['year'][1:-1], RCP_means['85']['discharge']['data'][1:-1], linewidth=3, label='RCP 8.5', c='red')
+ax51.legend()
+
+# Save as PDF
+save_plot_as_pdf(fig5, 'meltwater_discharge', with_26)
 
 plt.show()

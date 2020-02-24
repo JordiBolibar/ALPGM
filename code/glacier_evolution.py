@@ -239,7 +239,6 @@ def preload_ensemble_SMB_models():
     path_ensemble = settings.path_ensemble_ann
     path_ensemble_members = np.asarray(os.listdir(path_ensemble))
     
-#    CV_ensemble_members, ensemble_members = [],[]
     CV_ensemble_members = np.ndarray(path_CV_ensemble_members.shape, dtype=np.object)
     ensemble_members = np.ndarray(path_ensemble_members.shape, dtype=np.object)
     
@@ -272,33 +271,36 @@ def preload_ensemble_SMB_models():
     
     return ensemble_member_models
 
-def compute_generalization_error_weights(CV_RMSE, SMB_members, SMB_mean):
-    # We compute the generalization errors to weight the average
-    ge_weights, ambiguities = [],[]
-    # Pre-compute the ambiguities
-    for SMB_member in SMB_members:
-        ambiguities.append((SMB_member - SMB_mean)**2)
-    ambiguities = np.asarray(ambiguities)
-    
-    for RMSE_i, ambiguity_i in zip(CV_RMSE, ambiguities):
-        # Generalization error = RMSE_ensemble  - ensemble_ambiguity
-        # Both values are normalized in order to make them comparable
-        # RMSE is inversed for weighting
-        inv_RMSE_i_norm = (1/RMSE_i - np.min(1/CV_RMSE))/np.ptp(1/CV_RMSE)
-        ambiguity_i_norm = (ambiguity_i - np.min(ambiguities))/np.ptp(ambiguities)
-        # The generalization error is inversed in order to be used as weights
-        ge_weights.append(inv_RMSE_i_norm + ambiguity_i_norm)
-    
-    ge_weights = np.asarray(ge_weights)
-    
-    return ge_weights
+#def compute_generalization_error_weights(CV_RMSE, SMB_members, SMB_mean):
+#    # We compute the generalization errors to weight the average
+#    ge_weights, ambiguities = [],[]
+#    # Pre-compute the ambiguities
+#    for SMB_member in SMB_members:
+#        ambiguities.append((SMB_member - SMB_mean)**2)
+#    ambiguities = np.asarray(ambiguities)
+#    
+#    for RMSE_i, ambiguity_i in zip(CV_RMSE, ambiguities):
+#        # Generalization error = RMSE_ensemble  - ensemble_ambiguity
+#        # Both values are normalized in order to make them comparable
+#        # RMSE is inversed for weighting
+#        inv_RMSE_i_norm = (1/RMSE_i - np.min(1/CV_RMSE))/np.ptp(1/CV_RMSE)
+#        ambiguity_i_norm = (ambiguity_i - np.min(ambiguities))/np.ptp(ambiguities)
+#        # The generalization error is inversed in order to be used as weights
+#        ge_weights.append(inv_RMSE_i_norm + ambiguity_i_norm)
+#    
+#    ge_weights = np.asarray(ge_weights)
+#    
+#    return ge_weights
 
 # Makes an ANN glacier-wide SMB simulation using an ensemble approach
 # Evolution flag = True for glacier_evolution.py format and False for smb_validation.py format
-def make_ensemble_simulation(ensemble_SMB_models, CV_RMSE, x_ann, batch_size, glimsID, glims_rabatel, evolution):
+def make_ensemble_simulation(ensemble_SMB_models, x_ann, batch_size, glimsID, glims_rabatel, evolution):
     SMB_ensemble = []
     training_slopes = glims_rabatel['slope20']
-    ref_slope = np.median(x_ann[:,5])
+    if(len(x_ann.shape) == 2):
+        ref_slope = np.median(x_ann[:,5])
+    else:
+        ref_slope = np.median(x_ann[5])
     first = True
     CV_ensemble = False
     member_idx = 0
@@ -342,9 +344,11 @@ def make_ensemble_simulation(ensemble_SMB_models, CV_RMSE, x_ann, batch_size, gl
             # We generate the weights for the ensemble averaging
 #            ge_weights = compute_generalization_error_weights(CV_RMSE, SMB_ensemble, SMB_ensemble.mean())
             # Generalization error weighted ensemble
-            ensemble_simulation = np.average(SMB_ensemble, weights=ge_weights)
+#            ensemble_simulation = np.average(SMB_ensemble, weights=ge_weights)
             # Inverse slope difference weighted ensemble
 #            ensemble_simulation = np.average(SMB_ensemble, weights=1/slope_dist)
+            # Average of all ensemble members
+            ensemble_simulation = np.average(SMB_ensemble)
         else:
             # Unweighted ensemble average
             ensemble_simulation = np.average(SMB_ensemble)
@@ -1304,7 +1308,7 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
                       flowline, raster_current_DEM, current_glacier_DEM, store_plots, 
                       glacierName, glacierID, glimsID, massif, lat, lon, aspect,
                       midfolder, pixel_area, glaciers_with_errors, glims_rabatel,
-                      lasso_scaler, lasso_model, ann_model, ensemble_SMB_models, CV_RMSE,
+                      lasso_scaler, lasso_model, ensemble_SMB_models, 
                       year_range, ref_start, ref_end, SAFRAN_idx, overwrite):
     
     print("Applying glacier evolution...")
@@ -1383,7 +1387,7 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
             elif(settings.smb_model_type == "ann_no_weights" or settings.smb_model_type == "ann_weights"):
                 # We use an ensemble approach to compute the glacier-wide SMB
                 batch_size = 34
-                SMB_y, SMB_ensemble = make_ensemble_simulation(ensemble_SMB_models, CV_RMSE, x_ann, batch_size, glimsID, glims_rabatel, evolution=True)
+                SMB_y, SMB_ensemble = make_ensemble_simulation(ensemble_SMB_models, x_ann, batch_size, glimsID, glims_rabatel, evolution=True)
             
             yearly_simulated_SMB.append(SMB_y)
             print("Simulated SMB: " + str(SMB_y))
@@ -1431,8 +1435,11 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
 #                import pdb; pdb.set_trace()
                 yearly_glacier_zmean.append(masked_DEM_current_glacier_u.compressed().mean())
             else:
-                yearly_glacier_zmean.append(yearly_glacier_zmean[-1])
-                
+                if(len(yearly_glacier_zmean) > 0):
+                    yearly_glacier_zmean.append(yearly_glacier_zmean[-1])
+                else:
+                    yearly_glacier_zmean.append(mean_glacier_alt)
+            
             print("Slope 20%: " + str(slope20))
             print("Area: " + str(current_glacierArea))
             print("Zmean: " + str(yearly_glacier_zmean[-1]))
@@ -1482,10 +1489,12 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
         store_file(yearly_glacier_slope20, path_glacier_slope20, midfolder, "slope20", glimsID, year_start, year)
         # Melt year (if available)
         if(glacier_melted_flag):
-            if not os.path.exists(path_glacier_melt_years):
-                os.makedirs(path_glacier_melt_years)
+            if not os.path.exists(path_glacier_melt_years + midfolder):
+                os.makedirs(path_glacier_melt_years + midfolder)
+            file_name_h = path_glacier_melt_years + midfolder + str(glimsID) + '_'
+            file_name_t = '_melt_year.csv'
             glacier_melt_year = np.asarray(glacier_melt_year)
-            np.savetxt(path_glacier_melt_years + glimsID + '_melt_year.csv', glacier_melt_year, delimiter=";", fmt="%.7f")
+            automatic_file_name_save(file_name_h, file_name_t, glacier_melt_year, 'txt')
         # CPDD
         store_file(mean_CPDD, path_glacier_CPDDs, midfolder, "CPDD", glimsID, year_start, year)
         # Snowfall
@@ -1561,7 +1570,7 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
             ref_start = 1959
             ref_end = 2015
         elif(settings.simulation_type == "future"):
-            year_start = 2019  
+            year_start = 2015  
             year_end = 2099
             ref_start = 2006
             ref_end = 2099
@@ -1575,12 +1584,7 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
             
         ###  We load the SMB models  ###
         # Deep learning
-        # ANN nonlinear model
-        ann_model = load_model(path_ann + 'ann_glacier_model.h5', custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error})
-        # CV model RMSE to compute the dynamic ensemble weights
-        with open(settings.path_ann +'RMSE_per_fold.txt', 'rb') as rmse_f:
-            CV_RMSE = np.load(rmse_f)
-        
+        # ANN nonlinear models ensemble preloaded separetly
         # Lasso
         # Data scaler
         with open(path_smb_function+'model_lasso_temporal.txt', 'rb') as lasso_model_f:
@@ -1622,8 +1626,6 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
             thickness_folder_tail = "0.7\\"
             print("\nIce thickness *0.7 simulation \n")
         else:
-#            thickness_folder_tail = "1\\delta_110\\"
-#            thickness_folder_tail = "1\\delta_90\\"
             thickness_folder_tail = "1\\"
             print("\nOriginal Ice thickness simulation \n")
         midfolder = midfolder_base+thickness_folder_tail
@@ -1634,7 +1636,10 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
         empty_folder(path_glacier_volume+midfolder)
         empty_folder(path_glacier_zmean+midfolder)
         empty_folder(path_glacier_slope20+midfolder)
-          
+        empty_folder(path_glacier_melt_years+midfolder)
+        empty_folder(path_glacier_CPDDs+midfolder)
+        empty_folder(path_glacier_snowfall+midfolder)
+        
         # We calculate the year range once we know if the ADAMONT forcings end in 2098 or 2099
         year_range = range(year_start, year_end+1)
         
@@ -1688,12 +1693,6 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
                     print ("\n-------   Processing glacier: " + glacierName + " -------")
                     print("GLIMS ID: " + str(glimsID))
                     
-                    if(smb_cv):
-                        print("Retrieving CV LOGO SMB model")
-                        glacier_idx = np.where(glimsID.encode('ascii') == glims_rabatel['GLIMS_ID'])[0][0]
-                        # We retrie de CV ANN model
-                        ann_model = load_model(path_cv_ann + 'glacier_' + str(glacier_idx+1) + '_model.h5', custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error})
-                        
                     # We crop the initial rasters to the extent of the GLIMS 2003 or 2015 database
                     path_outline_current_glacier = path_glacier_2003_shapefiles + 'individual_GLIMS_2003\\' +  'GLIMS_ID_' + str(glimsID) + '.shp'
                     current_glacier_ice_depth, current_glacier_DEM, path_glacier_DEM_2003, path_glacier_ID_2003 = crop_inital_rasters_to_GLIMS(path_glacier_ID_rasters, path_glacier_DEM_rasters, path_outline_current_glacier, 
@@ -1785,7 +1784,9 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
                     meteo_anomalies = {'CPDD': CPDD_ref, 'w_snow': w_snow_ref, 's_snow': s_snow_ref, 'mon_temp': mon_temp_ref, 'mon_snow': mon_snow_ref}
                     
                     # We compute the glacier retreat, updating the DEM and ID matrixes and storing the rasters for every year
-                    masked_DEM_current_glacier_u, masked_ID_current_glacier_u = glacier_evolution(masked_DEM_current_glacier, 
+                    
+                    if(not np.all(np.isnan(masked_ID_current_glacier.compressed()))):
+                        masked_DEM_current_glacier_u, masked_ID_current_glacier_u = glacier_evolution(masked_DEM_current_glacier, 
                                                                                                 masked_ID_current_glacier, 
                                                                                                 delta_h_dh_current_glacier,
                                                                                                 delta_h_DEM_current_glacier, 
@@ -1795,11 +1796,15 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
                                                                                                 store_plots, glacierName, 
                                                                                                 glacierID, glimsID, massif, lat, lon, aspect,
                                                                                                 midfolder, pixel_area, glaciers_with_errors, glims_rabatel,
-                                                                                                lasso_scaler, lasso_model, ann_model, ensemble_SMB_models, CV_RMSE,
+                                                                                                lasso_scaler, lasso_model, ensemble_SMB_models, 
                                                                                                 year_range, ref_start, ref_end, SAFRAN_idx, overwrite) 
+                    else:
+                        glacier_melted_flag = True
+                        glacier_melt_year = year_start
                     
                     if(glacier_melted_flag):
                         melted_glaciers.append([glacierName, glacier_melt_year])
+                        print("\n Glacier completely melted")
                 else:
                     print("\n /!\  Glacier not present in delta h dataset  ")
             else:
