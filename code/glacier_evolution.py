@@ -1803,7 +1803,7 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
                         glacier_melt_year = year_start
                     
                     if(glacier_melted_flag):
-                        melted_glaciers.append([glacierName, glacier_melt_year])
+                        melted_glaciers.append([glimsID, glacierName, glacier_melt_year])
                         print("\n Glacier completely melted")
                 else:
                     print("\n /!\  Glacier not present in delta h dataset  ")
@@ -1834,7 +1834,7 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
             if(glaciers_with_errors.size > 0):
                 np.savetxt(path_glacier_w_errors_current_combination + "glaciers_w_errors_" + str(year_start)+ "_" + str(year_end) + '.csv', glaciers_with_errors, delimiter=";", fmt="%s")
             if(melted_glaciers.size > 0):
-                np.savetxt(path_melt_years_current_combination + "melted_glaciers_" + str(year_start)+ "_" + str(year_end) + '.csv', melted_glaciers, delimiter=";")
+                np.savetxt(path_melt_years_current_combination + "melted_glaciers_" + str(year_start)+ "_" + str(year_end) + '.csv', melted_glaciers, delimiter=";", fmt="%s")
         except IOError:
             print("File currently opened. Please close it to proceed.")
             os.system('pause')
@@ -1843,7 +1843,7 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
                 if(glaciers_with_errors.size > 0):
                     np.savetxt(path_glacier_evolution + midfolder + "glaciers_w_errors_" + str(year_start)+ "_" + str(year_end) + '.csv', glaciers_with_errors, delimiter=";", fmt="%s")
                 if(melted_glaciers.size > 0):
-                    np.savetxt(path_glacier_evolution + midfolder + "melted_glaciers_" + str(year_start)+ "_" + str(year_end) + '.csv', melted_glaciers, delimiter=";")
+                    np.savetxt(path_glacier_evolution + midfolder + "melted_glaciers_" + str(year_start)+ "_" + str(year_end) + '.csv', melted_glaciers, delimiter=";", fmt="%s")
             except IOError:
                 print("File still not available. Aborting simulations.")
         
