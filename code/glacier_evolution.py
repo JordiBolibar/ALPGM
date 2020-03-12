@@ -1050,7 +1050,7 @@ def get_default_ADAMONT_forcings(year_start, year_end, midfolder):
 
 def get_adjusted_glacier_ADAMONT_forcings(year, year_start, glacier_mean_altitude, ADAMONT_idx, daily_meteo_data, meteo_anomalies):
     # We also need to fetch the previous year since data goes from 1st of August to 31st of July
-    idx = year - year_start -1
+    idx = year - year_start + 1
 #    print("ADAMONT_idx: " + str(ADAMONT_idx))
     glacier_idx = int(ADAMONT_idx)
     
@@ -1193,6 +1193,13 @@ def get_adjusted_glacier_ADAMONT_forcings(year, year_start, glacier_mean_altitud
          
     season_anomalies_y = {'CPDD': CPDD_LocalAnomaly, 'winter_snow':winter_snow_LocalAnomaly, 'summer_snow': summer_snow_LocalAnomaly}
     monthly_anomalies_y = {'temps': mon_temp_anomaly, 'snow': mon_snow_anomaly}
+    
+#    print("\nCPDD_LocalAnomaly: " + str(CPDD_LocalAnomaly))
+#    print("winter_snow_LocalAnomaly: " + str(winter_snow_LocalAnomaly))
+#    print("summer_snow_LocalAnomaly: " + str(summer_snow_LocalAnomaly))
+#    
+#    print("\nmon_temp_anomaly: " + str(mon_temp_anomaly))
+#    print("mon_snow_anomaly: " + str(mon_snow_anomaly))
     
     return season_anomalies_y, monthly_anomalies_y
 
