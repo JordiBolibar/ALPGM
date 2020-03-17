@@ -38,7 +38,7 @@ from keras.models import load_model
 #import tensorflow as tf
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-matplotlib.use("GTKCairo", warn=False)
+#matplotlib.use("GTKCairo", warn=False)
 
 # Turn interactive plotting off
 plt.ioff()
@@ -771,15 +771,15 @@ def get_default_SAFRAN_forcings(safran_start, safran_end):
         print("\nFetching SAFRAN forcings...")
         
         with open(path_temps, 'rb') as temps_f:
-            daily_temps_years = np.load(temps_f, encoding='latin1')
+            daily_temps_years = np.load(temps_f, encoding='latin1',  allow_pickle=True)
         with open(path_snow, 'rb') as snow_f:
-            daily_snow_years = np.load(snow_f, encoding='latin1')
+            daily_snow_years = np.load(snow_f, encoding='latin1',  allow_pickle=True)
         with open(path_rain, 'rb') as rain_f:
-            daily_rain_years = np.load(rain_f, encoding='latin1')
+            daily_rain_years = np.load(rain_f, encoding='latin1',  allow_pickle=True)
         with open(path_dates, 'rb') as dates_f:
-            daily_dates_years = np.load(dates_f, encoding='latin1')
+            daily_dates_years = np.load(dates_f, encoding='latin1',  allow_pickle=True)
         with open(path_zs, 'rb') as zs_f:
-            zs_years = np.load(zs_f, encoding='latin1')[0]
+            zs_years = np.load(zs_f, encoding='latin1',  allow_pickle=True)[0]
             
     else:
         sys.exit("\n[ ERROR ] SAFRAN base forcing files not found. Please execute SAFRAN forcing module before")
@@ -828,10 +828,10 @@ def get_adjusted_glacier_SAFRAN_forcings(year, year_start, glacier_mean_altitude
     glacier_snow = snow_sum[:, glacier_idx] 
     glacier_rain_1 = rain_sum_1[:, glacier_idx] 
     glacier_rain = rain_sum[:, glacier_idx] 
-    glacier_snow_1 = np.where(glacier_temps_1 > 2.0, 0.0, glacier_snow_1)
-    glacier_snow_1 = np.where(((glacier_temps_1 < 2.0) & (glacier_snow_1 == 0.0)), glacier_rain_1, glacier_snow_1)
-    glacier_snow = np.where(glacier_temps > 2.0, 0.0, glacier_snow)
-    glacier_snow = np.where(((glacier_temps < 2.0) & (glacier_snow == 0.0)), glacier_rain, glacier_snow)
+    glacier_snow_1 = np.where(glacier_temps_1 > 0.0, 0.0, glacier_snow_1)
+    glacier_snow_1 = np.where(((glacier_temps_1 < 0.0) & (glacier_snow_1 == 0.0)), glacier_rain_1, glacier_snow_1)
+    glacier_snow = np.where(glacier_temps > 0.0, 0.0, glacier_snow)
+    glacier_snow = np.where(((glacier_temps < 0.0) & (glacier_snow == 0.0)), glacier_rain, glacier_snow)
     
     mon_snow_1 = get_monthly_snow(glacier_snow_1, daily_datetimes_1)
     mon_snow = get_monthly_snow(glacier_snow, daily_datetimes)
@@ -886,10 +886,10 @@ def get_adjusted_glacier_SAFRAN_forcings(year, year_start, glacier_mean_altitude
     glacier_ablation_rain = np.append(rain_sum_1[ablation_idx_1, glacier_idx], rain_sum[ablation_idx, glacier_idx])
     
     # We recompute the rain/snow limit with the new adjusted temperatures
-    glacier_accum_snow = np.where(dummy_glacier_accum_pos_temps > 2.0, 0.0, glacier_accum_snow)
-    glacier_accum_snow = np.where(((dummy_glacier_accumulation_temps < 2.0) & (glacier_accum_snow == 0.0)), glacier_accum_rain, glacier_accum_snow)
-    glacier_ablation_snow = np.where(dummy_glacier_ablation_pos_temps > 2.0, 0.0, glacier_ablation_snow)
-    glacier_ablation_snow = np.where(((dummy_glacier_ablation_temps < 2.0) & (glacier_ablation_snow == 0.0)), glacier_ablation_rain, glacier_ablation_snow)
+    glacier_accum_snow = np.where(dummy_glacier_accum_pos_temps > 0.0, 0.0, glacier_accum_snow)
+    glacier_accum_snow = np.where(((dummy_glacier_accumulation_temps < 0.0) & (glacier_accum_snow == 0.0)), glacier_accum_rain, glacier_accum_snow)
+    glacier_ablation_snow = np.where(dummy_glacier_ablation_pos_temps > 0.0, 0.0, glacier_ablation_snow)
+    glacier_ablation_snow = np.where(((dummy_glacier_ablation_temps < 0.0) & (glacier_ablation_snow == 0.0)), glacier_ablation_rain, glacier_ablation_snow)
     
     # We compute the cumulative yearly CPDD and snowfall
     glacier_CPDD = np.sum(glacier_year_pos_temps)
@@ -938,19 +938,19 @@ def get_default_ADAMONT_forcings(year_start, year_end, midfolder):
     if(os.path.exists(path_temps) & os.path.exists(path_snow) & os.path.exists(path_rain) & os.path.exists(path_dates) & os.path.exists(path_zs) & os.path.exists(path_massif) & os.path.exists(path_aspect)):
         print("Fetching ADAMONT forcings...")
         with open(path_temps, 'rb') as temps_f:
-            daily_temps_years = np.load(temps_f)
+            daily_temps_years = np.load(temps_f,  allow_pickle=True)
         with open(path_snow, 'rb') as snow_f:
-            daily_snow_years = np.load(snow_f)
+            daily_snow_years = np.load(snow_f, allow_pickle=True)
         with open(path_rain, 'rb') as rain_f:
-            daily_rain_years = np.load(rain_f)
+            daily_rain_years = np.load(rain_f, allow_pickle=True)
         with open(path_dates, 'rb') as dates_f:
-            daily_datetimes = np.load(dates_f)
+            daily_datetimes = np.load(dates_f, allow_pickle=True)
         with open(path_zs, 'rb') as zs_f:
-            zs = np.load(zs_f)
+            zs = np.load(zs_f, allow_pickle=True)
         with open(path_massif, 'rb') as massif_f:
-            massif_number = np.load(massif_f)
+            massif_number = np.load(massif_f, allow_pickle=True)
         with open(path_aspect, 'rb') as aspects_f:
-            aspects = np.load(aspects_f)
+            aspects = np.load(aspects_f, allow_pickle=True)
         
         daily_meteo_data = {'temps':daily_temps_years, 'snow': daily_snow_years, 'rain': daily_rain_years, 'dates': daily_datetimes, 'zs': zs}
     else:
@@ -1543,7 +1543,7 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
             path_ann_train = path_smb + 'ANN\\LSYGO\\weights\\'
             path_cv_ann = path_ann_train + 'CV\\'
         
-        ### We detect the forcing between SPAZM, SAFRAN or ADAMONT
+        ### We detect the forcing between SAFRAN or ADAMONT
         forcing = settings.projection_forcing
 #        print("forcing: " + str(forcing))
         
@@ -1585,9 +1585,9 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
         #### ONLY HISTORICAL SAFRAN DATA FOR REFS  ####
         # We load the compacted seasonal and monthly meteo forcings
         with open(path_safran_forcings+'season_meteo.txt', 'rb') as season_f:
-            season_meteo = np.load(season_f)[()]
+            season_meteo = np.load(season_f,  allow_pickle=True)[()]
         with open(path_safran_forcings+'monthly_meteo.txt', 'rb') as mon_f:
-            monthly_meteo = np.load(mon_f)[()]
+            monthly_meteo = np.load(mon_f,  allow_pickle=True)[()]
             
         ###  We load the SMB models  ###
         # Deep learning
@@ -1595,10 +1595,10 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
         # Lasso
         # Data scaler
         with open(path_smb_function+'model_lasso_temporal.txt', 'rb') as lasso_model_f:
-            lasso_model = np.load(lasso_model_f)
+            lasso_model = np.load(lasso_model_f,  allow_pickle=True)
         # Lasso linear model
         with open(path_smb_function+'LOYO\\full_scaler_temporal.txt', 'rb') as lasso_scaler_f:
-            lasso_scaler = np.load(lasso_scaler_f)[()]
+            lasso_scaler = np.load(lasso_scaler_f,  allow_pickle=True)[()]
         
         # We open the raster files and shapefiles:
         shapefile_glacier_outlines = ogr.Open(path_glacier_outlines_shapefile)
@@ -1623,7 +1623,7 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
             daily_meteo_data = get_default_SAFRAN_forcings(ref_start, ref_end)
             # We retrieve all the SAFRAN glacier coordinates
             with open(path_smb_function_forcing+'all_glacier_coordinates.txt', 'rb') as coords_f:
-                all_glacier_coordinates = np.load(coords_f)
+                all_glacier_coordinates = np.load(coords_f,  allow_pickle=True)
                 
         ### We modify the ice depth in order to compute the effects of the uncertainties ###
         if(thickness_idx == 1):

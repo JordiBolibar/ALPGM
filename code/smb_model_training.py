@@ -191,7 +191,7 @@ def create_spatiotemporal_matrix(SMB_raw, season_raw_meteo_anomalies_SMB, mon_te
             np.save(x_f, x_reg_nn)
         with open(root + 'y_extended.txt', 'wb') as y_f:
             np.save(y_f, SMB_raw)
-        
+            
         finite_idxs = np.isfinite(y_reg)
         x_reg_full = x_reg_full[finite_idxs,:]
         x_reg_nn = x_reg_nn[finite_idxs,:]
@@ -768,11 +768,11 @@ def main(compute):
         # Glaciers with SMB data (Rabatel et al. 2016)
         # We load the compacted seasonal and monthly meteo forcings
         with open(path_smb_function_forcing+'season_meteo_anomalies_SMB.txt', 'rb') as season_a_f:
-            season_meteo_anomalies_SMB = np.load(season_a_f)[()]
+            season_meteo_anomalies_SMB = np.load(season_a_f, allow_pickle=True)[()]
         with open(path_smb_function_forcing+'season_raw_meteo_anomalies_SMB.txt', 'rb') as season_raw_a_f:
-            season_raw_meteo_anomalies_SMB = np.load(season_raw_a_f)[()]
+            season_raw_meteo_anomalies_SMB = np.load(season_raw_a_f, allow_pickle=True)[()]
         with open(path_smb_function_forcing+'monthly_meteo_anomalies_SMB.txt', 'rb') as mon_a_f:
-            monthly_meteo_anomalies_SMB = np.load(mon_a_f)[()]
+            monthly_meteo_anomalies_SMB = np.load(mon_a_f, allow_pickle=True)[()]
             
         # We get the raw forcings
         mon_temp_anomalies =  get_raw_mon_data(monthly_meteo_anomalies_SMB['temp'], 'mon_temp')
