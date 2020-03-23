@@ -1082,10 +1082,10 @@ def get_adjusted_glacier_ADAMONT_forcings(year, year_start, glacier_mean_altitud
     mon_temp_year = np.append(mon_temps_1[9:], mon_temps[:9])
     
     # We adjust the snowfall rate at the glacier's altitude
-    glacier_snow_1 = np.where(daily_temps_mean_1 > 2.0, 0.0, daily_snow_sum_1)
+    glacier_snow_1 = np.where(daily_temps_mean_1 > 0.0, 0.0, daily_snow_sum_1)
     glacier_snow_1 = np.where(((daily_temps_mean_1 < 2.0) & (glacier_snow_1 == 0.0)), daily_rain_sum_1, glacier_snow_1)
-    glacier_snow = np.where(daily_temps_mean > 2.0, 0.0, daily_snow_sum)
-    glacier_snow = np.where(((daily_temps_mean < 2.0) & (glacier_snow == 0.0)), daily_rain_sum, glacier_snow)
+    glacier_snow = np.where(daily_temps_mean > 0.0, 0.0, daily_snow_sum)
+    glacier_snow = np.where(((daily_temps_mean < 0.0) & (glacier_snow == 0.0)), daily_rain_sum, glacier_snow)
     
     mon_snow_1 = get_monthly_snow(glacier_snow_1, daily_datetimes_1)
     mon_snow = get_monthly_snow(glacier_snow, daily_datetimes)
@@ -1170,10 +1170,10 @@ def get_adjusted_glacier_ADAMONT_forcings(year, year_start, glacier_mean_altitud
     glacier_ablation_rain = daily_rain_sum[ablation_idx]
     
     # We recompute the rain/snow limit with the new adjusted temperatures
-    glacier_accum_snow = np.where(dummy_glacier_accum_pos_temps > 2.0, 0.0, glacier_accum_snow)
-    glacier_accum_snow = np.where(((dummy_glacier_accumulation_temps < 2.0) & (glacier_accum_snow == 0.0)), glacier_accum_rain, glacier_accum_snow)
-    glacier_ablation_snow = np.where(dummy_glacier_ablation_pos_temps > 2.0, 0.0, glacier_ablation_snow)
-    glacier_ablation_snow = np.where(((dummy_glacier_ablation_temps < 2.0) & (glacier_ablation_snow == 0.0)), glacier_ablation_rain, glacier_ablation_snow)
+    glacier_accum_snow = np.where(dummy_glacier_accum_pos_temps > 0.0, 0.0, glacier_accum_snow)
+    glacier_accum_snow = np.where(((dummy_glacier_accumulation_temps < 0.0) & (glacier_accum_snow == 0.0)), glacier_accum_rain, glacier_accum_snow)
+    glacier_ablation_snow = np.where(dummy_glacier_ablation_pos_temps > 0.0, 0.0, glacier_ablation_snow)
+    glacier_ablation_snow = np.where(((dummy_glacier_ablation_temps < 0.0) & (glacier_ablation_snow == 0.0)), glacier_ablation_rain, glacier_ablation_snow)
     
     
 #            glacier_ablation_season = end_y_ablation[0] - start_y_ablation[0]

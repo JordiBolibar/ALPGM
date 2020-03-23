@@ -48,8 +48,8 @@ def init(hist_forcing, proj_forcing, simu_type, smb_model):
     global path_ensemble_ann
     global smb_model_type
     if(smb_model == 'ann_no_weights'):
-#        path_ann = path_smb + 'ANN\\LSYGO\\'
-        path_ann = path_smb + 'ANN\\LOGO\\'
+        path_ann = path_smb + 'ANN\\LSYGO\\'
+#        path_ann = path_smb + 'ANN\\LOGO\\'
 #        path_ann = path_smb + 'ANN\\LOYO\\'
         path_cv_ann = path_ann + 'CV\\'
         path_ensemble_ann = path_ann + 'ensemble\\'

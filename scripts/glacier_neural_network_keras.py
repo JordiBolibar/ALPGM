@@ -65,9 +65,9 @@ path_ann_LSYGO_past = path_smb + 'ANN\\LSYGO_past\\'
 ######################################
 #  Training with or without weights  #
 w_weights = False
-cross_validation = "LOGO"
+#cross_validation = "LOGO"
 #cross_validation = "LOYO"
-#cross_validation = "LSYGO"
+cross_validation = "LSYGO"
 #cross_validation = "LSYGO_past"
 #######  Flag to switch between training with a         ###############
 #######  single group of glaciers or cross-validation   ###############
@@ -75,9 +75,9 @@ training = False
 # Train only the full model without training CV models
 final_model_only = False
 # Activate the ensemble modelling approach
-final_model = False
+final_model = True
 # Only re-calculate fold performances based on previously trained models
-recalculate_performance = True
+recalculate_performance = False
 ########################################
 
 if(cross_validation == 'LOGO'):
@@ -354,8 +354,6 @@ for glacier in SMB_raw:
     group_n = group_n+1
 
     
-#import pdb; pdb.set_trace()
-
 # Single-year folds
 year_groups = []
 year_n = 1

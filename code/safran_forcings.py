@@ -576,10 +576,10 @@ def main(compute):
                     glacier_snow = snow_sum[:, glacier_idx] 
                     glacier_rain_1 = rain_sum_1[:, glacier_idx] 
                     glacier_rain = rain_sum[:, glacier_idx] 
-                    glacier_snow_1 = np.where(glacier_temps_1 > 2.0, 0.0, glacier_snow_1)
-                    glacier_snow_1 = np.where(((glacier_temps_1 < 2.0) & (glacier_snow_1 == 0.0)), glacier_rain_1, glacier_snow_1)
-                    glacier_snow = np.where(glacier_temps > 2.0, 0.0, glacier_snow)
-                    glacier_snow = np.where(((glacier_temps < 2.0) & (glacier_snow == 0.0)), glacier_rain, glacier_snow)
+                    glacier_snow_1 = np.where(glacier_temps_1 > 0.0, 0.0, glacier_snow_1)
+                    glacier_snow_1 = np.where(((glacier_temps_1 < 0.0) & (glacier_snow_1 == 0.0)), glacier_rain_1, glacier_snow_1)
+                    glacier_snow = np.where(glacier_temps > 0.0, 0.0, glacier_snow)
+                    glacier_snow = np.where(((glacier_temps < 0.0) & (glacier_snow == 0.0)), glacier_rain, glacier_snow)
                     
                     mon_snow_1 = get_monthly_snow(glacier_snow_1, daily_datetimes_1)
                     mon_snow = get_monthly_snow(glacier_snow, daily_datetimes)
@@ -642,10 +642,10 @@ def main(compute):
                     glacier_ablation_rain = np.append(rain_sum_1[ablation_idx_1, glacier_idx], rain_sum[ablation_idx, glacier_idx])
                     
                     # We recompute the rain/snow limit with the new adjusted temperatures
-                    glacier_accum_snow = np.where(dummy_glacier_accum_pos_temps > 2.0, 0.0, glacier_accum_snow)
-                    glacier_accum_snow = np.where(((dummy_glacier_accumulation_temps < 2.0) & (glacier_accum_snow == 0.0)), glacier_accum_rain, glacier_accum_snow)
-                    glacier_ablation_snow = np.where(dummy_glacier_ablation_pos_temps > 2.0, 0.0, glacier_ablation_snow)
-                    glacier_ablation_snow = np.where(((dummy_glacier_ablation_temps < 2.0) & (glacier_ablation_snow == 0.0)), glacier_ablation_rain, glacier_ablation_snow)
+                    glacier_accum_snow = np.where(dummy_glacier_accum_pos_temps > 0.0, 0.0, glacier_accum_snow)
+                    glacier_accum_snow = np.where(((dummy_glacier_accumulation_temps < 0.0) & (glacier_accum_snow == 0.0)), glacier_accum_rain, glacier_accum_snow)
+                    glacier_ablation_snow = np.where(dummy_glacier_ablation_pos_temps > 0.0, 0.0, glacier_ablation_snow)
+                    glacier_ablation_snow = np.where(((dummy_glacier_ablation_temps < 0.0) & (glacier_ablation_snow == 0.0)), glacier_ablation_rain, glacier_ablation_snow)
                     
                     glacier_ablation_season = len(ablation_idx_1) + len(ablation_idx)
                     year_ablation_season = year_ablation_season + glacier_ablation_season
