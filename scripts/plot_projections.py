@@ -15,7 +15,7 @@ from pathlib import Path
 
 ###### FLAGS  #########
 with_26 = False
-filter_glacier = False
+filter_glacier = True
 filter_member = False
 # mer de glace
 #glacier_ID_filter = "G006934E45883N"
@@ -47,6 +47,7 @@ path_glacier_melt_years = path_glacier_evolution + 'glacier_melt_years\\'
 path_glacier_w_errors = path_glacier_evolution + 'glacier_w_errors\\'
 path_glacier_CPDDs = path_glacier_evolution + 'glacier_CPDDs\\'
 path_glacier_snowfall = path_glacier_evolution + 'glacier_snowfall\\'
+path_glacier_discharge = path_glacier_evolution + 'glacier_meltwater_discharge\\'
 
 #### We fetch all the data from the simulations
 path_area_root = np.asarray(os.listdir(path_glacier_area + "projections\\"))
@@ -89,6 +90,23 @@ def save_plot_as_pdf(fig, variables, with_26):
     else:
         fig.savefig(path_glacier_evolution_plots + 'summary\\pdf\\glacier_ ' + str(variables) + '_evolution.pdf')
         fig.savefig(path_glacier_evolution_plots + 'summary\\png\\glacier_ ' + str(variables) + '_evolution.png')
+        
+        
+# Store the RCP means in CSV files
+def store_RCP_mean(path_variable, variable, RCP_means):
+    
+    path_RCP_means = path_variable + "RCP_means\\"
+    if not os.path.exists(path_RCP_means):
+            os.makedirs(path_RCP_means)
+    RCPs = ['26', '45', '85']
+    for RCP in RCPs:
+        if((with_26 and RCP == '26') or RCP != '26'):
+            data = np.asarray(RCP_means[RCP][variable]['data'][:-1])
+            years = np.asarray(RCP_means[RCP][variable]['year'][:-1])
+            data_years = np.transpose(np.stack((data,years)))
+            
+            np.savetxt(path_RCP_means + "RCP" + str(RCP) + "_glacier_" + str(variable) + "_" + str(years[0])+ "_" + str(years[-1]) + '.csv', data_years, delimiter=";", fmt="%s")
+
 
 ##################################################################################################
 
@@ -377,6 +395,7 @@ line112, = ax11.plot(RCP_means['45']['volume']['year'][:-1], np.asarray(RCP_mean
 line113, = ax11.plot(RCP_means['85']['volume']['year'][:-1], np.asarray(RCP_means['85']['volume']['data'][:-1]), linewidth=3, label='RCP 8.5', c='red')
 ax11.legend()
 
+
 ax12.set_ylabel('Area (km$^2$)')
 ax12.set_xlabel('Year')
 
@@ -417,6 +436,10 @@ ax12.legend()
 # Save as PDF
 save_plot_as_pdf(fig1, header + 'volume_area', with_26)
 
+# Store RCP means in CSV file
+store_RCP_mean(path_glacier_area, 'area', RCP_means)
+store_RCP_mean(path_glacier_volume, 'volume', RCP_means)
+
 ###############     Plot the evolution of topographical parameters    ####################################
 fig2, (ax21, ax22) = plt.subplots(1,2, figsize=(10, 6))
 if(filter_glacier):
@@ -444,6 +467,10 @@ ax22.legend()
 
 # Save as PDF
 save_plot_as_pdf(fig2, header + 'zmean_slope', with_26)
+
+# Store RCP means in CSV file
+store_RCP_mean(path_glacier_zmean, 'zmean', RCP_means)
+store_RCP_mean(path_glacier_slope20, 'slope20', RCP_means)
 
 ###############     Plot the evolution of temperature and snowfall    ####################################
 fig3, (ax31, ax32) = plt.subplots(1,2, figsize=(14, 6))
@@ -531,6 +558,10 @@ ax32.legend()
 # Save as PDF
 save_plot_as_pdf(fig3, header + 'CPDD_snowfall', with_26)
 
+# Store RCP means in CSV file
+store_RCP_mean(path_glacier_CPDDs, 'CPDD', RCP_means)
+store_RCP_mean(path_glacier_snowfall, 'snowfall', RCP_means)
+
 ###############     Plot the glacier-wide SMB   ####################################
 fig4, (ax41) = plt.subplots(1,1, figsize=(10, 6))
 ax41.axhline(y=0, color='black', linewidth=0.7, linestyle='-')
@@ -578,6 +609,9 @@ ax41.legend()
 # Save as PDF
 save_plot_as_pdf(fig4, header + 'SMB', with_26)
 
+# Store RCP means in CSV file
+store_RCP_mean(path_smb_simulations, 'SMB', RCP_means)
+
 ###############     Plot the glacier meltwater discharge   ####################################
 fig5, (ax51) = plt.subplots(1,1, figsize=(10, 6))
 ax51.axhline(y=0, color='black', linewidth=0.7, linestyle='-')
@@ -624,5 +658,8 @@ ax51.legend()
 
 # Save as PDF
 save_plot_as_pdf(fig5, header + 'meltwater_discharge', with_26)
+
+# Store RCP means in CSV file
+store_RCP_mean(path_glacier_discharge, 'discharge', RCP_means)
 
 plt.show()
