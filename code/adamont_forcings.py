@@ -25,7 +25,7 @@ def find_nearest_altitude(array,value):
     idx = (np.abs(array-value)).argmin()
     return idx
 
-def find_glacier_idx(glacier_massif, massif_number, altitudes, glacier_altitude, aspects, glacier_aspect):
+def find_glacier_idx(glacier_massif, massif_number, altitudes, glacier_altitude, _aspects, _glacier_aspect):
     #### Aspects not used for ADAMONT
     massif_altitudes_idx = np.where(massif_number == float(glacier_massif))[0]
     if(len(massif_altitudes_idx) > 0):

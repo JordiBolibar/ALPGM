@@ -425,8 +425,8 @@ def array2raster(newRasterfn, rasterOrigin, pixelWidth, pixelHeight, array):
     outband.FlushCache()
     
 # Compute the scaling factor fs for the delta h function
-def generate_fs(year_smb, year_start, DEM_sorted_current_glacier_u, DEM_sorted_CG_n_u, delta_h_DEM_current_glacier, 
-                masked_DEM_current_glacier_u, delta_h_dh_current_glacier, masked_ID_current_glacier_u, pixel_area, glacierArea):
+def generate_fs(year_smb, _year_start, DEM_sorted_current_glacier_u, DEM_sorted_CG_n_u, delta_h_DEM_current_glacier, 
+                masked_DEM_current_glacier_u, delta_h_dh_current_glacier, _masked_ID_current_glacier_u, pixel_area, glacierArea):
     # We compute the fs factor in order to scale the normalized delta h parameters
     vol_distrib = 0
     
@@ -493,7 +493,7 @@ def get_aspect_deg(aspect):
             
         
  # We crop the initial rasters to the extent of the GLIMS 2003 or 2015 database
-def crop_inital_rasters_to_GLIMS(path_glacier_ID_rasters, path_glacier_DEM_rasters, path_glacier_outline, glacier_shapefile, glacierID, midfolder, year_start):
+def crop_inital_rasters_to_GLIMS(path_glacier_ID_rasters, path_glacier_DEM_rasters, path_glacier_outline, _glacier_shapefile, glacierID, _midfolder, year_start):
     if(year_start == 2004):
         print("glacierID: " + str(glacierID))
         
@@ -587,7 +587,7 @@ def get_flowline_20_length(flowline_feature, flowline_coords, alt_20_flowline_id
     return flowline_20_length, fixed_length
 
 # Computes the slope of the lowermost 20% of a glacier    
-def get_slope20(masked_DEM_current_glacier_u, DEM_sorted_current_glacier_u, glacierName, flowline, path_raster_current_DEM, yearly_glacier_slope20):
+def get_slope20(_masked_DEM_current_glacier_u, DEM_sorted_current_glacier_u, glacierName, flowline, path_raster_current_DEM, yearly_glacier_slope20):
     
     raster_current_DEM = gdal.Open(path_raster_current_DEM) 
     
@@ -1310,13 +1310,13 @@ def store_rasters(masked_DEM_current_glacier_u, masked_ID_current_glacier_u, mid
         
 def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier, 
                       delta_h_dh_current_glacier, delta_h_DEM_current_glacier, 
-                      DEM_sorted_current_glacier,  
+                      _DEM_sorted_current_glacier,  
                       daily_meteo_data, meteo_anomalies,
-                      flowline, raster_current_DEM, current_glacier_DEM, store_plots, 
+                      flowline, _raster_current_DEM, current_glacier_DEM, store_plots, 
                       glacierName, glacierID, glimsID, massif, lat, lon, aspect,
                       midfolder, pixel_area, glaciers_with_errors, glims_rabatel,
                       lasso_scaler, lasso_model, ensemble_SMB_models, 
-                      year_range, ref_start, ref_end, SAFRAN_idx, overwrite):
+                      year_range, ref_start, _ref_end, SAFRAN_idx, overwrite):
     
     print("Applying glacier evolution...")
        

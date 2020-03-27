@@ -130,7 +130,7 @@ def interpolate_glims_variable(variable_name, glims_glacier, glims_2003, glims_1
     
     return interp_1984_2014
 
-def interpolate_extended_glims_variable(variable_name, glims_glacier, glims_2015, glims_1985, glims_1967):
+def interpolate_extended_glims_variable(variable_name, glims_glacier, glims_2015, glims_1985, _glims_1967):
     # In case there are multiple results, we choose the one with the most similar area
     
     # 2015 glacier inventory
