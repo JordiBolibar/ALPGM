@@ -2,7 +2,7 @@
 """
 Created on Fri Jan 17 15:30:22 2020
 
-@author: bolibarj
+@author: Jordi Bolibar
 """
 
 ## Dependencies: ##
@@ -29,7 +29,7 @@ glacier_ID_filter = "G006784E45784N"
 filtered_member = -1
 
 # Year to start the projected plots
-year_start = 2019
+year_start = 2015
 
 ######   FILE PATHS    #######
 
@@ -177,9 +177,8 @@ for path_forcing_SMB, path_forcing_area, path_forcing_melt_years, path_forcing_s
             path_SMB_glaciers_scaled = np.asarray(os.listdir(path_smb_simulations + "projections\\" + path_forcing_SMB + "\\" + path_SMB_scaled))
             
             glacier_count = 0
-            # TODO: filter this for case of single glacier simulations
-            if(path_area_scaled == '1'):
-#            if(path_area_scaled == '1' and path_area_glaciers_scaled.size > 369):
+#            if(path_area_scaled == '1'):
+            if(path_area_scaled == '1' and path_area_glaciers_scaled.size > 369):
                 bump_member = True
                 for path_SMB, path_area, path_volume, path_zmean, path_slope20, path_CPDD, path_snowfall in zip(path_SMB_glaciers_scaled, path_area_glaciers_scaled, path_volume_glaciers_scaled, path_zmean_glaciers_scaled, path_slope20_glaciers_scaled, path_CPDDs_glaciers_scaled, path_snowfall_glaciers_scaled):
                     
@@ -377,34 +376,34 @@ for member_26 in RCP_member_means['26']:
     data_26 = member_26['volume']['data']
     if(len(data_26) > 0 and (member_idx == filtered_member or filtered_member == -1)):
         if(len(RCP_means['26']['volume']['year']) > len(data_26)):
-            ax11.plot(RCP_means['26']['volume']['year'][:-1], data_26, linewidth=0.1, alpha=0.5, c='blue')
+            ax11.plot(RCP_means['26']['volume']['year'][:-1], data_26, linewidth=0.1, alpha=0.5, c='steelblue')
         else:
-            ax11.plot(RCP_means['26']['volume']['year'], data_26, linewidth=0.1, alpha=0.5, c='blue')
+            ax11.plot(RCP_means['26']['volume']['year'], data_26, linewidth=0.1, alpha=0.5, c='steelblue')
     member_idx=member_idx+1
 member_idx = 0
 for member_45 in RCP_member_means['45']:
     data_45 = member_45['volume']['data']
     if(len(data_45) > 0 and (member_idx == filtered_member or filtered_member == -1)):
         if(len(RCP_means['45']['volume']['year']) > len(data_45)):
-            ax11.plot(RCP_means['45']['volume']['year'][:-1], data_45, linewidth=0.1, alpha=0.5, c='green')
+            ax11.plot(RCP_means['45']['volume']['year'][:-1], data_45, linewidth=0.1, alpha=0.5, c='darkgoldenrod')
         else:
-            ax11.plot(RCP_means['45']['volume']['year'], data_45, linewidth=0.1, alpha=0.5, c='green')
+            ax11.plot(RCP_means['45']['volume']['year'], data_45, linewidth=0.1, alpha=0.5, c='darkgoldenrod')
     member_idx=member_idx+1
 member_idx = 0
 for member_85 in RCP_member_means['85']:
     data_85 = member_85['volume']['data']
     if(len(data_85) > 0 and (member_idx == filtered_member or filtered_member == -1)):
         if(len(RCP_means['85']['volume']['year']) > len(data_85)):
-            ax11.plot(RCP_means['85']['volume']['year'][:-1], data_85, linewidth=0.1, alpha=0.5, c='red')
+            ax11.plot(RCP_means['85']['volume']['year'][:-1], data_85, linewidth=0.1, alpha=0.5, c='darkred')
         else:
-            ax11.plot(RCP_means['85']['volume']['year'], data_85, linewidth=0.1, alpha=0.5, c='red')
+            ax11.plot(RCP_means['85']['volume']['year'], data_85, linewidth=0.1, alpha=0.5, c='darkred')
     member_idx=member_idx+1
     
 # Plot the average of each RCP
 if(with_26):
-    line111, = ax11.plot(RCP_means['26']['volume']['year'], np.asarray(RCP_means['26']['volume']['data']), linewidth=3, label='RCP 2.6', c='blue')
-line112, = ax11.plot(RCP_means['45']['volume']['year'], np.asarray(RCP_means['45']['volume']['data']), linewidth=3, label='RCP 4.5', c='green')
-line113, = ax11.plot(RCP_means['85']['volume']['year'], np.asarray(RCP_means['85']['volume']['data']), linewidth=3, label='RCP 8.5', c='red')
+    line111, = ax11.plot(RCP_means['26']['volume']['year'], np.asarray(RCP_means['26']['volume']['data']), linewidth=3, label='RCP 2.6', c='steelblue')
+line112, = ax11.plot(RCP_means['45']['volume']['year'], np.asarray(RCP_means['45']['volume']['data']), linewidth=3, label='RCP 4.5', c='darkgoldenrod')
+line113, = ax11.plot(RCP_means['85']['volume']['year'], np.asarray(RCP_means['85']['volume']['data']), linewidth=3, label='RCP 8.5', c='darkred')
 ax11.legend()
 
 ax12.set_ylabel('Area (km$^2$)')
@@ -415,33 +414,33 @@ for member_26 in RCP_member_means['26']:
     data_26 = member_26['area']['data']
     if(len(data_26) > 0 and (member_idx == filtered_member or filtered_member == -1)):
         if(len(RCP_means['26']['area']['year']) > len(data_26)):
-            ax12.plot(RCP_means['26']['area']['year'][:-1], data_26, linewidth=0.1, alpha=0.5, c='blue')
+            ax12.plot(RCP_means['26']['area']['year'][:-1], data_26, linewidth=0.1, alpha=0.5, c='steelblue')
         else:
-            ax12.plot(RCP_means['26']['area']['year'], data_26, linewidth=0.1, alpha=0.5, c='blue')
+            ax12.plot(RCP_means['26']['area']['year'], data_26, linewidth=0.1, alpha=0.5, c='steelblue')
     member_idx=member_idx+1
 member_idx = 0
 for member_45 in RCP_member_means['45']:
     data_45 = member_45['area']['data']
     if(len(data_45) > 0 and (member_idx == filtered_member or filtered_member == -1)):
         if(len(RCP_means['45']['area']['year']) > len(data_45)):
-            ax12.plot(RCP_means['45']['area']['year'][:-1], data_45, linewidth=0.1, alpha=0.5, c='green')
+            ax12.plot(RCP_means['45']['area']['year'][:-1], data_45, linewidth=0.1, alpha=0.5, c='darkgoldenrod')
         else:
-            ax12.plot(RCP_means['45']['area']['year'], data_45, linewidth=0.1, alpha=0.5, c='green')
+            ax12.plot(RCP_means['45']['area']['year'], data_45, linewidth=0.1, alpha=0.5, c='darkgoldenrod')
     member_idx=member_idx+1
 member_idx = 0
 for member_85 in RCP_member_means['85']:
     data_85 = member_85['area']['data']
     if(len(data_85) > 0 and (member_idx == filtered_member or filtered_member == -1)):
         if(len(RCP_means['85']['area']['year']) > len(data_85)):
-            ax12.plot(RCP_means['85']['area']['year'][:-1], data_85, linewidth=0.1, alpha=0.5, c='red')
+            ax12.plot(RCP_means['85']['area']['year'][:-1], data_85, linewidth=0.1, alpha=0.5, c='darkred')
         else:
-            ax12.plot(RCP_means['85']['area']['year'], data_85, linewidth=0.1, alpha=0.5, c='red')
+            ax12.plot(RCP_means['85']['area']['year'], data_85, linewidth=0.1, alpha=0.5, c='darkred')
     member_idx=member_idx+1
 
 if(with_26):
-    line121, = ax12.plot(RCP_means['26']['area']['year'][:-1], np.asarray(RCP_means['26']['area']['data'][:-1]), linewidth=3, label='RCP 2.6', c='blue')
-line122, = ax12.plot(RCP_means['45']['area']['year'][:-1], np.asarray(RCP_means['45']['area']['data'][:-1]), linewidth=3, label='RCP 4.5', c='green')
-line123, = ax12.plot(RCP_means['85']['area']['year'][:-1], np.asarray(RCP_means['85']['area']['data'][:-1]), linewidth=3, label='RCP 8.5', c='red')
+    line121, = ax12.plot(RCP_means['26']['area']['year'][:-1], np.asarray(RCP_means['26']['area']['data'][:-1]), linewidth=3, label='RCP 2.6', c='steelblue')
+line122, = ax12.plot(RCP_means['45']['area']['year'][:-1], np.asarray(RCP_means['45']['area']['data'][:-1]), linewidth=3, label='RCP 4.5', c='darkgoldenrod')
+line123, = ax12.plot(RCP_means['85']['area']['year'][:-1], np.asarray(RCP_means['85']['area']['data'][:-1]), linewidth=3, label='RCP 8.5', c='darkred')
 ax12.legend()
 
 # Save as PDF
@@ -462,18 +461,18 @@ ax21.set_xlabel('Year')
 
 # Mean altitude
 if(with_26):
-    line211, = ax21.plot(RCP_means['26']['zmean']['year'][:-1], RCP_means['26']['zmean']['data'][:-1], linewidth=3, label='RCP 2.6', c='blue')
-line212, = ax21.plot(RCP_means['45']['zmean']['year'][:-1], RCP_means['45']['zmean']['data'][:-1], linewidth=3, label='RCP 4.5', c='green')
-line213, = ax21.plot(RCP_means['85']['zmean']['year'][:-1], RCP_means['85']['zmean']['data'][:-1], linewidth=3, label='RCP 8.5', c='red')
+    line211, = ax21.plot(RCP_means['26']['zmean']['year'][:-1], RCP_means['26']['zmean']['data'][:-1], linewidth=3, label='RCP 2.6', c='steelblue')
+line212, = ax21.plot(RCP_means['45']['zmean']['year'][:-1], RCP_means['45']['zmean']['data'][:-1], linewidth=3, label='RCP 4.5', c='darkgoldenrod')
+line213, = ax21.plot(RCP_means['85']['zmean']['year'][:-1], RCP_means['85']['zmean']['data'][:-1], linewidth=3, label='RCP 8.5', c='darkred')
 ax21.legend()
 
 # Slope 20% altitudinal range
 ax22.set_ylabel('Slope of 20% altitudinal range (°)')
 ax22.set_xlabel('Year')
 if(with_26):
-    line221, = ax22.plot(RCP_means['26']['slope20']['year'][:-1], RCP_means['26']['slope20']['data'][:-1], linewidth=3, label='RCP 2.6', c='blue')
-line222, = ax22.plot(RCP_means['45']['slope20']['year'][:-1], RCP_means['45']['slope20']['data'][:-1], linewidth=3, label='RCP 4.5', c='green')
-line223, = ax22.plot(RCP_means['85']['slope20']['year'][:-1], RCP_means['85']['slope20']['data'][:-1], linewidth=3, label='RCP 8.5', c='red')
+    line221, = ax22.plot(RCP_means['26']['slope20']['year'][:-1], RCP_means['26']['slope20']['data'][:-1], linewidth=3, label='RCP 2.6', c='steelblue')
+line222, = ax22.plot(RCP_means['45']['slope20']['year'][:-1], RCP_means['45']['slope20']['data'][:-1], linewidth=3, label='RCP 4.5', c='darkgoldenrod')
+line223, = ax22.plot(RCP_means['85']['slope20']['year'][:-1], RCP_means['85']['slope20']['data'][:-1], linewidth=3, label='RCP 8.5', c='darkred')
 ax22.legend()
 
 # Save as PDF
@@ -499,33 +498,33 @@ for member_26 in RCP_member_means['26']:
     data_26 = member_26['CPDD']['data'][1:]
     if(len(data_26) > 0 and (member_idx == filtered_member or filtered_member == -1)):
         if(len(RCP_means['26']['CPDD']['year']) > len(data_26)):
-            ax31.plot(RCP_means['26']['CPDD']['year'][:-1], data_26, linewidth=0.1, alpha=0.5, c='blue')
+            ax31.plot(RCP_means['26']['CPDD']['year'][:-1], data_26, linewidth=0.1, alpha=0.5, c='steelblue')
         else:
-            ax31.plot(RCP_means['26']['CPDD']['year'], data_26, linewidth=0.1, alpha=0.5, c='blue')
+            ax31.plot(RCP_means['26']['CPDD']['year'], data_26, linewidth=0.1, alpha=0.5, c='steelblue')
     member_idx=member_idx+1
 member_idx = 0
 for member_45 in RCP_member_means['45']:
     data_45 = member_45['CPDD']['data'][1:]
     if(len(data_45) > 0 and (member_idx == filtered_member or filtered_member == -1)):
         if(len(RCP_means['45']['CPDD']['year']) > len(data_45)):
-            ax31.plot(RCP_means['45']['CPDD']['year'][:-1], data_45, linewidth=0.1, alpha=0.5, c='green')
+            ax31.plot(RCP_means['45']['CPDD']['year'][:-1], data_45, linewidth=0.1, alpha=0.5, c='darkgoldenrod')
         else:
-            ax31.plot(RCP_means['45']['CPDD']['year'], data_45, linewidth=0.1, alpha=0.5, c='green')
+            ax31.plot(RCP_means['45']['CPDD']['year'], data_45, linewidth=0.1, alpha=0.5, c='darkgoldenrod')
     member_idx=member_idx+1
 member_idx = 0
 for member_85 in RCP_member_means['85']:
     data_85 = member_85['CPDD']['data'][1:]
     if(len(data_85) > 0 and (member_idx == filtered_member or filtered_member == -1)):
         if(len(RCP_means['85']['CPDD']['year']) > len(data_85)):
-            ax31.plot(RCP_means['85']['CPDD']['year'][:-1], data_85, linewidth=0.1, alpha=0.5, c='red')
+            ax31.plot(RCP_means['85']['CPDD']['year'][:-1], data_85, linewidth=0.1, alpha=0.5, c='darkred')
         else:
-            ax31.plot(RCP_means['85']['CPDD']['year'], data_85, linewidth=0.1, alpha=0.5, c='red')
+            ax31.plot(RCP_means['85']['CPDD']['year'], data_85, linewidth=0.1, alpha=0.5, c='darkred')
     member_idx=member_idx+1
 
 if(with_26):
-    line311, = ax31.plot(RCP_means['26']['CPDD']['year'][:-1], RCP_means['26']['CPDD']['data'][:-1], linewidth=3, label='RCP 2.6', c='blue')
-line312, = ax31.plot(RCP_means['45']['CPDD']['year'][:-1], RCP_means['45']['CPDD']['data'][:-1], linewidth=3, label='RCP 4.5', c='green')
-line313, = ax31.plot(RCP_means['85']['CPDD']['year'][:-1], RCP_means['85']['CPDD']['data'][:-1], linewidth=3, label='RCP 8.5', c='red')
+    line311, = ax31.plot(RCP_means['26']['CPDD']['year'][:-1], RCP_means['26']['CPDD']['data'][:-1], linewidth=3, label='RCP 2.6', c='steelblue')
+line312, = ax31.plot(RCP_means['45']['CPDD']['year'][:-1], RCP_means['45']['CPDD']['data'][:-1], linewidth=3, label='RCP 4.5', c='darkgoldenrod')
+line313, = ax31.plot(RCP_means['85']['CPDD']['year'][:-1], RCP_means['85']['CPDD']['data'][:-1], linewidth=3, label='RCP 8.5', c='darkred')
 ax31.legend()
 
 # Snowfall
@@ -534,36 +533,36 @@ for member_26 in RCP_member_means['26']:
     data_26 = member_26['snowfall']['data'][1:]
     if(len(data_26) > 0 and (member_idx == filtered_member or filtered_member == -1)):
         if(len(RCP_means['26']['snowfall']['year']) > len(data_26)):
-            ax32.plot(RCP_means['26']['snowfall']['year'][:-1], data_26, linewidth=0.1, alpha=0.5, c='blue')
+            ax32.plot(RCP_means['26']['snowfall']['year'][:-1], data_26, linewidth=0.1, alpha=0.5, c='steelblue')
         else:
-            ax32.plot(RCP_means['26']['snowfall']['year'], data_26, linewidth=0.1, alpha=0.5, c='blue')
+            ax32.plot(RCP_means['26']['snowfall']['year'], data_26, linewidth=0.1, alpha=0.5, c='steelblue')
     member_idx=member_idx+1
 member_idx = 0
 for member_45 in RCP_member_means['45']:
     data_45 = member_45['snowfall']['data'][1:]
     if(len(data_45) > 0 and (member_idx == filtered_member or filtered_member == -1)):
         if(len(RCP_means['45']['snowfall']['year']) > len(data_45)):
-            ax32.plot(RCP_means['45']['snowfall']['year'][:-1], data_45, linewidth=0.1, alpha=0.5, c='green')
+            ax32.plot(RCP_means['45']['snowfall']['year'][:-1], data_45, linewidth=0.1, alpha=0.5, c='darkgoldenrod')
         else:
-            ax32.plot(RCP_means['45']['snowfall']['year'], data_45, linewidth=0.1, alpha=0.5, c='green')
+            ax32.plot(RCP_means['45']['snowfall']['year'], data_45, linewidth=0.1, alpha=0.5, c='darkgoldenrod')
     member_idx=member_idx+1
 member_idx = 0
 for member_85 in RCP_member_means['85']:
     data_85 = member_85['snowfall']['data'][1:]
     if(len(data_85) > 0 and (member_idx == filtered_member or filtered_member == -1)):
         if(len(RCP_means['85']['snowfall']['year']) > len(data_85)):
-            ax32.plot(RCP_means['85']['snowfall']['year'][:-1], data_85, linewidth=0.1, alpha=0.5, c='red')
+            ax32.plot(RCP_means['85']['snowfall']['year'][:-1], data_85, linewidth=0.1, alpha=0.5, c='darkred')
         else:
-            ax32.plot(RCP_means['85']['snowfall']['year'], data_85, linewidth=0.1, alpha=0.5, c='red')
+            ax32.plot(RCP_means['85']['snowfall']['year'], data_85, linewidth=0.1, alpha=0.5, c='darkred')
     member_idx=member_idx+1
 
 ax32.set_ylabel('Annual cumulative snowfall anomaly (1984-2015)')
 ax32.set_xlabel('Year')
 ax32.axhline(y=0, color='black', linewidth=0.7, linestyle='-')
 if(with_26):
-    line321, = ax32.plot(RCP_means['26']['snowfall']['year'][:-1], RCP_means['26']['snowfall']['data'][:-1], linewidth=3, label='RCP 2.6', c='blue')
-line322, = ax32.plot(RCP_means['45']['snowfall']['year'][:-1], RCP_means['45']['snowfall']['data'][:-1], linewidth=3, label='RCP 4.5', c='green')
-line323, = ax32.plot(RCP_means['85']['snowfall']['year'][:-1], RCP_means['85']['snowfall']['data'][:-1], linewidth=3, label='RCP 8.5', c='red')
+    line321, = ax32.plot(RCP_means['26']['snowfall']['year'][:-1], RCP_means['26']['snowfall']['data'][:-1], linewidth=3, label='RCP 2.6', c='steelblue')
+line322, = ax32.plot(RCP_means['45']['snowfall']['year'][:-1], RCP_means['45']['snowfall']['data'][:-1], linewidth=3, label='RCP 4.5', c='darkgoldenrod')
+line323, = ax32.plot(RCP_means['85']['snowfall']['year'][:-1], RCP_means['85']['snowfall']['data'][:-1], linewidth=3, label='RCP 8.5', c='darkred')
 ax32.legend()
 
 # Save as PDF
@@ -588,33 +587,33 @@ for member_26 in RCP_member_means['26']:
     data_26 = member_26['SMB']['data'][1:]
     if(len(data_26) > 0 and (member_idx == filtered_member or filtered_member == -1)):
         if(len(RCP_means['26']['SMB']['year']) > len(data_26)):
-            ax41.plot(RCP_means['26']['SMB']['year'][:-1], data_26, linewidth=0.1, alpha=0.5, c='blue')
+            ax41.plot(RCP_means['26']['SMB']['year'][:-1], data_26, linewidth=0.1, alpha=0.5, c='steelblue')
         else:
-            ax41.plot(RCP_means['26']['SMB']['year'], data_26, linewidth=0.1, alpha=0.5, c='blue')
+            ax41.plot(RCP_means['26']['SMB']['year'], data_26, linewidth=0.1, alpha=0.5, c='steelblue')
     member_idx=member_idx+1
 member_idx = 0
 for member_45 in RCP_member_means['45']:
     data_45 = member_45['SMB']['data'][1:]
     if(len(data_45) > 0 and (member_idx == filtered_member or filtered_member == -1)):
         if(len(RCP_means['45']['SMB']['year']) > len(data_45)):
-            ax41.plot(RCP_means['45']['SMB']['year'][:-1], data_45, linewidth=0.1, alpha=0.5, c='green')
+            ax41.plot(RCP_means['45']['SMB']['year'][:-1], data_45, linewidth=0.1, alpha=0.5, c='darkgoldenrod')
         else:
-            ax41.plot(RCP_means['45']['SMB']['year'], data_45, linewidth=0.1, alpha=0.5, c='green')
+            ax41.plot(RCP_means['45']['SMB']['year'], data_45, linewidth=0.1, alpha=0.5, c='darkgoldenrod')
     member_idx=member_idx+1
 member_idx = 0
 for member_85 in RCP_member_means['85']:
     data_85 = member_85['SMB']['data'][1:]
     if(len(data_85) > 0 and (member_idx == filtered_member or filtered_member == -1)):
         if(len(RCP_means['85']['SMB']['year']) > len(data_85)):
-            ax41.plot(RCP_means['85']['SMB']['year'][:-1], data_85, linewidth=0.1, alpha=0.5, c='red')
+            ax41.plot(RCP_means['85']['SMB']['year'][:-1], data_85, linewidth=0.1, alpha=0.5, c='darkred')
         else:
-            ax41.plot(RCP_means['85']['SMB']['year'], data_85, linewidth=0.1, alpha=0.5, c='red')
+            ax41.plot(RCP_means['85']['SMB']['year'], data_85, linewidth=0.1, alpha=0.5, c='darkred')
     member_idx=member_idx+1
 
 if(with_26):
-    line41, = ax41.plot(RCP_means['26']['SMB']['year'][:-1], RCP_means['26']['SMB']['data'][:-1], linewidth=3, label='RCP 2.6', c='blue')
-line42, = ax41.plot(RCP_means['45']['SMB']['year'][:-1], RCP_means['45']['SMB']['data'][:-1], linewidth=3, label='RCP 4.5', c='green')
-line43, = ax41.plot(RCP_means['85']['SMB']['year'][:-1], RCP_means['85']['SMB']['data'][:-1], linewidth=3, label='RCP 8.5', c='red')
+    line41, = ax41.plot(RCP_means['26']['SMB']['year'][:-1], RCP_means['26']['SMB']['data'][:-1], linewidth=3, label='RCP 2.6', c='steelblue')
+line42, = ax41.plot(RCP_means['45']['SMB']['year'][:-1], RCP_means['45']['SMB']['data'][:-1], linewidth=3, label='RCP 4.5', c='darkgoldenrod')
+line43, = ax41.plot(RCP_means['85']['SMB']['year'][:-1], RCP_means['85']['SMB']['data'][:-1], linewidth=3, label='RCP 8.5', c='darkred')
 ax41.legend()
 
 # Save as PDF
@@ -638,33 +637,33 @@ for member_26 in RCP_member_means['26']:
     data_26 = member_26['discharge']['data'][1:]
     if(len(data_26) > 0 and (member_idx == filtered_member or filtered_member == -1)):
         if(len(RCP_means['26']['discharge']['year']) > len(data_26)):
-            ax51.plot(RCP_means['26']['discharge']['year'][:-1], data_26, linewidth=0.1, alpha=0.5, c='blue')
+            ax51.plot(RCP_means['26']['discharge']['year'][:-1], data_26, linewidth=0.1, alpha=0.5, c='steelblue')
         else:
-            ax51.plot(RCP_means['26']['discharge']['year'], data_26, linewidth=0.1, alpha=0.5, c='blue')
+            ax51.plot(RCP_means['26']['discharge']['year'], data_26, linewidth=0.1, alpha=0.5, c='steelblue')
     member_idx=member_idx+1
 member_idx = 0
 for member_45 in RCP_member_means['45']:
     data_45 = member_45['discharge']['data'][1:]
     if(len(data_45) > 0 and (member_idx == filtered_member or filtered_member == -1)):
         if(len(RCP_means['45']['discharge']['year']) > len(data_45)):
-            ax51.plot(RCP_means['45']['discharge']['year'][:-1], data_45, linewidth=0.1, alpha=0.5, c='green')
+            ax51.plot(RCP_means['45']['discharge']['year'][:-1], data_45, linewidth=0.1, alpha=0.5, c='darkgoldenrod')
         else:
-            ax51.plot(RCP_means['45']['discharge']['year'], data_45, linewidth=0.1, alpha=0.5, c='green')
+            ax51.plot(RCP_means['45']['discharge']['year'], data_45, linewidth=0.1, alpha=0.5, c='darkgoldenrod')
     member_idx=member_idx+1
 member_idx = 0
 for member_85 in RCP_member_means['85']:
     data_85 = member_85['discharge']['data'][1:]
     if(len(data_85) > 0 and (member_idx == filtered_member or filtered_member == -1)):
         if(len(RCP_means['85']['discharge']['year']) > len(data_85)):
-            ax51.plot(RCP_means['85']['discharge']['year'][:-1], data_85, linewidth=0.1, alpha=0.5, c='red')
+            ax51.plot(RCP_means['85']['discharge']['year'][:-1], data_85, linewidth=0.1, alpha=0.5, c='darkred')
         else:
-            ax51.plot(RCP_means['85']['discharge']['year'], data_85, linewidth=0.1, alpha=0.5, c='red')
+            ax51.plot(RCP_means['85']['discharge']['year'], data_85, linewidth=0.1, alpha=0.5, c='darkred')
     member_idx=member_idx+1
 
 if(with_26):
-    line41, = ax51.plot(RCP_means['26']['discharge']['year'][:-1], RCP_means['26']['discharge']['data'][:-1], linewidth=3, label='RCP 2.6', c='blue')
-line42, = ax51.plot(RCP_means['45']['discharge']['year'][:-1], RCP_means['45']['discharge']['data'][:-1], linewidth=3, label='RCP 4.5', c='green')
-line43, = ax51.plot(RCP_means['85']['discharge']['year'][:-1], RCP_means['85']['discharge']['data'][:-1], linewidth=3, label='RCP 8.5', c='red')
+    line41, = ax51.plot(RCP_means['26']['discharge']['year'][:-1], RCP_means['26']['discharge']['data'][:-1], linewidth=3, label='RCP 2.6', c='steelblue')
+line42, = ax51.plot(RCP_means['45']['discharge']['year'][:-1], RCP_means['45']['discharge']['data'][:-1], linewidth=3, label='RCP 4.5', c='darkgoldenrod')
+line43, = ax51.plot(RCP_means['85']['discharge']['year'][:-1], RCP_means['85']['discharge']['data'][:-1], linewidth=3, label='RCP 8.5', c='darkred')
 ax51.legend()
 
 # Save as PDF

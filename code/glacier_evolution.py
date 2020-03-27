@@ -1383,7 +1383,7 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
                 season_anomalies_y, monthly_anomalies_y = get_adjusted_glacier_ADAMONT_forcings(year, year_start, 
                                                                                              masked_DEM_current_glacier_u.compressed().mean(), SAFRAN_idx, 
                                                                                              daily_meteo_data, meteo_anomalies)
-            
+                
             ####  CREATION OF THE MODEL TEST DATASET  ####
             x_lasso, x_ann = create_input_array(season_anomalies_y, monthly_anomalies_y, mean_glacier_alt, max_glacier_alt, slope20, current_glacierArea, lat, lon, aspect)
             
@@ -1577,7 +1577,8 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
             ref_start = 1959
             ref_end = 2015
         elif(settings.simulation_type == "future"):
-            year_start = 2015  
+            year_start = 2015 
+#            year_start = 2019 
             year_end = 2099
             ref_start = 2006
             ref_end = 2099
@@ -1646,6 +1647,8 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
         empty_folder(path_glacier_melt_years+midfolder)
         empty_folder(path_glacier_CPDDs+midfolder)
         empty_folder(path_glacier_snowfall+midfolder)
+        empty_folder(path_glacier_evolution_ID_rasters+midfolder)
+        empty_folder(path_glacier_evolution_DEM_rasters+midfolder)
         
         # We calculate the year range once we know if the ADAMONT forcings end in 2098 or 2099
         year_range = range(year_start, year_end+1)
@@ -1772,7 +1775,7 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
                         break
                     
                     # We get the flattened versions of the ID and the DEM of the current glacier
-                    masked_ID_current_glacier = np.ma.masked_values(np.float64(ice_depth_current_glacier), 0.0)
+                    masked_ID_current_glacier = np.ma.masked_values(np.float64(ice_depth_current_glacier), ice_depth_current_glacier[0,0])
                     masked_DEM_current_glacier = np.ma.array(DEM_current_glacier, mask = masked_ID_current_glacier.mask)
                     flat_DEM_current_glacier = masked_DEM_current_glacier.compressed()
                     
