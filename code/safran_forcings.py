@@ -175,7 +175,7 @@ def compute_local_anomalies(idx, glacier_CPDDs, glacier_winter_snow, glacier_sum
 # Computes monthly meteo anomalies at glacier scale
 def compute_monthly_anomalies(idx, glacier_mon_temp, glacier_mon_snow,
                               local_mon_temp_anomalies, local_mon_snow_anomalies,
-                              raw_local_mon_temp_anomalies, raw_local_mon_snow_anomalies):
+                              _raw_local_mon_temp_anomalies, _raw_local_mon_snow_anomalies):
     
     # The monthly meteo anomalies, as well as the seasonal ones, are always computed with respect to the 1984-2014 period
     mon_range = range(0, 12)

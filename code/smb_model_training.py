@@ -245,7 +245,7 @@ def plot_ic_criterion(model, name, color):
     plt.xlabel('alpha')
     plt.ylabel('criterion')
 
-def lasso_CV_model_selection(X, y, fig_idx, year_groups, plot):
+def lasso_CV_model_selection(X, y, fig_idx, _year_groups, plot):
     
     # #############################################################################
     # LassoLarsIC: least angle regression with BIC/AIC criterion
@@ -342,7 +342,7 @@ def lasso_CV_model_selection(X, y, fig_idx, year_groups, plot):
     return model_CV
     
 
-def generate_SMB_models(SMB_raw, season_raw_meteo_anomalies_SMB, mon_temp_anomalies, mon_snow_anomalies, spatiotemporal_flag, first_year, glims_rabatel, glims_2015, glims_2003, glims_1985, glims_1967, fig_idx):
+def generate_SMB_models(SMB_raw, season_raw_meteo_anomalies_SMB, mon_temp_anomalies, mon_snow_anomalies, spatiotemporal_flag, first_year, glims_rabatel, _glims_2015, glims_2003, glims_1985, glims_1967, fig_idx):
     
         
     # We create the full matrix for the spatiotemporal multiple linear regression
