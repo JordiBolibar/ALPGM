@@ -31,7 +31,6 @@ from netCDF4 import Dataset
 import settings
 import pandas as pd
 from pathlib import Path
-from sklearn.preprocessing import StandardScaler, normalize
 
 from keras import backend as K
 from keras.models import load_model

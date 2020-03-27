@@ -10,9 +10,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from numpy import genfromtxt
 import os
-import copy
 from pathlib import Path
-from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.metrics import mean_squared_error
 
 ######   FILE PATHS    #######
 
