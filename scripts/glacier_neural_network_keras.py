@@ -20,7 +20,7 @@ from numpy import genfromtxt
 from pathlib import Path
 import shutil
 from sklearn.model_selection import LeaveOneGroupOut
-#from sklearn.preprocessing import StandardScaler, normalize
+from sklearn.preprocessing import StandardScaler, normalize, MinMaxScaler
 #from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score
 from sklearn.metrics import mean_squared_error, mean_absolute_error
@@ -39,6 +39,8 @@ from keras import optimizers
 from keras import backend as K
 from keras.layers import GaussianNoise
 from keras.models import load_model
+from bisect import bisect
+from random import random
 #import tensorflow as tf
 #from tensorflow.keras.backend import set_session
 #from keras import regularizers
@@ -75,7 +77,7 @@ training = False
 # Train only the full model without training CV models
 final_model_only = False
 # Activate the ensemble modelling approach
-final_model = True
+final_model = False
 # Only re-calculate fold performances based on previously trained models
 recalculate_performance = False
 ########################################
@@ -95,6 +97,16 @@ elif(cross_validation == 'LSYGO_past'):
 
 
 #############################################################################
+
+def weighted_choice(values, weights):
+    total = 0
+    cum_weights = []
+    for w in weights:
+        total += w
+        cum_weights.append(total)
+    x = random() * total
+    i = bisect(cum_weights, x)
+    return values[i]
 
 def r2_keras(y_true, y_pred):
     SS_res =  K.sum(K.square(y_true - y_pred)) 
@@ -313,17 +325,12 @@ def create_lsygo_model(n_features, final):
 
 # Read features and ground truth
     
-#with open(root+'X_nn.txt', 'rb') as x_f:
-#    X_o = np.load(x_f)
-#with open(root+'y.txt', 'rb') as y_f:
-#    y_o = np.load(y_f)
-    
 with open(root+'X_nn_extended.txt', 'rb') as x_f:
     X = np.load(x_f)
 with open(root+'y_extended.txt', 'rb') as y_f:
-    y = np.load(y_f)
+    y_o = np.load(y_f)
 
-y = y.flatten()
+y = y_o.flatten()
 
 print("X.shape: " + str(X.shape))
 print("y.shape: " + str(y.shape))
@@ -380,52 +387,114 @@ glacier_idx = 0
 # TODO: see if block seed
 #np.random.seed(10)
 n_folds = 60
-#n_folds = 120
+#n_folds = 15
 random_years = np.random.randint(0, 57, n_folds*4) # Random year idxs
 random_glaciers = np.random.randint(0, 32, n_folds*4) # Random glacier indexes
+
+y_not_nan = np.isfinite(y_o)
+y_is_nan = np.isnan(y_o)
+
+p_weights = compute_sample_weight(class_weight='balanced', y=y_o[y_not_nan])
+# We balance positive SMB in the sample
+diff = (y_o[y_not_nan].max() - y_o[y_not_nan].min())/y_o[y_not_nan].mean()
+
+idx, i, j = 0, 0, 0
+for i in range(0, y_o.shape[0]):
+    for j in range(0, y_o.shape[1]):
+        if(np.isfinite(y_o[i,j])):
+            if(j < 27):
+                p_weights[idx] = p_weights[idx] + p_weights.max()/3 # Add weight for the 1959-1967
+                # Accounting for 33% of the time period
+#            print("counter = " + str(idx))
+            idx=idx+1
+
+#p_weights = np.where(y_o[y_not_nan] > 0, p_weights + p_weights.max()/4, p_weights)
 
 for fold in range(1, n_folds+1):
     test_matrix, train_matrix = np.zeros((32, 57), dtype=np.int8), np.ones((32, 57), dtype=np.int8)
     
+    choice = weighted_choice(np.asarray(range(0,1048)), p_weights)
+    
+    idx, i, j = 0, 0, 0
+    for i in range(0, y_o.shape[0]):
+        for j in range(0, y_o.shape[1]):
+            if(np.isfinite(y_o[i,j])):
+                if(choice == idx):
+                    glacier_idx = i
+                    year_idx = j
+    #            print("counter = " + str(idx))
+                idx=idx+1
+    
+    print("\nChosen glacier: " + str(glacier_idx))
+    print("Chosen year: " + str(year_idx))
+    print("SMB: " + str(y_o[glacier_idx,year_idx]))
+    
     # Make sure Sarennes and Saint Sorlin appear in the folds
-    if(fold == 1):
-        test_matrix[-1, :] = 1
-        # Fill train matrix
-        train_matrix[-1, :] = 0
-    elif(fold == 2):
-        test_matrix[2, :] = 1
-        # Fill train matrix
-        train_matrix[2, :] = 0
-    else:
-        # Fill test matrix
-        test_matrix[random_glaciers[glacier_idx], :] = 1
-        # Fill train matrix
-        train_matrix[random_glaciers[glacier_idx], :] = 0
-        
+#    if(fold >= 1 and fold < 5):
+#        test_matrix[-1, :] = 1
+#        # Fill train matrix
+#        train_matrix[-1, :] = 0
+#    if(fold >= 1 and fold < 11):
+##        test_matrix[2, :] = 1
+#        test_matrix[:, :27] = 1
+#        # Fill train matrix
+##        train_matrix[2, :] = 0
+#        train_matrix[:, :27] = 0
+##    else:
+    # Fill test matrix
+    test_matrix[glacier_idx, :] = 1
+    # Fill train matrix
+    train_matrix[glacier_idx, :] = 0
+#        
     
     # Fill test matrix
 #    test_matrix[random_glaciers[glacier_idx], :] = 1
 #    test_matrix[random_glaciers[glacier_idx+1], :] = 1
-    test_matrix[:, random_years[year_idx]] = 1
+#    if(not(fold >= 1 and fold < 11)):
+    test_matrix[:, year_idx] = 1
 #    test_matrix[:, random_years[year_idx+1]] = 1
     
+#    # 1
 #    test_matrix[random_glaciers[glacier_idx], random_years[year_idx]] = 1
 #    test_matrix[random_glaciers[glacier_idx], random_years[year_idx+1]] = 1
-#    test_matrix[random_glaciers[glacier_idx+1], random_years[year_idx+1]] = 1
+#    test_matrix[random_glaciers[glacier_idx], random_years[year_idx+2]] = 1
+#    test_matrix[random_glaciers[glacier_idx], random_years[year_idx+3]] = 1
+#    
+#    # 2
 #    test_matrix[random_glaciers[glacier_idx+1], random_years[year_idx]] = 1
+#    test_matrix[random_glaciers[glacier_idx+1], random_years[year_idx+1]] = 1
+#    test_matrix[random_glaciers[glacier_idx+1], random_years[year_idx+2]] = 1
+#    test_matrix[random_glaciers[glacier_idx+1], random_years[year_idx+3]] = 1
+#    
+#    # 3
+#    test_matrix[random_glaciers[glacier_idx+2], random_years[year_idx]] = 1
+#    test_matrix[random_glaciers[glacier_idx+2], random_years[year_idx+1]] = 1
+#    test_matrix[random_glaciers[glacier_idx+2], random_years[year_idx+2]] = 1
+#    test_matrix[random_glaciers[glacier_idx+2], random_years[year_idx+3]] = 1
+#    
+#    # 4
+#    test_matrix[random_glaciers[glacier_idx+3], random_years[year_idx]] = 1
+#    test_matrix[random_glaciers[glacier_idx+3], random_years[year_idx+1]] = 1
+#    test_matrix[random_glaciers[glacier_idx+3], random_years[year_idx+2]] = 1
+#    test_matrix[random_glaciers[glacier_idx+3], random_years[year_idx+3]] = 1
     
     lsygo_test_matrixes.append(test_matrix)
     
     # Fill train matrix
 #    train_matrix[random_glaciers[glacier_idx], :] = 0
 #    train_matrix[random_glaciers[glacier_idx+1], :] = 0
-    train_matrix[:, random_years[year_idx]] = 0
+#    train_matrix[random_glaciers[glacier_idx+2], :] = 0
+#    train_matrix[random_glaciers[glacier_idx+3], :] = 0
+#    if(not(fold >= 1 and fold < 11)):
+    train_matrix[:, year_idx] = 0
 #    train_matrix[:, random_years[year_idx+1]] = 0
+#    train_matrix[:, random_years[year_idx+2]] = 0
+#    train_matrix[:, random_years[year_idx+3]] = 0
     
     lsygo_train_matrixes.append(train_matrix)
     
-    year_idx = year_idx+1
-    glacier_idx = glacier_idx+1
+    year_idx = year_idx+4
+    glacier_idx = glacier_idx+4
 
 # We capture the mask from the SMB data to remove the nan gaps  
 finite_mask = np.isfinite(y)
@@ -666,8 +735,8 @@ else:
         splits = zip(lsygo_train_folds, lsygo_test_folds)
         full_model = create_lsygo_model(n_features, final=False)
         fold_filter = -1
-        n_epochs = 2000
-#        n_epochs = 1000
+#        n_epochs = 2000
+        n_epochs = 3000
 #        n_epochs = 800
     elif(cross_validation == 'LSYGO_past'):
         splits = zip(past_folds_train, past_folds_test)

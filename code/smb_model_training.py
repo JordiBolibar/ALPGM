@@ -153,11 +153,7 @@ def create_spatiotemporal_matrix(SMB_raw, season_raw_meteo_anomalies_SMB, mon_te
         
         for SMB_glacier, CPDD_glacier, winter_snow_glacier, summer_snow_glacier, mon_temp_glacier, mon_snow_glacier, mean_alt, slope20, max_alt, area, lon, lat, aspect in zip(SMB_raw, season_raw_meteo_anomalies_SMB['CPDD'], season_raw_meteo_anomalies_SMB['winter_snow'], season_raw_meteo_anomalies_SMB['summer_snow'], mon_temp_anomalies, mon_snow_anomalies, glacier_mean_altitude, slopes20, max_altitudes, glacier_area, lons, lats, aspects):
             year = 1959 
-            
             for SMB_y, cpdd_y, w_snow_y, s_snow_y,  mon_temp_y, mon_snow_y, mean_alt_y, area_y in zip(SMB_glacier, CPDD_glacier[first_year:], winter_snow_glacier[first_year:], summer_snow_glacier[first_year:], mon_temp_glacier[first_year:], mon_snow_glacier[first_year:], mean_alt, area):
-                
-                mon_temp_y = mon_temp_y[:12]
-                mon_snow_y = mon_snow_y[:12]
                 
                 # We get the current iteration combination
                 input_variables_array = np.array([cpdd_y, w_snow_y, s_snow_y, mean_alt_y, max_alt, slope20, area_y, lon, lat, aspect, mean_alt_y*cpdd_y, slope20*cpdd_y, max_alt*cpdd_y, area_y*cpdd_y, lat*cpdd_y, lon*cpdd_y, aspect*cpdd_y, mean_alt_y*w_snow_y, slope20*w_snow_y, max_alt*w_snow_y, area_y*w_snow_y, lat*w_snow_y, lon*w_snow_y, aspect*w_snow_y, mean_alt_y*s_snow_y, slope20*s_snow_y, max_alt*s_snow_y, area_y*s_snow_y, lat*s_snow_y, lon*s_snow_y, aspect*s_snow_y])
@@ -191,6 +187,8 @@ def create_spatiotemporal_matrix(SMB_raw, season_raw_meteo_anomalies_SMB, mon_te
             np.save(x_f, x_reg_nn)
         with open(root + 'y_extended.txt', 'wb') as y_f:
             np.save(y_f, SMB_raw)
+            
+        import pdb; pdb.set_trace()
             
         finite_idxs = np.isfinite(y_reg)
         x_reg_full = x_reg_full[finite_idxs,:]
@@ -778,13 +776,12 @@ def main(compute):
         mon_temp_anomalies =  get_raw_mon_data(monthly_meteo_anomalies_SMB['temp'], 'mon_temp')
         mon_snow_anomalies =  get_raw_mon_data(monthly_meteo_anomalies_SMB['snow'], 'mon_snow')
         
-        year_start = int(season_meteo_anomalies_SMB['CPDD'][0]['CPDD'][0])
+        year_start = int(season_meteo_anomalies_SMB['CPDD'][0]['years'][0])
 #        year_end = int(season_meteo_anomalies_SMB['CPDD'][0]['CPDD'][-2])  
         
         first_SMB_year = 1959
 #        first_SMB_year = 1984
         first_year = first_SMB_year - year_start
-        
         
         ###########   PLOTS   ########################################################
         

@@ -21,6 +21,12 @@ from scipy import stats
 #from sklearn.metrics import r2_score
 #import seaborn as sns
 
+######   FLAGS    ############
+n_cv_members = 60 # LSYGO
+#n_cv_members = 32 # LOGO
+### Process Marzeion et al. SMB data ###
+process_marzeion = True
+
 ######   FILE PATHS    #######
     
 # Folders     
@@ -45,6 +51,7 @@ path_glacier_w_errors = path_glacier_evolution + 'glacier_w_errors\\SAFRAN\\1\\'
 path_glims = workspace + 'glacier_data\\GLIMS\\' 
 path_safran_forcings = 'C:\\Jordi\\PhD\\Data\\SAFRAN-Nivo-2017\\'
 path_smb_function = path_smb + 'smb_function\\'
+path_smb_plots = path_smb + 'smb_simulations\\reconstruction_plots\\'
 global path_smb_function_safran 
 path_smb_safran = path_smb + 'smb_simulations\\SAFRAN\\1\\all_glaciers_1967_2015\\smb\\'
 path_ensemble_smb_safran = path_smb + 'smb_simulations\\SAFRAN\\1\\all_glaciers_1967_2015\\ensemble_smb\\'
@@ -87,14 +94,11 @@ for year_idx in range(0, 49):
     annual_avg_area_marzeion.append([])
     annual_avg_slope.append([])
 
-# Annual mean SMB datat structure for each of the 32 ensemble members
+# Annual mean SMB data structure for each of the n_cv_members ensemble members
 ensemble_avg_annual_smb, a_avg_ensemble_smb = [],[]
-for member in range(0,32):
+for member in range(0,n_cv_members):
     ensemble_avg_annual_smb.append(copy.deepcopy(annual_avg_smb_))
     a_avg_ensemble_smb.append([])
-
-### Process Marzeion et al. SMB data ###
-process_marzeion = True
 
 #### Process Marzeion et al. glacier-wide SMB data   #######
 if(process_marzeion):
@@ -253,7 +257,7 @@ for path_smb, path_ensemble_smb, path_area, path_slope in zip(path_smb_glaciers,
     # Glacier info
     # {'name':glacier_name, 'glimsID':glimsID, 'mean_altitude':glacier_mean_altitude, 'area': glacier_area}
     with open(path_area_safran + 'glacier_info_' + path_area[:14], 'rb') as glacier_info_f:
-        glacier_info = np.load(glacier_info_f, encoding='latin1').item()
+        glacier_info = np.load(glacier_info_f, encoding='latin1', allow_pickle=True).item()
         
 #    print("ensemble_smb_glacier_raw.shape: " + str(ensemble_smb_glacier_raw.shape))
 #    print("ensemble_smb_glacier_raw[0,:]: " + str(ensemble_smb_glacier_raw[0,:]))
@@ -276,7 +280,7 @@ for path_smb, path_ensemble_smb, path_area, path_slope in zip(path_smb_glaciers,
         nan_tail = np.zeros(2015-2003)
         nan_tail[:] = np.nan
         smb_glacier = np.concatenate((smb_glacier, nan_tail))
-        if(ensemble_smb_glacier_raw.shape[0] == 32):
+        if(ensemble_smb_glacier_raw.shape[0] == n_cv_members):
             for member in ensemble_smb_glacier_raw:
                 ensemble_smb_glacier.append(np.concatenate((member, nan_tail)))
             ensemble_smb_glacier = np.asarray(ensemble_smb_glacier)
@@ -287,7 +291,7 @@ for path_smb, path_ensemble_smb, path_area, path_slope in zip(path_smb_glaciers,
         area_glacier_i = area_glacier[-15]
         slope_glacier_i = slope_glacier[-15]
         
-        if(ensemble_smb_glacier_raw.shape[0] == 32):
+        if(ensemble_smb_glacier_raw.shape[0] == n_cv_members):
             ensemble_smb_glacier = np.asarray(ensemble_smb_glacier_raw)
     
     if(area_glacier_i < 0.1):
@@ -348,7 +352,7 @@ for path_smb, path_ensemble_smb, path_area, path_slope in zip(path_smb_glaciers,
 #            annual_avg_smb_marzeion[year_idx].append(np.nan)
         
         # We compute the same for each of the ensemble members
-        if(ensemble_smb_glacier_raw.shape[0] == 32):
+        if(ensemble_smb_glacier_raw.shape[0] == n_cv_members):
             member_idx = 0
             annual_ensemble_avg_area[year_idx].append(area_glacier_i)
             for smb_member in ensemble_smb_glacier:
@@ -511,7 +515,7 @@ for avg_smb, avg_smb_marzeion, avg_area, avg_area_marzeion in zip(annual_avg_smb
     member_idx=0
 #    print("annual_ensemble_avg_area.shape: " + str(np.asarray(annual_ensemble_avg_area).shape))
 #    print("ensemble_avg_annual_smb.shape: " + str(np.asarray(ensemble_avg_annual_smb).shape))
-    if(ensemble_smb_glacier_raw.shape[0] == 32):
+    if(ensemble_smb_glacier_raw.shape[0] == n_cv_members):
         for member in ensemble_smb_glacier:
             # Weighted mean
             finite_ensemble_mask = np.isfinite(ensemble_avg_annual_smb[member_idx][year_idx])
@@ -595,6 +599,8 @@ print("\nMax SMB common variance: " + str(glacier_correlation.max()))
 print("\nMin SMB common variance: " + str(glacier_correlation.min()))
 print("\nAverage SMB common variance: " + str(glacier_correlation.mean()))
 
+########### PLOTS  ##################################################################
+
 # Area weighted mean
 ax11.axhline(y=0, color='black', linewidth=0.9, linestyle='-')
 ax21.axhline(y=0, color='black', linewidth=0.9, linestyle='-')
@@ -659,6 +665,7 @@ line12, = ax47.plot(range(1967, 2016)[-32:], np.cumsum(marzeion_annual_avg_smb_a
 #ax47.legend(loc='upper center', bbox_to_anchor=[-0.1, 1.25], ncol=4)
 ax47.legend(loc='upper center', bbox_to_anchor=[0.5, 1.25], ncol=3, fontsize='large')
 plt.subplots_adjust(top=0.80)
+
 
 ######    Influence of glacier area on glacier-wide SMB signal (Bolibar vs Marzeion) Full period   #################
 fig37, (ax37, ax47) = plt.subplots(1,2, figsize=(14,7))
@@ -1128,4 +1135,13 @@ print('\nAverage decadal glacier-wide SMB: " + ' + str(avg_decadal_smb_g))
 
 #import pdb; pdb.set_trace()
 
-plt.show()
+#### Store all figures  ######
+
+figs = [plt.figure(n) for n in plt.get_fignums()]
+n_fig = 1
+for fig in figs:
+    fig.savefig(path_smb_plots + "pdf\\Figure_" + str(n_fig) + ".pdf", format='pdf')
+    fig.savefig(path_smb_plots + "png\\Figure_" + str(n_fig) + ".png", format='png')
+    n_fig=n_fig+1
+
+#plt.show()

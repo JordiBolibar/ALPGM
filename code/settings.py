@@ -90,17 +90,17 @@ def adamont_simulation(simulation_type, compute_projection_forcings, compute_evo
     if(simulation_type == 'future'):
         # Preload the ensemble SMB models to speed up simulations
         ensemble_SMB_models = glacier_evolution.preload_ensemble_SMB_models()
-#        thickness_idx = 0
-        for thickness_idx in range(0,2):
-            for i in range(0, ADAMONT_proj_filepaths.size, 2):
-                if(forcing_threshold <= counter):
-                    current_ADAMONT_model_daymean = str(ADAMONT_proj_filepaths[i])
-                    current_ADAMONT_model_daysum = str(ADAMONT_proj_filepaths[i+1])
-                    current_ADAMONT_forcing_mean = 'projections\\' + ADAMONT_proj_filepaths[i]
-                    current_ADAMONT_forcing_sum =  'projections\\' + ADAMONT_proj_filepaths[i+1]
-                    adamont_forcings.main(compute_projection_forcings)
-                    glacier_evolution.main(compute_evolution, ensemble_SMB_models, overwrite, counter_threshold, thickness_idx)
-                counter = counter+1
+        thickness_idx = 0
+#        for thickness_idx in range(0,2):
+        for i in range(0, ADAMONT_proj_filepaths.size, 2):
+            if(forcing_threshold <= counter):
+                current_ADAMONT_model_daymean = str(ADAMONT_proj_filepaths[i])
+                current_ADAMONT_model_daysum = str(ADAMONT_proj_filepaths[i+1])
+                current_ADAMONT_forcing_mean = 'projections\\' + ADAMONT_proj_filepaths[i]
+                current_ADAMONT_forcing_sum =  'projections\\' + ADAMONT_proj_filepaths[i+1]
+                adamont_forcings.main(compute_projection_forcings)
+                glacier_evolution.main(compute_evolution, ensemble_SMB_models, overwrite, counter_threshold, thickness_idx)
+            counter = counter+1
 
 def glacier_simulation(simulation_type, counter_threshold, validate_SMB, compute_projection_forcings, compute_evolution, reconstruct, overwrite):
     imp.reload(adamont_forcings)

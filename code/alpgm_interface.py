@@ -32,7 +32,7 @@ print("-----------------------------------------------")
 #########    SETTINGS      ##############################################################################
 # projection == True -> Projections with ADAMONT for the 21st century
 # projection == False -> Historical simulations for the 1984 - 2015 period with SAFRAN
-historical_forcing, projection_forcing, simulation_type = settings.simulation_settings(projection = True)
+historical_forcing, projection_forcing, simulation_type = settings.simulation_settings(projection = False)
 
 ### Global variables  ###
 # Set the glacier index to start the simulations
@@ -60,9 +60,9 @@ settings.glacier_parameterized_functions(compute = False,
 
 ##########     SMB PROJECTION + GLACIER GEOMETRY EVOLUTION    #######
 settings.glacier_simulation(simulation_type, counter_threshold,
-                                           validate_SMB = False, # SMB model(s) validation or reconstruction
+                                           validate_SMB = True, # SMB model(s) validation or reconstruction
                             compute_projection_forcings = False, # Compute projection climate forcings
-                                      compute_evolution = True, # Compute glacier evolution
+                                      compute_evolution = False, # Compute glacier evolution
                                              reconstruct = True, # Reconstruct glacier-wide SMB timeseries
                                                overwrite = True)
 
