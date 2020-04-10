@@ -1,0 +1,4 @@
+name: my-environment
+channels:
+  - defaults
+prefix: C:\ProgramData\Anaconda2\envs\my-environment
