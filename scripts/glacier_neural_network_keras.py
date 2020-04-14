@@ -75,9 +75,9 @@ cross_validation = "LSYGO"
 #######  single group of glaciers or cross-validation   ###############
 training = False
 # Train only the full model without training CV models
-final_model_only = False
+final_model_only = True
 # Activate the ensemble modelling approach
-final_model = False
+final_model = True
 # Only re-calculate fold performances based on previously trained models
 recalculate_performance = False
 ########################################
@@ -245,20 +245,20 @@ def create_lsygo_model(n_features, final):
     # Input layer
     model.add(Dense(n_features, input_shape=(n_features,), kernel_initializer='he_normal'))
     model.add(BatchNormalization())
-    model.add(GaussianNoise(0.1))
 #    model.add(GaussianNoise(0.2))
     
     # Hidden layers
     if(final):
-        model.add(Dense(60, kernel_initializer='he_normal'))
+        # Hidden layers
+        model.add(Dense(80, kernel_initializer='he_normal'))
         model.add(BatchNormalization()) 
         model.add(LeakyReLU(alpha=0.05))
     #        
-        model.add(Dense(50, kernel_initializer='he_normal'))
+        model.add(Dense(60, kernel_initializer='he_normal'))
         model.add(BatchNormalization())  
         model.add(LeakyReLU(alpha=0.05))
         
-        model.add(Dense(40, kernel_initializer='he_normal'))
+        model.add(Dense(50, kernel_initializer='he_normal'))
         model.add(BatchNormalization())
         model.add(LeakyReLU(alpha=0.05))
         
@@ -274,8 +274,16 @@ def create_lsygo_model(n_features, final):
         model.add(BatchNormalization()) 
         model.add(LeakyReLU(alpha=0.05))
         
+        model.add(Dense(10, kernel_initializer='he_normal'))
+        model.add(BatchNormalization()) 
+        model.add(LeakyReLU(alpha=0.05))
+        
+        model.add(Dense(5, kernel_initializer='he_normal'))
+        model.add(BatchNormalization()) 
+        model.add(LeakyReLU(alpha=0.05))
+        
     else:
-    
+        model.add(GaussianNoise(0.1))
         model.add(Dense(40, kernel_initializer='he_normal'))
         model.add(BatchNormalization())
         model.add(LeakyReLU(alpha=0.05))
@@ -300,9 +308,9 @@ def create_lsygo_model(n_features, final):
         model.add(Dropout(0.1))
     #    model.add(Dropout(0.05))
     
-    
     # Output layer
     model.add(Dense(1))
+    
     
     ##### Optimizers  #######
 #    optimizer = optimizers.rmsprop(lr=0.004)
@@ -394,22 +402,27 @@ random_glaciers = np.random.randint(0, 32, n_folds*4) # Random glacier indexes
 y_not_nan = np.isfinite(y_o)
 y_is_nan = np.isnan(y_o)
 
-p_weights = compute_sample_weight(class_weight='balanced', y=y_o[y_not_nan])
+#p_weights = compute_sample_weight(class_weight='balanced', y=y_o[y_not_nan])
+p_weights = np.ones(y_o[y_not_nan].shape)
+
 # We balance positive SMB in the sample
 diff = (y_o[y_not_nan].max() - y_o[y_not_nan].min())/y_o[y_not_nan].mean()
+
+
 
 idx, i, j = 0, 0, 0
 for i in range(0, y_o.shape[0]):
     for j in range(0, y_o.shape[1]):
         if(np.isfinite(y_o[i,j])):
             if(j < 27):
-                p_weights[idx] = p_weights[idx] + p_weights.max()/3 # Add weight for the 1959-1967
+#                p_weights[idx] = p_weights[idx] + p_weights.max()/3 # Add weight for the 1959-1967
+                p_weights[idx] = p_weights[idx] + 1/3 # Add weight for the 1959-1967
                 # Accounting for 33% of the time period
 #            print("counter = " + str(idx))
             idx=idx+1
 
 #p_weights = np.where(y_o[y_not_nan] > 0, p_weights + p_weights.max()/4, p_weights)
-
+            
 for fold in range(1, n_folds+1):
     test_matrix, train_matrix = np.zeros((32, 57), dtype=np.int8), np.ones((32, 57), dtype=np.int8)
     
@@ -943,7 +956,7 @@ else:
     
     # We create N models in an ensemble approach to be averaged
     if(final_model):
-        ensemble_size = 50
+        ensemble_size = 30
         path_ann_ensemble = path_ann + 'ensemble\\'
         average_overall_score, average_pos_rmse, average_neg_rmse, average_bias = [],[],[],[]
         
@@ -964,7 +977,7 @@ else:
                 n_epochs = 2000
             elif(cross_validation == 'LSYGO'):
                 full_model = create_lsygo_model(n_features, final=True)
-                n_epochs = 2000
+                n_epochs = 3500
             elif(cross_validation == 'LSYGO_past'):
                 full_model = create_lsygo_model(n_features, final=True)
                 n_epochs = 2000
