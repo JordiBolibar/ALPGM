@@ -43,15 +43,20 @@ imp.reload(settings)
 # 'ann_no_weights': Deep Artificial Neural Network without sample weights
 # 'ann_weights': Deep Artificial Neural Network with sample weights
 # 'lasso': Lasso linear model
-settings.init(historical_forcing, projection_forcing, simulation_type, smb_model = 'ann_no_weights')
+settings.init(historical_forcing, 
+              projection_forcing, 
+              simulation_type, 
+              smb_model = 'ann_no_weights',
+              cluster = False)
 
 ##########    WORKFLOW     ################################################################################
 
 ##########    SMB SIMULATION   ######################################
 # SMB machine learning models generation
 
-settings.train_smb_model(historical_forcing, compute_forcing = False, # Compute historical climate forcings
-                                                 train_model = False) # Re-train SMB machine learning models
+settings.train_smb_model(historical_forcing, 
+                         compute_forcing = True, # Compute historical climate forcings
+                         train_model = False) # Re-train SMB machine learning models
 
 ##########     DELTA H FUNCTIONS GENERATION   #######################
 

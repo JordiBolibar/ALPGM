@@ -23,6 +23,8 @@ import xarray as xr
 from pathlib import Path
 import time
 
+import settings
+
 ### FUNCTIONS  ####
 
 def find_nearest(array,value):
@@ -282,7 +284,7 @@ def main(compute):
         # Folders     
 #        workspace = 'C:\\Jordi\\PhD\\Python\\'
         workspace = str(Path(os.getcwd()).parent) + '\\'
-        path_safran_forcings = 'C:\\Jordi\\PhD\\Data\\SAFRAN-Nivo-2017\\'
+        path_safran_forcings = settings.path_safran
         path_smb = workspace + 'glacier_data\\smb\\'
         path_smb_function_safran = path_smb + 'smb_function\\SAFRAN\\'
         path_glims = workspace + 'glacier_data\\GLIMS\\' 

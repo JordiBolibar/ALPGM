@@ -56,7 +56,6 @@ path_smb_function = path_smb + 'smb_function\\' + cv
 path_smb_simulations = path_smb + 'smb_simulations\\'
 path_glims = workspace + 'glacier_data\\GLIMS\\' 
 path_glacier_coordinates = workspace + 'glacier_data\\glacier_coordinates\\' 
-path_safran_forcings = 'C:\\Jordi\\PhD\\Data\\SAFRAN-Nivo-2017\\'
 path_smb_function_safran = path_smb + 'smb_function\\SAFRAN\\'
 path_smb_all_glaciers = path_smb + 'smb_simulations\\SAFRAN\\1\\all_glaciers_1967_2015\\'
 path_smb_all_glaciers_smb = path_smb + 'smb_simulations\\SAFRAN\\1\\all_glaciers_1967_2015\\smb\\'
@@ -423,6 +422,8 @@ def main(compute, reconstruct):
     print("-----------------------------------------------\n")
     
     if(compute):
+        global path_safran_forcings
+        path_safran_forcings = settings.path_safran
         
         if(reconstruct):
             # TODO: this doesn't do anything

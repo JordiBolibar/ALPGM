@@ -129,9 +129,7 @@ def main(compute):
         # Folders     
         workspace = str(Path(os.getcwd()).parent) + '\\'
         # Path to be updated with location of the ADAMONT forcings
-        path_adamont_forcings = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\treated\\'
-#        path_adamont_forcings = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\FORCING_ADAMONT_IGE_BERGER\\'
-#        path_adamont_forcings = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\FORCING_ADAMONT_IGE_BERGER\\subset_AGU\\'
+        path_adamont_forcings = settings.path_adamont
         path_smb = workspace + 'glacier_data\\smb\\'
         path_smb_function_adamont = path_smb + 'smb_function\\ADAMONT\\'
 #        path_glacier_coordinates = workspace + 'glacier_data\\glacier_coordinates\\' 

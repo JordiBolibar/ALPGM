@@ -7,6 +7,7 @@ Created on Mon Nov 19 16:06:19 2018
 
 ## Dependencies: ##
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import numpy as np
 from numpy import genfromtxt
 import os
@@ -22,10 +23,28 @@ from scipy import stats
 #import seaborn as sns
 
 ######   FLAGS    ############
-n_cv_members = 60 # LSYGO
+#n_cv_members = 60 # LSYGO
+n_cv_members = 100 # LSYGO
 #n_cv_members = 32 # LOGO
 ### Process Marzeion et al. SMB data ###
 process_marzeion = True
+
+
+#####  PROPLOT CONFIGURATION   #####
+#plot.rc.margin = 0.03
+#plot.rc.cycle = 'default'
+mpl.rcParams['axes.grid'] = True
+mpl.rcParams['grid.alpha'] = 0.1
+mpl.rcParams['grid.color'] = 'k'
+mpl.rcParams['grid.linestyle'] = '-'
+mpl.rcParams['grid.linewidth'] = 0.6
+#mpl.rcParams['axes.xmargin'] = 0.02
+#mpl.rcParams['axes.ymargin'] = 0.05
+mpl.rcParams['legend.fancybox'] = False
+mpl.rcParams['font.sans-serif'] = 'TeX Gyre Heros'
+#mpl.rc('font', family='sans-serif') 
+#mpl.rcParams['legend.borderaxespad'] = 0.5
+#mpl.rcParams['legend.framealpha'] = 0.7
 
 ######   FILE PATHS    #######
     
@@ -663,7 +682,7 @@ line14, = ax47.plot(range(1967, 2016)[-32:], np.cumsum(marzeion_annual_avg_smb_a
 line13, = ax47.plot(range(1967, 2016)[-32:], np.cumsum(marzeion_annual_avg_smb_area['small'][-32:] - a_median_smb_marzeion[-32:]), linewidth=2, label='M: Glaciers 0.5 - 2 km$^2$', c='mediumorchid')
 line12, = ax47.plot(range(1967, 2016)[-32:], np.cumsum(marzeion_annual_avg_smb_area['big'][-32:] - a_median_smb_marzeion[-32:]), linewidth=2, label='M: Glaciers > 2 km$^2$', c='thistle')
 #ax47.legend(loc='upper center', bbox_to_anchor=[-0.1, 1.25], ncol=4)
-ax47.legend(loc='upper center', bbox_to_anchor=[0.5, 1.25], ncol=3, fontsize='large')
+ax47.legend(loc='upper center', bbox_to_anchor=[0.5, 1.2], ncol=3, fontsize='large')
 plt.subplots_adjust(top=0.80)
 
 

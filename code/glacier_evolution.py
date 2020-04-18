@@ -49,12 +49,9 @@ plt.ioff()
 
 os.environ['SHAPE_ENCODING'] = "latin-1"
 
-
-
 ######   FILE PATHS    #######
     
 # Folders     
-
 workspace = str(Path(os.getcwd()).parent) + '\\'
 #workspace = 'C:\\Jordi\\PhD\\Python\\'
 path_smb = workspace + 'glacier_data\\smb\\'
@@ -83,15 +80,11 @@ path_glacier_CPDDs = path_glacier_evolution + 'glacier_CPDDs\\'
 path_glacier_snowfall = path_glacier_evolution + 'glacier_snowfall\\'
 # GLIMS data
 path_glims = workspace + 'glacier_data\\GLIMS\\' 
-# SAFRAN climate forcings
-path_safran_forcings = 'C:\\Jordi\\PhD\\Data\\SAFRAN-Nivo-2017\\'
+
 global path_smb_function_safran 
 path_smb_function_safran = path_smb + 'smb_function\\SAFRAN\\'
 global path_smb_function_adamont
 path_smb_function_adamont = path_smb + 'smb_function\\ADAMONT\\'
-# Path to be updated with ADAMONT forcings local path
-path_adamont_forcings = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\treated\\'
-#path_adamont_forcings = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\\FORCING_ADAMONT_IGE_BERGER\\projections\\'
 # SMB simulation files
 path_smb_simulations = path_smb + 'smb_simulations\\'
 path_smb_function = path_smb + 'smb_function\\'
@@ -1329,7 +1322,7 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
 
 
 
-def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickness_idx):
+def main(compute, ensemble_SMB_models, overwrite_flag, use_cluster, counter_threshold, thickness_idx):
 
     ##################################################################################
     ##################		                MAIN                #####################
@@ -1348,6 +1341,10 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
         path_glacier_outlines_shapefile = path_glacier_2003_shapefiles + 'GLIMS_glaciers_2003_ID_massif' + '.shp' 
         path_ann = settings.path_ann
         path_safran_forcings = path_smb_function + 'SAFRAN\\'
+        # SAFRAN climate forcings
+        path_safran_forcings = settings.path_safran
+        # Path to be updated with ADAMONT forcings local path
+        path_adamont_forcings = settings.path_adamont
         
 #        if(settings.smb_model_type == 'ann_no_weights'):
 #            path_ann_train = path_smb + 'ANN\\LSYGO\\no_weights\\'

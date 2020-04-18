@@ -56,7 +56,7 @@ workspace = Path(os.getcwd()).parent
 root = str(workspace.parent) + '\\'
 workspace = str(workspace) + '\\'
 path_smb = workspace + 'glacier_data\\smb\\'
-SMB_raw_o = genfromtxt(path_smb + 'SMB_raw_extended.csv', delimiter=';', dtype=float)
+#SMB_raw_o = genfromtxt(path_smb + 'SMB_raw_extended.csv', delimiter=';', dtype=float)
 SMB_raw = genfromtxt(path_smb + 'SMB_raw_temporal.csv', delimiter=';', dtype=float)
 path_ann_LOGO = path_smb + 'ANN\\LOGO\\'
 path_ann_LOYO = path_smb + 'ANN\\LOYO\\'
@@ -75,9 +75,9 @@ cross_validation = "LSYGO"
 #######  single group of glaciers or cross-validation   ###############
 training = False
 # Train only the full model without training CV models
-final_model_only = True
+final_model_only = False
 # Activate the ensemble modelling approach
-final_model = True
+final_model = False
 # Only re-calculate fold performances based on previously trained models
 recalculate_performance = False
 ########################################
@@ -245,7 +245,6 @@ def create_lsygo_model(n_features, final):
     # Input layer
     model.add(Dense(n_features, input_shape=(n_features,), kernel_initializer='he_normal'))
     model.add(BatchNormalization())
-#    model.add(GaussianNoise(0.2))
     
     # Hidden layers
     if(final):
@@ -287,13 +286,13 @@ def create_lsygo_model(n_features, final):
         model.add(Dense(40, kernel_initializer='he_normal'))
         model.add(BatchNormalization())
         model.add(LeakyReLU(alpha=0.05))
-        model.add(Dropout(0.3))
+        model.add(Dropout(0.35))
     #    model.add(Dropout(0.1))
         
         model.add(Dense(20, kernel_initializer='he_normal'))
         model.add(BatchNormalization()) 
         model.add(LeakyReLU(alpha=0.05))
-        model.add(Dropout(0.2))
+        model.add(Dropout(0.25))
     #    model.add(Dropout(0.1))
         
         model.add(Dense(10, kernel_initializer='he_normal'))
@@ -301,7 +300,7 @@ def create_lsygo_model(n_features, final):
         model.add(LeakyReLU(alpha=0.05))
         model.add(Dropout(0.1))
     #    model.add(Dropout(0.05))
-        
+    
         model.add(Dense(5, kernel_initializer='he_normal'))
         model.add(BatchNormalization()) 
         model.add(LeakyReLU(alpha=0.05))
@@ -394,7 +393,7 @@ year_idx = 0
 glacier_idx = 0
 # TODO: see if block seed
 #np.random.seed(10)
-n_folds = 60
+n_folds = 100
 #n_folds = 15
 random_years = np.random.randint(0, 57, n_folds*4) # Random year idxs
 random_glaciers = np.random.randint(0, 32, n_folds*4) # Random glacier indexes
@@ -405,18 +404,19 @@ y_is_nan = np.isnan(y_o)
 #p_weights = compute_sample_weight(class_weight='balanced', y=y_o[y_not_nan])
 p_weights = np.ones(y_o[y_not_nan].shape)
 
-# We balance positive SMB in the sample
-diff = (y_o[y_not_nan].max() - y_o[y_not_nan].min())/y_o[y_not_nan].mean()
-
-
+# We balance the positive SMB in the sample
+#diff = (y_o[y_not_nan].max() - y_o[y_not_nan].min())/y_o[y_not_nan].mean()
 
 idx, i, j = 0, 0, 0
 for i in range(0, y_o.shape[0]):
     for j in range(0, y_o.shape[1]):
         if(np.isfinite(y_o[i,j])):
             if(j < 27):
-#                p_weights[idx] = p_weights[idx] + p_weights.max()/3 # Add weight for the 1959-1967
-                p_weights[idx] = p_weights[idx] + 1/3 # Add weight for the 1959-1967
+                p_weights[idx] = p_weights[idx] + 1/2 # Add weight for the 1959-1967
+#                if(i == y_o.shape[0]-1):
+#                    p_weights[idx] = p_weights[idx] + 1/3 # Add weight for the 1959-1967
+#                else:
+#                    p_weights[idx] = p_weights[idx] + 1/2 # Add weight for the 1959-1967
                 # Accounting for 33% of the time period
 #            print("counter = " + str(idx))
             idx=idx+1
