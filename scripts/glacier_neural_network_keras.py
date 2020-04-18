@@ -53,15 +53,14 @@ from scipy.stats import gaussian_kde
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 workspace = Path(os.getcwd()).parent 
-root = str(workspace.parent) + '\\'
-workspace = str(workspace) + '\\'
-path_smb = workspace + 'glacier_data\\smb\\'
+root = workspace.parent
+path_smb = os.path.join(workspace, 'glacier_data', 'smb')
 #SMB_raw_o = genfromtxt(path_smb + 'SMB_raw_extended.csv', delimiter=';', dtype=float)
-SMB_raw = genfromtxt(path_smb + 'SMB_raw_temporal.csv', delimiter=';', dtype=float)
-path_ann_LOGO = path_smb + 'ANN\\LOGO\\'
-path_ann_LOYO = path_smb + 'ANN\\LOYO\\'
-path_ann_LSYGO = path_smb + 'ANN\\LSYGO\\'
-path_ann_LSYGO_past = path_smb + 'ANN\\LSYGO_past\\'
+SMB_raw = genfromtxt(os.path.join(path_smb, 'SMB_raw_temporal.csv'), delimiter=';', dtype=float)
+path_ann_LOGO = os.path.join(path_smb , 'ANN', 'LOGO')
+path_ann_LOYO = os.path.join(path_smb, 'ANN', 'LOYO')
+path_ann_LSYGO = os.path.join(path_smb, 'ANN', 'LSYGO')
+path_ann_LSYGO_past = os.path.join(path_smb, 'ANN', 'LSYGO_past')
 
 
 ######################################
@@ -84,16 +83,16 @@ recalculate_performance = False
 
 if(cross_validation == 'LOGO'):
     path_ann = path_ann_LOGO
-    path_cv_ann = path_ann + 'CV\\'
+    path_cv_ann = os.path.join(path_ann, 'CV')
 elif(cross_validation == 'LOYO'):
     path_ann = path_ann_LOYO
-    path_cv_ann = path_ann + 'CV\\'
+    path_cv_ann = os.path.join(path_ann, 'CV')
 elif(cross_validation == 'LSYGO'):
     path_ann = path_ann_LSYGO
-    path_cv_ann = path_ann + 'CV\\'
+    path_cv_ann = os.path.join(path_ann, 'CV')
 elif(cross_validation == 'LSYGO_past'):
     path_ann = path_ann_LSYGO_past
-    path_cv_ann = path_ann + 'CV\\'
+    path_cv_ann = os.path.join(path_ann, 'CV')
 
 
 #############################################################################
@@ -332,9 +331,9 @@ def create_lsygo_model(n_features, final):
 
 # Read features and ground truth
     
-with open(root+'X_nn_extended.txt', 'rb') as x_f:
+with open(os.path.join(root, 'X_nn_extended.txt'), 'rb') as x_f:
     X = np.load(x_f)
-with open(root+'y_extended.txt', 'rb') as y_f:
+with open(os.path.join(root, 'y_extended.txt'), 'rb') as y_f:
     y_o = np.load(y_f)
 
 y = y_o.flatten()
@@ -605,9 +604,8 @@ weights = compute_sample_weight(class_weight='balanced', y=y_train)
 
 #######################################################################
 
-weights_file = path_smb + '\\nn_weights\\model_weights'
-extreme_weights_file = path_smb + '\\nn_weights\\model_extreme_weights'
-
+weights_file = os.path.join(path_smb, 'nn_weights', 'model_weights')
+extreme_weights_file = os.path.join(path_smb, 'nn_weights', 'model_extreme_weights')
 
 
 print("\nTraining Neural Network...")   
@@ -785,7 +783,7 @@ else:
                 
                 # Recalculate performance of previously trained models
                 if(recalculate_performance):
-                    SMB_model = load_model(path_cv_ann + 'glacier_' + str(fold_count+1) + '_model.h5', custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error}, compile=False)
+                    SMB_model = load_model(os.path.join(path_cv_ann, 'glacier_' + str(fold_count+1) + '_model.h5'), custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error}, compile=False)
                     
                     SMB_nn = SMB_model.predict(X_test, batch_size = 32)
                     SMB_nn_all = np.concatenate((SMB_nn_all, SMB_nn), axis=None)
@@ -822,7 +820,7 @@ else:
                         file_name = 'best_model_LSYGO_past.h5'
                     
                     es = EarlyStopping(monitor='val_loss', mode='min', min_delta=0.01, patience=1000)
-                    mc = ModelCheckpoint(path_ann + str(file_name), monitor='val_loss', mode='min', save_best_only=True, verbose=1)
+                    mc = ModelCheckpoint(os.path.join(path_ann, str(file_name)), monitor='val_loss', mode='min', save_best_only=True, verbose=1)
             
                     if(w_weights):
                         # Training with weights
@@ -849,7 +847,7 @@ else:
                         history = model.fit(X_train, y_train, validation_data = (X_test, y_test), epochs=n_epochs, batch_size = 32, callbacks=[es, mc], verbose=1)
                     
                     # load the saved model
-                    best_model = load_model(path_ann  + str(file_name), custom_objects={"r2_keras": r2_keras, "r2_keras_loss": r2_keras_loss, "root_mean_squared_error": root_mean_squared_error})
+                    best_model = load_model(os.path.join(path_ann, str(file_name)), custom_objects={"r2_keras": r2_keras, "r2_keras_loss": r2_keras_loss, "root_mean_squared_error": root_mean_squared_error})
                     
                     score = best_model.evaluate(X_test, y_test)
                     print(best_model.metrics_names)
@@ -864,7 +862,7 @@ else:
                     if not os.path.exists(path_cv_ann):
                         os.makedirs(path_cv_ann)
                     ##### We save the model in HDF5 format
-                    best_model.save(path_cv_ann + 'glacier_' + str(fold_idx) + '_model.h5')
+                    best_model.save(os.path.join(path_cv_ann, 'glacier_' + str(fold_idx) + '_model.h5'))
                     print("CV model saved to disk")
                 
                 # Compute the performance of the current model
@@ -925,7 +923,7 @@ else:
         
         print("\nAverage bias: " + str(np.average(SMB_nn_all - SMB_ref_all)))
         
-        with open(path_ann + 'RMSE_per_fold.txt', 'wb') as rmse_f: 
+        with open(os.path.join(path_ann, 'RMSE_per_fold.txt'), 'wb') as rmse_f: 
             np.save(rmse_f, RMSE_nn_all)
         
 #        import pdb; pdb.set_trace()
@@ -957,7 +955,7 @@ else:
     # We create N models in an ensemble approach to be averaged
     if(final_model):
         ensemble_size = 30
-        path_ann_ensemble = path_ann + 'ensemble\\'
+        path_ann_ensemble = os.path.join(path_ann, 'ensemble')
         average_overall_score, average_pos_rmse, average_neg_rmse, average_bias = [],[],[],[]
         
         # We clear all the previous models to avoid problems loading files
@@ -1024,16 +1022,16 @@ else:
                 print("\nModel added to ensemble")
                 
                 # Create folder for each ensemble member
-                path_e_member = path_ann_ensemble + str(e_idx) + '\\'
+                path_e_member = os.path.join(path_ann_ensemble, str(e_idx))
                 if not os.path.exists(path_e_member):
                     os.makedirs(path_e_member)
                 
                 #### We store the full model
                 ##### We save the model to HDF5
-                full_model.save(path_e_member + 'ann_glacier_model.h5')
+                full_model.save(os.path.join(path_e_member, 'ann_glacier_model.h5'))
                 print("Full model saved to disk")
                             
-                with open(path_e_member + 'SMB_nn.txt', 'wb') as SMB_nn_all_f: 
+                with open(os.path.join(path_e_member, 'SMB_nn.txt'), 'wb') as SMB_nn_all_f: 
                     np.save(SMB_nn_all_f, SMB_nn_original)
             
             if(len(average_overall_score) > 0):
@@ -1048,13 +1046,13 @@ else:
         print("\nEnsemble model members completed")
         
         print("\nSaving model performance..." )
-        with open(path_ann_LSYGO + 'overall_average_score.txt', 'wb') as o_a_s_f: 
+        with open(os.path.join(path_ann_LSYGO, 'overall_average_score.txt'), 'wb') as o_a_s_f: 
             np.save(o_a_s_f, np.asarray(average_overall_score))
-        with open(path_ann_LSYGO + 'overall_positive_RMSE.txt', 'wb') as o_p_rmse_f: 
+        with open(os.path.join(path_ann_LSYGO, 'overall_positive_RMSE.txt'), 'wb') as o_p_rmse_f: 
             np.save(o_p_rmse_f, np.asarray(average_pos_rmse))
-        with open(path_ann_LSYGO + 'overall_negative_RMSE.txt', 'wb') as o_n_rmse_f: 
+        with open(os.path.join(path_ann_LSYGO, 'overall_negative_RMSE.txt'), 'wb') as o_n_rmse_f: 
             np.save(o_n_rmse_f, np.asarray(average_neg_rmse))
-        with open(path_ann_LSYGO + 'overall_bias.txt', 'wb') as obias_f: 
+        with open(os.path.join(path_ann_LSYGO, 'overall_bias.txt'), 'wb') as obias_f: 
             np.save(obias_f, np.asarray(average_bias))
         
         

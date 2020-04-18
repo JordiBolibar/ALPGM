@@ -52,42 +52,42 @@ os.environ['SHAPE_ENCODING'] = "latin-1"
 ######   FILE PATHS    #######
     
 # Folders     
-workspace = str(Path(os.getcwd()).parent) + '\\'
+workspace = Path(os.getcwd()).parent
 #workspace = 'C:\\Jordi\\PhD\\Python\\'
-path_smb = workspace + 'glacier_data\\smb\\'
-path_glacier_evolution = workspace + 'glacier_data\\glacier_evolution\\'
+path_smb = os.path.join(workspace, 'glacier_data', 'smb')
+path_glacier_evolution = os.path.join(workspace, 'glacier_data', 'glacier_evolution')
 # Delta h parameterization functions
-path_delta_h_param = workspace + "glacier_data\\delta_h_param\\"
+path_delta_h_param = os.path.join(workspace, "glacier_data", "delta_h_param")
 # Shapefiles
-path_glacier_shapefiles = workspace + 'glacier_data\\glacier_shapefiles\\'
-path_glacier_2003_shapefiles = workspace + 'glacier_data\\glacier_shapefiles\\2003\\'
-path_glacier_2015_shapefiles = workspace + 'glacier_data\\glacier_shapefiles\\2015\\'
-path_glacier_flowlines_shapefile = path_glacier_2003_shapefiles + 'GLIMS_flowlines_2003' + '.shp'
+path_glacier_shapefiles = os.path.join(workspace, 'glacier_data', 'glacier_shapefiles')
+path_glacier_2003_shapefiles = os.path.join(workspace, 'glacier_data', 'glacier_shapefiles', '2003')
+path_glacier_2015_shapefiles = os.path.join(workspace, 'glacier_data', 'glacier_shapefiles', '2015')
+path_glacier_flowlines_shapefile = os.path.join(path_glacier_2003_shapefiles, 'GLIMS_flowlines_2003' + '.shp')
 # Rasters
-path_glacier_ID_rasters = workspace + 'glacier_data\\glacier_rasters\\glacier_thickness\\thickness_tif\\'
-path_glacier_DEM_rasters = workspace + 'glacier_data\\glacier_rasters\\glacier_thickness\\dem_tif\\'
-path_glacier_evolution_DEM_rasters = path_glacier_DEM_rasters + 'glacier_evolution\\' 
-path_glacier_evolution_ID_rasters = path_glacier_ID_rasters + 'glacier_evolution\\'
+path_glacier_ID_rasters = os.path.join(workspace, 'glacier_data', 'glacier_rasters', 'glacier_thickness', 'thickness_tif')
+path_glacier_DEM_rasters =os.path.join( workspace, 'glacier_data', 'glacier_rasters', 'glacier_thickness', 'dem_tif')
+path_glacier_evolution_DEM_rasters = os.path.join(path_glacier_DEM_rasters, 'glacier_evolution') 
+path_glacier_evolution_ID_rasters = os.path.join(path_glacier_ID_rasters, 'glacier_evolution')
 # Glacier evolution files
-path_glacier_evolution_plots = path_glacier_evolution + 'plots\\'
-path_glacier_area = path_glacier_evolution + 'glacier_area\\'
-path_glacier_volume = path_glacier_evolution + 'glacier_volume\\'
-path_glacier_zmean = path_glacier_evolution + 'glacier_zmean\\'
-path_glacier_slope20 = path_glacier_evolution + 'glacier_slope20\\'
-path_glacier_melt_years = path_glacier_evolution + 'glacier_melt_years\\'
-path_glacier_w_errors = path_glacier_evolution + 'glacier_w_errors\\'
-path_glacier_CPDDs = path_glacier_evolution + 'glacier_CPDDs\\'
-path_glacier_snowfall = path_glacier_evolution + 'glacier_snowfall\\'
+path_glacier_evolution_plots = os.path.join(path_glacier_evolution, 'plots')
+path_glacier_area = os.path.join(path_glacier_evolution, 'glacier_area')
+path_glacier_volume = os.path.join(path_glacier_evolution, 'glacier_volume')
+path_glacier_zmean = os.path.join(path_glacier_evolution, 'glacier_zmean')
+path_glacier_slope20 = os.path.join(path_glacier_evolution, 'glacier_slope20')
+path_glacier_melt_years = os.path.join(path_glacier_evolution, 'glacier_melt_years')
+path_glacier_w_errors = os.path.join(path_glacier_evolution, 'glacier_w_errors')
+path_glacier_CPDDs = os.path.join(path_glacier_evolution, 'glacier_CPDDs')
+path_glacier_snowfall = os.path.join(path_glacier_evolution, 'glacier_snowfall')
 # GLIMS data
-path_glims = workspace + 'glacier_data\\GLIMS\\' 
+path_glims = os.path.join(workspace, 'glacier_data', 'GLIMS') 
 
 global path_smb_function_safran 
-path_smb_function_safran = path_smb + 'smb_function\\SAFRAN\\'
+path_smb_function_safran = os.path.join(path_smb, 'smb_function', 'SAFRAN')
 global path_smb_function_adamont
-path_smb_function_adamont = path_smb + 'smb_function\\ADAMONT\\'
+path_smb_function_adamont = os.path.join(path_smb, 'smb_function', 'ADAMONT')
 # SMB simulation files
-path_smb_simulations = path_smb + 'smb_simulations\\'
-path_smb_function = path_smb + 'smb_function\\'
+path_smb_simulations = os.path.join(path_smb, 'smb_simulations')
+path_smb_function = os.path.join(path_smb, 'smb_function')
 
 
 
@@ -146,12 +146,12 @@ def store_file(data, path, midfolder, file_description, glimsID, year_start, yea
     year_range = np.asarray(range(year_start, year))
     data =  np.asarray(data).reshape(-1,1)
     data_w_years = np.column_stack((year_range, data))
-    path_midfolder = path + midfolder
+    path_midfolder = os.path.join(path, midfolder)
     if not os.path.exists(path_midfolder):
         os.makedirs(path_midfolder)
         
 #    file_name = path + midfolder + glimsID + "_" + str(file_description) + '.csv'
-    file_name_h = path + midfolder + str(glimsID) + "_"
+    file_name_h = os.path.join(path, midfolder, str(glimsID) + "_")
     file_name_t = str(file_description) + '.csv'
     # We save the file with an unexisting name
     automatic_file_name_save(file_name_h, file_name_t, data_w_years, 'csv')
@@ -247,7 +247,7 @@ def preload_ensemble_SMB_models():
     print("\nPreloading CV ensemble SMB models...")
     for path_CV_member in path_CV_ensemble_members:
         # We retrieve the ensemble member ANN model
-        ann_CV_member_model = load_model(path_CV_ensemble + path_CV_member, custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error}, compile=False)
+        ann_CV_member_model = load_model(os.path.join(path_CV_ensemble, path_CV_member), custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error}, compile=False)
 #        CV_ensemble_members.append(ann_CV_member_model)
         CV_ensemble_members[member_idx] = ann_CV_member_model
         print("|", end="", flush=True)
@@ -257,7 +257,7 @@ def preload_ensemble_SMB_models():
     print("\n\nPreloading ensemble full SMB models...")
     for path_member in path_ensemble_members:
         # We retrieve the ensemble member ANN model
-        ann_member_model = load_model(path_ensemble + path_member + '\\ann_glacier_model.h5', custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error}, compile=False)
+        ann_member_model = load_model(os.path.join(path_ensemble, path_member, 'ann_glacier_model.h5'), custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error}, compile=False)
 #        ensemble_members.append(ann_member_model)
         ensemble_members[member_idx] = ann_member_model
         print("|", end="", flush=True)
@@ -499,13 +499,13 @@ def crop_inital_rasters_to_GLIMS(path_glacier_ID_rasters, path_glacier_DEM_raste
         print("glacierID: " + str(glacierID))
         
         if(glacierID == 3638): # If Argentiere glacier, use field data
-            current_glacier_ice_depth = path_glacier_ID_rasters + "argentiere_2003_glacioclim.tif"
+            current_glacier_ice_depth = os.path.join(path_glacier_ID_rasters, "argentiere_2003_glacioclim.tif")
         else:
-            current_glacier_ice_depth = path_glacier_ID_rasters + "RGI60-11.0" + str(glacierID) + "_thickness.tif"
+            current_glacier_ice_depth = os.path.join(path_glacier_ID_rasters, "RGI60-11.0" + str(glacierID) + "_thickness.tif")
         
-        current_glacier_DEM = path_glacier_DEM_rasters + "dem_0" + str(glacierID) + ".asc.tif"
+        current_glacier_DEM = os.path.join(path_glacier_DEM_rasters, "dem_0" + str(glacierID) + ".asc.tif")
 #        
-        path_glacier_ID_GLIMS = path_glacier_ID_rasters + "thick_0" + str(glacierID) + "_GLIMS2003.tif"
+        path_glacier_ID_GLIMS = os.path.join(path_glacier_ID_rasters, "thick_0" + str(glacierID) + "_GLIMS2003.tif")
         path_glacier_DEM_GLIMS = current_glacier_DEM
         
         path_glacier_DEM_2003 = path_glacier_DEM_GLIMS
@@ -519,11 +519,11 @@ def crop_inital_rasters_to_GLIMS(path_glacier_ID_rasters, path_glacier_DEM_raste
         
     elif(year_start == 2015):
         # We open the 2015 projected F19 files
-        path_glacier_ID_GLIMS = path_glacier_ID_rasters + "glacier_evolution\\SAFRAN\\1\\" + "IceDepth_Glacier_0" + str(glacierID) + "_2014.tif"
-        path_glacier_DEM_GLIMS = path_glacier_DEM_rasters + "glacier_evolution\\SAFRAN\\1\\" + "DEM_Glacier_0" + str(glacierID) + "_2014.tif"
+        path_glacier_ID_GLIMS = os.path.join(path_glacier_ID_rasters, "glacier_evolution", "SAFRAN", "1", "IceDepth_Glacier_0" + str(glacierID) + "_2014.tif")
+        path_glacier_DEM_GLIMS = os.path.join(path_glacier_DEM_rasters, "glacier_evolution", "SAFRAN", "1", "DEM_Glacier_0" + str(glacierID) + "_2014.tif")
         
-        path_glacier_DEM_2003 = path_glacier_DEM_rasters + "dem_0" + str(glacierID) + ".asc.tif"
-        path_glacier_ID_2003 = path_glacier_ID_rasters + "RGI60-11.0" + str(glacierID) + "_thickness.tif"
+        path_glacier_DEM_2003 = os.path.join(path_glacier_DEM_rasters, "dem_0" + str(glacierID) + ".asc.tif")
+        path_glacier_ID_2003 = os.path.join(path_glacier_ID_rasters, "RGI60-11.0" + str(glacierID) + "_thickness.tif")
 #        path_glacier_ID_2003 = path_glacier_ID_rasters + "thick_0" + str(glacierID) + "_GLIMS2003.tif"
         
 #        print("Clipping raster to GLIMS extent... ")
@@ -532,8 +532,8 @@ def crop_inital_rasters_to_GLIMS(path_glacier_ID_rasters, path_glacier_DEM_raste
         
     elif(year_start == 2019):
         if(glacierID == 3651): # If Tré la Tête glacier, use field data
-            path_glacier_ID_GLIMS = path_glacier_ID_rasters + "interp_cleaned_masked_newh_25m.tif"
-            path_glacier_DEM_GLIMS = path_glacier_DEM_rasters + "masked_dem_lidar_25m.tif"
+            path_glacier_ID_GLIMS = os.path.join(path_glacier_ID_rasters, "interp_cleaned_masked_newh_25m.tif")
+            path_glacier_DEM_GLIMS = os.path.join(path_glacier_DEM_rasters, "masked_dem_lidar_25m.tif")
             path_glacier_DEM_2003 = ''
             path_glacier_ID_2003 = ''
         else:
@@ -592,7 +592,7 @@ def get_slope20(_masked_DEM_current_glacier_u, DEM_sorted_current_glacier_u, gla
     
     raster_current_DEM = gdal.Open(path_raster_current_DEM) 
     
-    path_temp_shapefile = path_glacier_DEM_rasters + "aux_vector_" + str(glacierName) + ".shp"
+    path_temp_shapefile = os.path.join(path_glacier_DEM_rasters, "aux_vector_" + str(glacierName) + ".shp")
     flowline_altitudes_full, flowline_coordinates = get_point_values(flowline, raster_current_DEM)
     if(flowline_altitudes_full.size == 0):
         print("[ ERROR ] No match between DEM and flowline. Skipping glacier...")
@@ -667,7 +667,7 @@ def find_glacier_coordinates(massif_number, zs, aspects, glims_data):
 
 def get_SAFRAN_glacier_coordinates(glims_dataset):
      # We read the first year to get some basic information
-    dummy_SAFRAN_forcing = Dataset(path_safran_forcings + '84\\FORCING.nc')
+    dummy_SAFRAN_forcing = Dataset(os.path.join(path_safran_forcings, '84', 'FORCING.nc'))
     
     aspects = dummy_SAFRAN_forcing.variables['aspect'][:]
     zs = dummy_SAFRAN_forcing.variables['ZS'][:]
@@ -721,28 +721,6 @@ def get_precips(datetimes, hourly_data):
         idx = idx + 1 
     return np.asarray(daily_data)
 
-def get_monthly_temps(daily_data, daily_datetimes):
-    
-    d = {'Dates': daily_datetimes, 'Temps': daily_data}
-    df_datetimes = pd.DataFrame(data=d)
-    df_datetimes.set_index('Dates', inplace=True)
-    df_datetimes.index = pd.to_datetime(df_datetimes.index)
-    df_datetimes = df_datetimes.resample('M').mean()
-    
-    monthly_avg_data = df_datetimes.Temps.to_numpy()
-    
-    return monthly_avg_data[:12]
-    
-def get_monthly_snow(daily_data, daily_datetimes):
-    d = {'Dates': daily_datetimes, 'Snow': daily_data}
-    df_datetimes = pd.DataFrame(data=d)
-    df_datetimes.set_index('Dates', inplace=True)
-    df_datetimes.index = pd.to_datetime(df_datetimes.index)
-    df_datetimes = df_datetimes.resample('M').sum()
-    
-    monthly_avg_data = df_datetimes.Snow.to_numpy()
-    
-    return monthly_avg_data[:12]
 
 def compute_local_anomalies(glacier_CPDD, glacier_winter_snow, glacier_summer_snow, meteo_refs):
     
@@ -762,11 +740,11 @@ def compute_monthly_anomalies(mon_temps, mon_snow, mon_temp_ref, mon_snow_ref):
 # Fetches the preprocessed SAFRAN daily data 
 def get_default_SAFRAN_forcings(safran_start, safran_end):
     
-    path_temps = path_smb_function_safran +'daily_temps_years_' + str(safran_start) + '-' + str(safran_end) + '.txt'
-    path_snow = path_smb_function_safran +'daily_snow_years_' + str(safran_start) + '-' + str(safran_end) + '.txt'
-    path_rain = path_smb_function_safran +'daily_rain_years_' + str(safran_start) + '-' + str(safran_end) + '.txt'
-    path_dates = path_smb_function_safran +'daily_dates_years_' + str(year_start) + '-' + str(year_end) + '.txt'
-    path_zs = path_smb_function_safran +'zs_years' + str(safran_start) + '-' + str(safran_end) + '.txt'
+    path_temps = os.path.join(path_smb_function_safran, 'daily_temps_years_' + str(safran_start) + '-' + str(safran_end) + '.txt')
+    path_snow = os.path.join(path_smb_function_safran, 'daily_snow_years_' + str(safran_start) + '-' + str(safran_end) + '.txt')
+    path_rain = os.path.join(path_smb_function_safran, 'daily_rain_years_' + str(safran_start) + '-' + str(safran_end) + '.txt')
+    path_dates = os.path.join(path_smb_function_safran, 'daily_dates_years_' + str(year_start) + '-' + str(year_end) + '.txt')
+    path_zs = os.path.join(path_smb_function_safran, 'zs_years' + str(safran_start) + '-' + str(safran_end) + '.txt')
     
     if(os.path.exists(path_temps) & os.path.exists(path_snow) & os.path.exists(path_rain) & os.path.exists(path_dates) & os.path.exists(path_zs)):
         print("\nFetching SAFRAN forcings...")
@@ -862,13 +840,13 @@ def get_ADAMONT_idx(massif, glacier_altitude, massif_number, zs):
     
 def get_default_ADAMONT_forcings(year_start, year_end, midfolder):
     
-    path_temps = path_smb_function_adamont + midfolder + 'daily_temps_years_' + str(year_start) + '-' + str(year_end) + '.txt'
-    path_snow = path_smb_function_adamont + midfolder + 'daily_snow_years_' + str(year_start) + '-' + str(year_end) + '.txt'
-    path_rain = path_smb_function_adamont + midfolder + 'daily_rain_years_' + str(year_start) + '-' + str(year_end) + '.txt'
-    path_dates = path_smb_function_adamont + midfolder + 'daily_datetimes_' + str(year_start) + '-' + str(year_end) + '.txt'
-    path_zs = path_smb_function_adamont + midfolder + 'zs_' + str(year_start) + '-' + str(year_end) + '.txt'
-    path_massif = path_smb_function_adamont + midfolder + 'massif_number.txt'
-    path_aspect = path_smb_function_adamont + midfolder + 'aspects.txt'
+    path_temps = os.path.join(path_smb_function_adamont, midfolder, 'daily_temps_years_' + str(year_start) + '-' + str(year_end) + '.txt')
+    path_snow = os.path.join(path_smb_function_adamont, midfolder, 'daily_snow_years_' + str(year_start) + '-' + str(year_end) + '.txt')
+    path_rain = os.path.join(path_smb_function_adamont, midfolder, 'daily_rain_years_' + str(year_start) + '-' + str(year_end) + '.txt')
+    path_dates = os.path.join(path_smb_function_adamont, midfolder, 'daily_datetimes_' + str(year_start) + '-' + str(year_end) + '.txt')
+    path_zs = os.path.join(path_smb_function_adamont, midfolder, 'zs_' + str(year_start) + '-' + str(year_end) + '.txt')
+    path_massif = os.path.join(path_smb_function_adamont, midfolder, 'massif_number.txt')
+    path_aspect = os.path.join(path_smb_function_adamont, midfolder, 'aspects.txt')
     
     if(os.path.exists(path_temps) & os.path.exists(path_snow) & os.path.exists(path_rain) & os.path.exists(path_dates) & os.path.exists(path_zs) & os.path.exists(path_massif) & os.path.exists(path_aspect)):
         print("Fetching ADAMONT forcings...")
@@ -936,19 +914,19 @@ def get_default_ADAMONT_forcings(year_start, year_end, midfolder):
         if(not os.path.exists(path_smb_function_adamont+midfolder)):
             os.makedirs(path_smb_function_adamont+midfolder)
             
-        with open(path_smb_function_adamont+midfolder+'daily_temps_years_' + str(year_start) + '-' + str(year_end) + '.txt', 'wb') as dtemp_f:
+        with open(os.path.join(path_smb_function_adamont, midfolder, 'daily_temps_years_' + str(year_start) + '-' + str(year_end) + '.txt'), 'wb') as dtemp_f:
                             np.save(dtemp_f, daily_temps_years)
-        with open(path_smb_function_adamont+midfolder+'daily_snow_years_' + str(year_start) + '-' + str(year_end) + '.txt', 'wb') as dsnow_f:
+        with open(os.path.join(path_smb_function_adamont, midfolder, 'daily_snow_years_' + str(year_start) + '-' + str(year_end) + '.txt'), 'wb') as dsnow_f:
                             np.save(dsnow_f, daily_snow_years)
-        with open(path_smb_function_adamont+midfolder+'daily_rain_years_' + str(year_start) + '-' + str(year_end) + '.txt', 'wb') as drain_f:
+        with open(os.path.join(path_smb_function_adamont, midfolder, 'daily_rain_years_' + str(year_start) + '-' + str(year_end) + '.txt'), 'wb') as drain_f:
                             np.save(drain_f, daily_rain_years)
-        with open(path_smb_function_adamont+midfolder+'daily_datetimes_' + str(year_start) + '-' + str(year_end) + '.txt', 'wb') as ddates_f:
+        with open(os.path.join(path_smb_function_adamont, midfolder, 'daily_datetimes_' + str(year_start) + '-' + str(year_end) + '.txt'), 'wb') as ddates_f:
                             np.save(ddates_f, daily_datetimes)
-        with open(path_smb_function_adamont+midfolder+'zs_' + str(year_start) + '-' + str(year_end) + '.txt', 'wb') as dzs_f:
+        with open(os.path.join(path_smb_function_adamont, midfolder, 'zs_' + str(year_start) + '-' + str(year_end) + '.txt'), 'wb') as dzs_f:
                             np.save(dzs_f, zs)
-        with open(path_smb_function_adamont+midfolder+'massif_number.txt', 'wb') as massif_f:
+        with open(os.path.join(path_smb_function_adamont, midfolder, 'massif_number.txt'), 'wb') as massif_f:
                             np.save(massif_f, massif_number.data)
-        with open(path_smb_function_adamont+midfolder+'aspects.txt', 'wb') as aspects_f:
+        with open(os.path.join(path_smb_function_adamont, midfolder, 'aspects.txt'), 'wb') as aspects_f:
                             np.save(aspects_f, aspects.data)
                             
     return daily_meteo_data, massif_number, aspects, year_end
@@ -1091,7 +1069,7 @@ def store_plot(masked_ID_current_glacier, masked_DEM_current_glacier_u, masked_I
         
 #                plt.show(block=False)
     # We store the plots as images
-    plt.savefig(newpath + "Glacier " + glacierName + "_" + str(year))
+    plt.savefig(os.path.join(newpath, "Glacier " + glacierName + "_" + str(year)))
     plt.close()
     
     nfigure = nfigure+1
@@ -1101,12 +1079,12 @@ def store_plot(masked_ID_current_glacier, masked_DEM_current_glacier_u, masked_I
     return nfigure, isNotFirst
 
 def store_rasters(masked_DEM_current_glacier_u, masked_ID_current_glacier_u, midfolder, glacierID, year):
-    path_DEM_raster_year = path_glacier_evolution_DEM_rasters + midfolder + "DEM_Glacier_0" + str(glacierID) + "_" + str(year) + ".tif"
-    if not os.path.exists(path_glacier_evolution_DEM_rasters + midfolder):
-        os.makedirs(path_glacier_evolution_DEM_rasters + midfolder)
-    path_ID_raster_year = path_glacier_evolution_ID_rasters + midfolder + "IceDepth_Glacier_0" + str(glacierID) + "_" + str(year) + ".tif"
+    path_DEM_raster_year = os.path.join(path_glacier_evolution_DEM_rasters, midfolder, "DEM_Glacier_0" + str(glacierID) + "_" + str(year) + ".tif")
+    if not os.path.exists(os.path.join(path_glacier_evolution_DEM_rasters, midfolder)):
+        os.makedirs(os.path.join(path_glacier_evolution_DEM_rasters, midfolder))
+    path_ID_raster_year = os.path.join(path_glacier_evolution_ID_rasters, midfolder, "IceDepth_Glacier_0" + str(glacierID) + "_" + str(year) + ".tif")
     if not os.path.exists(path_glacier_evolution_ID_rasters + midfolder):
-        os.makedirs(path_glacier_evolution_ID_rasters + midfolder)
+        os.makedirs(os.path.join(path_glacier_evolution_ID_rasters, midfolder))
     array2raster(path_DEM_raster_year, r_origin, r_pixelwidth, r_pixelheight, masked_DEM_current_glacier_u)
     array2raster(path_ID_raster_year, r_origin, r_pixelwidth, r_pixelheight, masked_ID_current_glacier_u)
     
@@ -1147,7 +1125,7 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
     
     # We shorten the name of the glacier if it's too long
     glacierName = shorten_name(glacierName)
-    newpath = path_glacier_evolution_plots +  midfolder + strip_accents(massif) + '\\' + "Glacier " + strip_accents(glacierName) + "\\"
+    newpath = os.path.join(path_glacier_evolution_plots, midfolder, strip_accents(massif), "Glacier " + strip_accents(glacierName))
     
     path_raster_current_DEM = current_glacier_DEM
     
@@ -1302,9 +1280,9 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
         store_file(yearly_glacier_slope20, path_glacier_slope20, midfolder, "slope20", glimsID, year_start, year)
         # Melt year (if available)
         if(glacier_melted_flag):
-            if not os.path.exists(path_glacier_melt_years + midfolder):
-                os.makedirs(path_glacier_melt_years + midfolder)
-            file_name_h = path_glacier_melt_years + midfolder + str(glimsID) + '_'
+            if not os.path.exists(os.path.join(path_glacier_melt_years, midfolder)):
+                os.makedirs(os.path.join(path_glacier_melt_years, midfolder))
+            file_name_h = os.path.join(path_glacier_melt_years, midfolder, str(glimsID) + '_')
             file_name_t = '_melt_year.csv'
             glacier_melt_year = np.asarray(glacier_melt_year)
             automatic_file_name_save(file_name_h, file_name_t, glacier_melt_year, 'txt')
@@ -1336,11 +1314,11 @@ def main(compute, ensemble_SMB_models, overwrite_flag, use_cluster, counter_thre
         # We close all previous plots
         plt.close('all')
         
-        path_smb = workspace + 'glacier_data\\smb\\'
-        path_smb_function = path_smb + 'smb_function\\'
-        path_glacier_outlines_shapefile = path_glacier_2003_shapefiles + 'GLIMS_glaciers_2003_ID_massif' + '.shp' 
+        path_smb = os.path.join(workspace, 'glacier_data', 'smb')
+        path_smb_function = os.path.join(path_smb, 'smb_function')
+        path_glacier_outlines_shapefile = os.path.join(path_glacier_2003_shapefiles, 'GLIMS_glaciers_2003_ID_massif' + '.shp') 
         path_ann = settings.path_ann
-        path_safran_forcings = path_smb_function + 'SAFRAN\\'
+        path_safran_forcings = os.path.join(path_smb_function, 'SAFRAN')
         # SAFRAN climate forcings
         path_safran_forcings = settings.path_safran
         # Path to be updated with ADAMONT forcings local path
@@ -1358,7 +1336,7 @@ def main(compute, ensemble_SMB_models, overwrite_flag, use_cluster, counter_thre
 #        print("forcing: " + str(forcing))
         
         # We determine the path depending on the forcing
-        path_smb_function_forcing = path_smb_function + forcing + "\\"
+        path_smb_function_forcing = os.path.join(path_smb_function, forcing)
         
 #        glims_2015 = genfromtxt(path_glims + 'GLIMS_2015_massif.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('GLIMS_ID', '<a50'), ('Massif_SAFRAN', '<i8'),('Aspect_num', '<i8')])
 #        glims_2003 = genfromtxt(path_glims + 'GLIMS_2003.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('GLIMS_ID', '<a50'), ('Massif_SAFRAN', '<i8'), ('Aspect_num', '<i8'), ('ID', '<f8')])
@@ -1395,9 +1373,9 @@ def main(compute, ensemble_SMB_models, overwrite_flag, use_cluster, counter_thre
         
         #### ONLY HISTORICAL SAFRAN DATA FOR REFS  ####
         # We load the compacted seasonal and monthly meteo forcings
-        with open(path_safran_forcings+'season_meteo.txt', 'rb') as season_f:
+        with open(os.path.join(path_safran_forcings, 'season_meteo.txt'), 'rb') as season_f:
             season_meteo = np.load(season_f,  allow_pickle=True)[()]
-        with open(path_safran_forcings+'monthly_meteo.txt', 'rb') as mon_f:
+        with open(os.path.join(path_safran_forcings, 'monthly_meteo.txt'), 'rb') as mon_f:
             monthly_meteo = np.load(mon_f,  allow_pickle=True)[()]
             
         ###  We load the SMB models  ###
@@ -1405,10 +1383,10 @@ def main(compute, ensemble_SMB_models, overwrite_flag, use_cluster, counter_thre
         # ANN nonlinear models ensemble preloaded separetly
         # Lasso
         # Data scaler
-        with open(path_smb_function+'model_lasso_temporal.txt', 'rb') as lasso_model_f:
+        with open(os.path.join(path_smb_function, 'model_lasso_temporal.txt'), 'rb') as lasso_model_f:
             lasso_model = np.load(lasso_model_f,  allow_pickle=True)
         # Lasso linear model
-        with open(path_smb_function+'LOYO\\full_scaler_temporal.txt', 'rb') as lasso_scaler_f:
+        with open(os.path.join(path_smb_function, 'LOYO', 'full_scaler_temporal.txt'), 'rb') as lasso_scaler_f:
             lasso_scaler = np.load(lasso_scaler_f,  allow_pickle=True)[()]
         
         # We open the raster files and shapefiles:
@@ -1416,7 +1394,7 @@ def main(compute, ensemble_SMB_models, overwrite_flag, use_cluster, counter_thre
         layer_glaciers = shapefile_glacier_outlines.GetLayer()
         
         # We recover the list of discarded glaciers by cloud cover
-        delta_h_processed_glaciers = np.asarray(genfromtxt(path_delta_h_param+"delta_h_processed_glaciers.csv", delimiter=';', dtype=np.dtype('str')))
+        delta_h_processed_glaciers = np.asarray(genfromtxt(os.path.join(path_delta_h_param, "delta_h_processed_glaciers.csv"), delimiter=';', dtype=np.dtype('str')))
         
         # We create the folders to store the glacier area and volume data
         if not os.path.exists(path_glacier_area):
@@ -1430,35 +1408,35 @@ def main(compute, ensemble_SMB_models, overwrite_flag, use_cluster, counter_thre
 #            all_glacier_coordinates = get_ADAMONT_glacier_coordinates(glims_2015, massif_number, zs_years)
             print("\nCurrent RCP-GCM-RCM member: " + str(settings.current_ADAMONT_forcing_mean))
         else:
-            midfolder_base = 'SAFRAN\\'
+            midfolder_base = 'SAFRAN'
             daily_meteo_data = get_default_SAFRAN_forcings(ref_start, ref_end)
             # We retrieve all the SAFRAN glacier coordinates
-            with open(path_smb_function_forcing+'all_glacier_coordinates.txt', 'rb') as coords_f:
+            with open(os.path.join(path_smb_function_forcing, 'all_glacier_coordinates.txt'), 'rb') as coords_f:
                 all_glacier_coordinates = np.load(coords_f,  allow_pickle=True)
                 
         ### We modify the ice depth in order to compute the effects of the uncertainties ###
         if(thickness_idx == 1):
-            thickness_folder_tail = "1.3\\"
+            thickness_folder_tail = "1.3"
             print("\nIce thickness *1.3 simulation \n")
         elif(thickness_idx == 2):
-            thickness_folder_tail = "0.7\\"
+            thickness_folder_tail = "0.7"
             print("\nIce thickness *0.7 simulation \n")
         else:
-            thickness_folder_tail = "1\\"
+            thickness_folder_tail = "1"
             print("\nOriginal Ice thickness simulation \n")
         midfolder = midfolder_base+thickness_folder_tail
         
         # We remove all the previous SMB and topo simulations
-        empty_folder(path_smb_simulations+midfolder)
-        empty_folder(path_glacier_area+midfolder)
-        empty_folder(path_glacier_volume+midfolder)
-        empty_folder(path_glacier_zmean+midfolder)
-        empty_folder(path_glacier_slope20+midfolder)
-        empty_folder(path_glacier_melt_years+midfolder)
-        empty_folder(path_glacier_CPDDs+midfolder)
-        empty_folder(path_glacier_snowfall+midfolder)
-        empty_folder(path_glacier_evolution_ID_rasters+midfolder)
-        empty_folder(path_glacier_evolution_DEM_rasters+midfolder)
+        empty_folder(os.path.join(path_smb_simulations, midfolder))
+        empty_folder(os.path.join(path_glacier_area, midfolder))
+        empty_folder(os.path.join(path_glacier_volume, midfolder))
+        empty_folder(os.path.join(path_glacier_zmean, midfolder))
+        empty_folder(os.path.join(path_glacier_slope20, midfolder))
+        empty_folder(os.path.join(path_glacier_melt_years, midfolder))
+        empty_folder(os.path.join(path_glacier_CPDDs, midfolder))
+        empty_folder(os.path.join(path_glacier_snowfall, midfolder))
+        empty_folder(os.path.join(path_glacier_evolution_ID_rasters, midfolder))
+        empty_folder(os.path.join(path_glacier_evolution_DEM_rasters, midfolder))
         
         # We calculate the year range once we know if the ADAMONT forcings end in 2098 or 2099
         year_range = range(year_start, year_end+1)
@@ -1514,7 +1492,7 @@ def main(compute, ensemble_SMB_models, overwrite_flag, use_cluster, counter_thre
                     print("GLIMS ID: " + str(glimsID))
                     
                     # We crop the initial rasters to the extent of the GLIMS 2003 or 2015 database
-                    path_outline_current_glacier = path_glacier_2003_shapefiles + 'individual_GLIMS_2003\\' +  'GLIMS_ID_' + str(glimsID) + '.shp'
+                    path_outline_current_glacier = os.path.join(path_glacier_2003_shapefiles, 'individual_GLIMS_2003', 'GLIMS_ID_' + str(glimsID) + '.shp')
                     current_glacier_ice_depth, current_glacier_DEM, path_glacier_DEM_2003, path_glacier_ID_2003 = crop_inital_rasters_to_GLIMS(path_glacier_ID_rasters, path_glacier_DEM_rasters, path_outline_current_glacier, 
                                                                                              glacier, glacierID, midfolder_base, year_start)
                     
@@ -1524,8 +1502,8 @@ def main(compute, ensemble_SMB_models, overwrite_flag, use_cluster, counter_thre
                     
                     # We get the processed delta h function for each glacier or a linear one for small glaciers
                     if(glacier_delta_h):
-                        delta_h_DEM_current_glacier = genfromtxt(path_delta_h_param + glimsID + '_DEM.csv', delimiter=';')
-                        delta_h_dh_current_glacier = genfromtxt(path_delta_h_param + glimsID + '_dh.csv', delimiter=';')
+                        delta_h_DEM_current_glacier = genfromtxt(os.path.join(path_delta_h_param, glimsID + '_DEM.csv'), delimiter=';')
+                        delta_h_dh_current_glacier = genfromtxt(os.path.join(path_delta_h_param, glimsID + '_dh.csv'), delimiter=';')
                         
                         # Uncomment to add uncertainty assessement +-10%
 #                        delta_h_dh_current_glacier = delta_h_dh_current_glacier*1.1
@@ -1642,8 +1620,8 @@ def main(compute, ensemble_SMB_models, overwrite_flag, use_cluster, counter_thre
         glaciers_with_errors = np.asarray(glaciers_with_errors)
         melted_glaciers = np.asarray(melted_glaciers)
         
-        path_glacier_w_errors_current_combination = path_glacier_w_errors + midfolder
-        path_melt_years_current_combination = path_glacier_melt_years + midfolder
+        path_glacier_w_errors_current_combination = os.path.join(path_glacier_w_errors, midfolder)
+        path_melt_years_current_combination = os.path.join(path_glacier_melt_years, midfolder)
         
         if not os.path.exists(path_glacier_w_errors_current_combination):
             os.makedirs(path_glacier_w_errors_current_combination)
@@ -1652,18 +1630,18 @@ def main(compute, ensemble_SMB_models, overwrite_flag, use_cluster, counter_thre
             
         try:
             if(glaciers_with_errors.size > 0):
-                np.savetxt(path_glacier_w_errors_current_combination + "glaciers_w_errors_" + str(year_start)+ "_" + str(year_end) + '.csv', glaciers_with_errors, delimiter=";", fmt="%s")
+                np.savetxt(os.path.join(path_glacier_w_errors_current_combination, "glaciers_w_errors_" + str(year_start)+ "_" + str(year_end) + '.csv'), glaciers_with_errors, delimiter=";", fmt="%s")
             if(melted_glaciers.size > 0):
-                np.savetxt(path_melt_years_current_combination + "melted_glaciers_" + str(year_start)+ "_" + str(year_end) + '.csv', melted_glaciers, delimiter=";", fmt="%s")
+                np.savetxt(os.path.join(path_melt_years_current_combination, "melted_glaciers_" + str(year_start)+ "_" + str(year_end) + '.csv'), melted_glaciers, delimiter=";", fmt="%s")
         except IOError:
             print("File currently opened. Please close it to proceed.")
             os.system('pause')
             # We try again
             try:
                 if(glaciers_with_errors.size > 0):
-                    np.savetxt(path_glacier_evolution + midfolder + "glaciers_w_errors_" + str(year_start)+ "_" + str(year_end) + '.csv', glaciers_with_errors, delimiter=";", fmt="%s")
+                    np.savetxt(os.path.join(path_glacier_evolution, midfolder, "glaciers_w_errors_" + str(year_start)+ "_" + str(year_end) + '.csv'), glaciers_with_errors, delimiter=";", fmt="%s")
                 if(melted_glaciers.size > 0):
-                    np.savetxt(path_glacier_evolution + midfolder + "melted_glaciers_" + str(year_start)+ "_" + str(year_end) + '.csv', melted_glaciers, delimiter=";", fmt="%s")
+                    np.savetxt(os.path.join(path_glacier_evolution, midfolder, "melted_glaciers_" + str(year_start)+ "_" + str(year_end) + '.csv'), melted_glaciers, delimiter=";", fmt="%s")
             except IOError:
                 print("File still not available. Aborting simulations.")
         

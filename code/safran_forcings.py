@@ -283,11 +283,11 @@ def main(compute):
         ######   FILE PATHS    #######
         # Folders     
 #        workspace = 'C:\\Jordi\\PhD\\Python\\'
-        workspace = str(Path(os.getcwd()).parent) + '\\'
+        workspace = Path(os.getcwd()).parent
         path_safran_forcings = settings.path_safran
-        path_smb = workspace + 'glacier_data\\smb\\'
-        path_smb_function_safran = path_smb + 'smb_function\\SAFRAN\\'
-        path_glims = workspace + 'glacier_data\\GLIMS\\' 
+        path_smb = os.path.join(workspace, 'glacier_data', 'smb')
+        path_smb_function_safran = os.path.join(path_smb, 'smb_function', 'SAFRAN')
+        path_glims = os.path.join(workspace, 'glacier_data', 'GLIMS') 
         
         #### Flags  #####
         bypass_glacier_data = False
@@ -300,33 +300,33 @@ def main(compute):
         year_end = 2015
 #        year_end = 2014
         
-        path_temps = path_smb_function_safran +'daily_temps_years_' + str(year_start) + '-' + str(year_end) + '.txt'
-        path_snow = path_smb_function_safran +'daily_snow_years_' + str(year_start) + '-' + str(year_end) + '.txt'
-        path_rain = path_smb_function_safran +'daily_rain_years_' + str(year_start) + '-' + str(year_end) + '.txt'
-        path_dates = path_smb_function_safran +'daily_dates_years_' + str(year_start) + '-' + str(year_end) + '.txt'
-        path_zs = path_smb_function_safran +'zs_years' + str(year_start) + '-' + str(year_end) + '.txt'
+        path_temps = os.path.join(path_smb_function_safran, 'daily_temps_years_' + str(year_start) + '-' + str(year_end) + '.txt')
+        path_snow = os.path.join(path_smb_function_safran, 'daily_snow_years_' + str(year_start) + '-' + str(year_end) + '.txt')
+        path_rain = os.path.join(path_smb_function_safran, 'daily_rain_years_' + str(year_start) + '-' + str(year_end) + '.txt')
+        path_dates = os.path.join(path_smb_function_safran, 'daily_dates_years_' + str(year_start) + '-' + str(year_end) + '.txt')
+        path_zs = os.path.join(path_smb_function_safran, 'zs_years' + str(year_start) + '-' + str(year_end) + '.txt')
         
         #### GLIMS data for 1985, 2003 and 2015
-        glims_2015 = genfromtxt(path_glims + 'GLIMS_2015.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), 
+        glims_2015 = genfromtxt(os.path.join(path_glims, 'GLIMS_2015.csv'), delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), 
                     ('Perimeter', '<f8'), ('Glacier', '<U50'), ('Annee', '<i8'), ('Massif', '<U50'), ('MEAN_Pixel', '<f8'), 
                     ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<U50'), 
                     ('x_coord', '<f8'), ('y_coord', '<f8'), ('GLIMS_ID', '<U50')])
-        glims_2003 = genfromtxt(path_glims + 'GLIMS_2003.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), 
+        glims_2003 = genfromtxt(os.path.join(path_glims, 'GLIMS_2003.csv'), delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), 
                      ('Perimeter', '<f8'), ('Glacier', '<U50'), ('Annee', '<i8'), ('Massif', '<U50'), ('MEAN_Pixel', '<f8'), 
                      ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<U50'), 
                      ('x_coord', '<f8'), ('y_coord', '<f8'), ('GLIMS_ID', '<U50'), ('Massif_SAFRAN', '<f8'), ('Aspect_num', '<f8'), ('ID', '<f8')])
-        glims_1985 = genfromtxt(path_glims + 'GLIMS_1985.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), 
+        glims_1985 = genfromtxt(os.path.join(path_glims, 'GLIMS_1985.csv'), delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), 
                      ('Perimeter', '<f8'), ('Glacier', '<U50'), ('Annee', '<i8'), ('Massif', '<U50'), ('MEAN_Pixel', '<f8'), 
                      ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<U50'), 
                      ('x_coord', '<f8'), ('y_coord', '<f8'), ('GLIMS_ID', '<U50')])
-        glims_1967 = genfromtxt(path_glims + 'GLIMS_1967.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), 
+        glims_1967 = genfromtxt(os.path.join(path_glims, 'GLIMS_1967.csv'), delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), 
                      ('Perimeter', '<f8'), ('Glacier', '<U50'), ('Annee', '<i8'), ('Massif', '<U50'), ('MEAN_Pixel', '<f8'), 
                      ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<U50'), 
                      ('x_coord', '<f8'), ('y_coord', '<f8'), ('GLIMS_ID', '<U50')])
         
         
         ####  GLIMS data for the 30 glaciers with remote sensing SMB data (Rabatel et al. 2016)   ####
-        glims_rabatel = genfromtxt(path_glims + 'GLIMS_Rabatel_30_2003.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), 
+        glims_rabatel = genfromtxt(os.path.join(path_glims, 'GLIMS_Rabatel_30_2003.csv'), delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), 
                        ('Perimeter', '<f8'), ('Glacier', '<U50'), ('Annee', '<i8'), ('Massif', '<U50'), ('MEAN_Pixel', '<f8'), 
                        ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<U50'), 
                        ('x_coord', '<f8'), ('y_coord', '<f8'), ('slope20', '<f8'), ('GLIMS_ID', '<U50'), ('Massif_SAFRAN', '<f8'), ('Aspect_num', '<f8')])
@@ -336,7 +336,7 @@ def main(compute):
         year_period = range(year_start, year_end+1)
         
         # We read the first year to get some basic information
-        dummy_safran = xr.open_dataset(path_safran_forcings + '84\\FORCING.nc')
+        dummy_safran = xr.open_dataset(os.path.join(path_safran_forcings, '84', 'FORCING.nc'))
         
         # We get the massif points closer to each glacier's centroid
         glacier_SMB_coordinates, all_glacier_coordinates = get_SAFRAN_glacier_coordinates(dummy_safran['massif_number'], 
@@ -345,7 +345,7 @@ def main(compute):
         smb_glaciers = get_SMB_glaciers(glacier_SMB_coordinates)
         
         # We store the coordinates of all glaciers
-        with open(path_smb_function_safran+'all_glacier_coordinates.txt', 'wb') as coords_f:
+        with open(os.path.join(path_smb_function_safran, 'all_glacier_coordinates.txt'), 'wb') as coords_f:
                     np.save(coords_f, all_glacier_coordinates)
         
         # We create the data structures to process all the CPDD and snow accumulation data
@@ -443,9 +443,9 @@ def main(compute):
 #            nfigure = 1
             
             annual_paths = np.array([])
-            annual_paths = np.append(annual_paths, path_safran_forcings + str(year_period[0]-1)[-2:] + '\\FORCING.nc')
+            annual_paths = np.append(annual_paths, os.path.join(path_safran_forcings, str(year_period[0]-1)[-2:], 'FORCING.nc'))
             for year in year_period:
-                annual_paths = np.append(annual_paths, path_safran_forcings + str(year)[-2:] + '\\FORCING.nc')
+                annual_paths = np.append(annual_paths, os.path.join(path_safran_forcings, str(year)[-2:], 'FORCING.nc'))
             
             start = time.time()
             # We load all SAFRAN years with xarray and dask
@@ -614,27 +614,27 @@ def main(compute):
                     
                 # We store the compacted seasonal and monthly meteo forcings
                 # Glaciers with SMB data (machine learning model training)
-                with open(path_smb_function_safran+'season_meteo_SMB.txt', 'wb') as season_f:
+                with open(os.path.join(path_smb_function_safran, 'season_meteo_SMB.txt'), 'wb') as season_f:
                             np.save(season_f, season_meteo_SMB)
-                with open(path_smb_function_safran+'season_meteo_anomalies_SMB.txt', 'wb') as season_a_f:
+                with open(os.path.join(path_smb_function_safran, 'season_meteo_anomalies_SMB.txt'), 'wb') as season_a_f:
                             np.save(season_a_f, season_meteo_anomalies_SMB)
-                with open(path_smb_function_safran+'season_raw_meteo_anomalies_SMB.txt', 'wb') as season_raw_a_f:
+                with open(os.path.join(path_smb_function_safran, 'season_raw_meteo_anomalies_SMB.txt'), 'wb') as season_raw_a_f:
                             np.save(season_raw_a_f, season_raw_meteo_anomalies_SMB)
-                with open(path_smb_function_safran+'monthly_meteo_SMB.txt', 'wb') as mon_f:
+                with open(os.path.join(path_smb_function_safran, 'monthly_meteo_SMB.txt'), 'wb') as mon_f:
                             np.save(mon_f, monthly_meteo_SMB)
-                with open(path_smb_function_safran+'monthly_meteo_anomalies_SMB.txt', 'wb') as mon_a_f:
+                with open(os.path.join(path_smb_function_safran, 'monthly_meteo_anomalies_SMB.txt'), 'wb') as mon_a_f:
                             np.save(mon_a_f, monthly_meteo_anomalies_SMB)
                 
                 # All glaciers
-                with open(path_smb_function_safran+'season_meteo.txt', 'wb') as season_f:
-                    np.save(season_f, season_meteo)
-                with open(path_smb_function_safran+'season_meteo_anomalies.txt', 'wb') as season_a_f:
+                with open(os.path.join(path_smb_function_safran, 'season_meteo.txt'), 'wb') as season_f:
+                            np.save(season_f, season_meteo)
+                with open(os.path.join(path_smb_function_safran, 'season_meteo_anomalies.txt'), 'wb') as season_a_f:
                             np.save(season_a_f, season_meteo_anomalies)
-                with open(path_smb_function_safran+'season_raw_meteo_anomalies.txt', 'wb') as season_raw_a_f:
+                with open(os.path.join(path_smb_function_safran, 'season_raw_meteo_anomalies.txt'), 'wb') as season_raw_a_f:
                             np.save(season_raw_a_f, season_raw_meteo_anomalies)
-                with open(path_smb_function_safran+'monthly_meteo.txt', 'wb') as mon_f:
+                with open(os.path.join(path_smb_function_safran, 'monthly_meteo.txt'), 'wb') as mon_f:
                             np.save(mon_f, monthly_meteo)
-                with open(path_smb_function_safran+'monthly_meteo_anomalies.txt', 'wb') as mon_a_f:
+                with open(os.path.join(path_smb_function_safran, 'monthly_meteo_anomalies.txt'), 'wb') as mon_a_f:
                             np.save(mon_a_f, monthly_meteo_anomalies)
                         
             

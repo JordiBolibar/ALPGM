@@ -22,12 +22,12 @@ only_final = False
 ######   FILE PATHS    #######
 
 # Folders     
-workspace = str(Path(os.getcwd()).parent) + '\\'
-path_glims = workspace + 'glacier_data\\GLIMS\\' 
+workspace = Path(os.getcwd()).parent
+path_glims = os.path.join(workspace, 'glacier_data', 'GLIMS') 
 path_obs = 'C:\\Jordi\\PhD\\Data\\SMB\\'
-path_smb = workspace + 'glacier_data\\smb\\smb_simulations\\SAFRAN\\1\\all_glaciers_1967_2015\\smb\\'
-path_smb_validation = workspace + 'glacier_data\\smb\\smb_validation\\'
-path_smb_plots = workspace + 'glacier_data\smb\\smb_simulations\\reconstruction_plots\\'
+path_smb = os.path.join(workspace, 'glacier_data', 'smb', 'smb_simulations', 'SAFRAN', '1', 'all_glaciers_1967_2015', 'smb')
+path_smb_validation = os.path.join(workspace, 'glacier_data', 'smb', 'smb_validation')
+path_smb_plots = os.path.join(workspace, 'glacier_data', 'smb', 'smb_simulations', 'reconstruction_plots')
 
 #######################    FUNCTIONS    ##########################################################
 
@@ -69,7 +69,7 @@ def plot_and_save(glacier_info, glacier_annual_obs, glacier_annual_reconstructio
     plt.plot(range(2001, 2016), glacier_annual_reconstructions, label="Reconstructions")
     plt.legend()
     
-    fig.savefig(path_obs + 'obs_reconstructions_comparison\\' + str(glacier_info['name']) + '_2000_2015_Davaze_et_al_ALPGM_SMB_comparison.png')
+    fig.savefig(os.path.join(path_obs, 'obs_reconstructions_comparison', str(glacier_info['name']) + '_2000_2015_Davaze_et_al_ALPGM_SMB_comparison.png'))
     
     plt.close()
 
@@ -85,7 +85,7 @@ def plot_and_save(glacier_info, glacier_annual_obs, glacier_annual_reconstructio
 if(not only_final):
 
     # Open the remote sensing glacier observations for the European Alps (Davaze et al., in review)
-    SMB_rs_european_alps = genfromtxt(path_obs + 'MB_remote_sensing_Davaze_et_al_French_Alps.csv', delimiter=';', skip_header=1, dtype=str) 
+    SMB_rs_european_alps = genfromtxt(os.path.join(path_obs, 'MB_remote_sensing_Davaze_et_al_French_Alps.csv'), delimiter=';', skip_header=1, dtype=str) 
     
     # Open the glacier inventory for the French Alps
     glims_2003 = genfromtxt(path_glims + 'GLIMS_2003.csv', delimiter=';', skip_header=1, dtype=[('Area', '<f8'), 
@@ -183,11 +183,11 @@ if(not only_final):
     
 ##### FINAL WHISKERS PLOTS   ###############
     
-raw_SMB_2000_2015 = genfromtxt(path_smb_validation + 'SMB_2000_2015.csv', delimiter=';', skip_header=1,  usecols=range(1,4))
-raw_SMB_2003_2012 = genfromtxt(path_smb_validation + 'SMB_2003_2012.csv', delimiter=';', skip_header=1,  usecols=range(1,5))
+raw_SMB_2000_2015 = genfromtxt(os.path.join(path_smb_validation, 'SMB_2000_2015.csv'), delimiter=';', skip_header=1,  usecols=range(1,4))
+raw_SMB_2003_2012 = genfromtxt(os.path.join(path_smb_validation, 'SMB_2003_2012.csv'), delimiter=';', skip_header=1,  usecols=range(1,5))
 
-SMB_2000_2015 = genfromtxt(path_smb_validation + 'SMB_2000_2015.csv', delimiter=';', dtype=None)
-SMB_2003_2012 = genfromtxt(path_smb_validation + 'SMB_2003_2012.csv', delimiter=';', dtype=None)
+SMB_2000_2015 = genfromtxt(os.path.join(path_smb_validation, 'SMB_2000_2015.csv'), delimiter=';', dtype=None)
+SMB_2003_2012 = genfromtxt(os.path.join(path_smb_validation, 'SMB_2003_2012.csv'), delimiter=';', dtype=None)
 
 uncertainties_2000_2015 = np.array([0.27, 0.4, 0.55])
 uncertainties_2003_2012 = np.array([0.27, 0.4, 0.55, 0.2])
@@ -238,8 +238,8 @@ axs1.format(
 )
 
 # Save plots
-f1.savefig(path_smb_plots + "pdf\\SMB_bias_2000_2015.pdf", format='pdf')
-f1.savefig(path_smb_plots + "png\\SMB_bias_2000_2015.png", format='png')
+f1.savefig(os.path.join(path_smb_plots, "pdf", "SMB_bias_2000_2015.pdf"), format='pdf')
+f1.savefig(os.path.join(path_smb_plots, "png", "SMB_bias_2000_2015.png"), format='png')
 
 ###########  2003 - 2012  ####################
 
@@ -283,12 +283,12 @@ axs2.format(
 
 
 # Save plots
-f2.savefig(path_smb_plots + "pdf\\SMB_bias_2003_2012.pdf", format='pdf')
-f2.savefig(path_smb_plots + "png\\SMB_bias_2003_2012.png", format='png')
+f2.savefig(os.path.join(path_smb_plots, "pdf", "SMB_bias_2003_2012.pdf"), format='pdf')
+f2.savefig(os.path.join(path_smb_plots, "png", "SMB_bias_2003_2012.png"), format='png')
 
 # Open pdf plot
-subprocess.Popen(path_smb_plots + "pdf\\SMB_bias_2000_2015.pdf", shell=True)
-subprocess.Popen(path_smb_plots + "pdf\\SMB_bias_2003_2012.pdf", shell=True)
+subprocess.Popen(os.path.join(path_smb_plots, "pdf", "SMB_bias_2000_2015.pdf"), shell=True)
+subprocess.Popen(os.path.join(path_smb_plots, "pdf", "SMB_bias_2003_2012.pdf"), shell=True)
 
 #plt.show()
 

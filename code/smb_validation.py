@@ -48,24 +48,24 @@ cv = 'LOGO\\'
 # Folders     
 #workspace = 'C:\\Jordi\\PhD\\Python\\'
 workspace = Path(os.getcwd()).parent 
-root = str(workspace.parent) + '\\'
-workspace = str(workspace) + '\\'
-path_smb = workspace + 'glacier_data\\smb\\'
-path_smb_validations = path_smb + 'smb_simulations\\validation\\'
-path_smb_function = path_smb + 'smb_function\\' + cv
-path_smb_simulations = path_smb + 'smb_simulations\\'
-path_glims = workspace + 'glacier_data\\GLIMS\\' 
-path_glacier_coordinates = workspace + 'glacier_data\\glacier_coordinates\\' 
-path_smb_function_safran = path_smb + 'smb_function\\SAFRAN\\'
-path_smb_all_glaciers = path_smb + 'smb_simulations\\SAFRAN\\1\\all_glaciers_1967_2015\\'
-path_smb_all_glaciers_smb = path_smb + 'smb_simulations\\SAFRAN\\1\\all_glaciers_1967_2015\\smb\\'
-path_smb_all_ensemble_smb = path_smb + 'smb_simulations\\SAFRAN\\1\\all_glaciers_1967_2015\\ensemble_smb\\'
-path_smb_all_glaciers_area = path_smb + 'smb_simulations\\SAFRAN\\1\\all_glaciers_1967_2015\\area\\'
-path_smb_all_glaciers_slope = path_smb + 'smb_simulations\\SAFRAN\\1\\all_glaciers_1967_2015\\slope\\'
-path_training_data = workspace + 'glacier_data\\glacier_evolution\\training\\'
-path_training_glacier_info = path_training_data + 'glacier_info\\'
+root = workspace.parent
+#workspace = str(workspace) + '\\'
+path_smb = os.path.join(workspace, 'glacier_data', 'smb')
+path_smb_validations = os.path.join(path_smb, 'smb_simulations', 'validation')
+path_smb_function = os.path.join(path_smb, 'smb_function', cv)
+path_smb_simulations = os.path.join(path_smb, 'smb_simulations')
+path_glims = os.path.join(workspace, 'glacier_data', 'GLIMS') 
+path_glacier_coordinates = os.path.join(workspace, 'glacier_data', 'glacier_coordinates') 
+path_smb_function_safran = os.path.join(path_smb, 'smb_function', 'SAFRAN')
+path_smb_all_glaciers = os.path.join(path_smb, 'smb_simulations', 'SAFRAN', '1', 'all_glaciers_1967_2015')
+path_smb_all_glaciers_smb = os.path.join(path_smb, 'smb_simulations', 'SAFRAN', '1', 'all_glaciers_1967_2015', 'smb')
+path_smb_all_ensemble_smb = os.path.join(path_smb, 'smb_simulations', 'SAFRAN', '1', 'all_glaciers_1967_2015', 'ensemble_smb')
+path_smb_all_glaciers_area = os.path.join(path_smb, 'smb_simulations', 'SAFRAN', '1', 'all_glaciers_1967_2015', 'area')
+path_smb_all_glaciers_slope = os.path.join(path_smb, 'smb_simulations', 'SAFRAN', '1', 'all_glaciers_1967_2015', 'slope')
+path_training_data = os.path.join(workspace, 'glacier_data', 'glacier_evolution', 'training')
+path_training_glacier_info = os.path.join(path_training_data, 'glacier_info')
 global path_slope20
-path_slope20 = workspace + 'glacier_data\\glacier_evolution\\glacier_slope20\\SAFRAN\\1\\'
+path_slope20 = os.path.join(workspace, 'glacier_data', 'glacier_evolution', 'glacier_slope20', 'SAFRAN', '1')
 
 ######     FUNCTIONS     ######
 
@@ -104,7 +104,7 @@ def find_nearest(array,value):
 def store_glacier_info(glacier_info, path):
     if not os.path.exists(path):
         os.makedirs(path)
-    path = path + 'glacier_info_' + str(glacier_info['glimsID'])
+    path = os.path.join(path, 'glacier_info_' + str(glacier_info['glimsID']))
     with open(path, 'wb') as glacier_info_f:
         np.save(glacier_info_f, glacier_info)
 #        print("File saved: " + str(path))
@@ -201,14 +201,14 @@ def get_slope20(glims_glacier):
     # Load the file
     if(str(glacier_name[-1]).isdigit() and str(glacier_name[-1]) != '1'):
         appendix = str(glacier_name[-1])
-        if(os.path.isfile(path_slope20 + glimsID + '_' + appendix + '_slope20.csv')):
-            slope20_array = genfromtxt(path_slope20 + glimsID + '_' + appendix + '_slope20.csv', delimiter=';', dtype=np.dtype('float32'))
-        elif(os.path.isfile(path_slope20 + glimsID + '_slope20.csv')):
-            slope20_array = genfromtxt(path_slope20 + glimsID + '_slope20.csv', delimiter=';', dtype=np.dtype('float32'))
+        if(os.path.isfile(os.path.join(path_slope20, glimsID + '_' + appendix + '_slope20.csv'))):
+            slope20_array = genfromtxt(os.path.join(path_slope20, glimsID + '_' + appendix + '_slope20.csv'), delimiter=';', dtype=np.dtype('float32'))
+        elif(os.path.isfile(os.path.join(path_slope20, glimsID + '_slope20.csv'))):
+            slope20_array = genfromtxt(os.path.join(path_slope20, glimsID + '_slope20.csv'), delimiter=';', dtype=np.dtype('float32'))
         else:
             slope20_array = np.array([])
-    elif(os.path.isfile(path_slope20 + glimsID + '_slope20.csv')):
-        slope20_array = genfromtxt(path_slope20 + glimsID + '_slope20.csv', delimiter=';', dtype=np.dtype('float32'))
+    elif(os.path.isfile(os.path.join(path_slope20, glimsID + '_slope20.csv'))):
+        slope20_array = genfromtxt(os.path.join(path_slope20, glimsID + '_slope20.csv'), delimiter=';', dtype=np.dtype('float32'))
     else:
         slope20_array = np.array([])
     ### Retrieve the 20% slope
@@ -316,7 +316,7 @@ def find_glacier_coordinates(massif_number, zs, aspects, glims_data):
 
 def get_SAFRAN_glacier_coordinates(glims_dataset):
      # We read the first year to get some basic information
-    dummy_SAFRAN_forcing = Dataset(path_safran_forcings + '84\\FORCING.nc')
+    dummy_SAFRAN_forcing = Dataset(os.path.join(path_safran_forcings, '84', 'FORCING.nc'))
     
     aspects = dummy_SAFRAN_forcing.variables['aspect'][:]
     zs = dummy_SAFRAN_forcing.variables['ZS'][:]
@@ -332,11 +332,11 @@ def get_default_SAFRAN_forcings(year_start, year_end):
     year_start_f = 1959
     year_end_f = 2015
     
-    path_temps = path_smb_function_safran +'daily_temps_years_' + str(year_start_f) + '-' + str(year_end_f) + '.txt'
-    path_snow = path_smb_function_safran +'daily_snow_years_' + str(year_start_f) + '-' + str(year_end_f) + '.txt'
-    path_rain = path_smb_function_safran +'daily_rain_years_' + str(year_start_f) + '-' + str(year_end_f) + '.txt'
-    path_dates = path_smb_function_safran +'daily_dates_years_' + str(year_start) + '-' + str(year_end) + '.txt'
-    path_zs = path_smb_function_safran +'zs_years' + str(year_start_f) + '-' + str(year_end_f) + '.txt'
+    path_temps = os.path.join(path_smb_function_safran, 'daily_temps_years_' + str(year_start_f) + '-' + str(year_end_f) + '.txt')
+    path_snow = os.path.join(path_smb_function_safran, 'daily_snow_years_' + str(year_start_f) + '-' + str(year_end_f) + '.txt')
+    path_rain = os.path.join(path_smb_function_safran, 'daily_rain_years_' + str(year_start_f) + '-' + str(year_end_f) + '.txt')
+    path_dates = os.path.join(path_smb_function_safran, 'daily_dates_years_' + str(year_start) + '-' + str(year_end) + '.txt')
+    path_zs = os.path.join(path_smb_function_safran, 'zs_years' + str(year_start_f) + '-' + str(year_end_f) + '.txt')
     
     if(os.path.exists(path_temps) & os.path.exists(path_snow) & os.path.exists(path_rain) & os.path.exists(path_dates) & os.path.exists(path_zs)):
         print("Fetching SAFRAN forcings...")
@@ -427,23 +427,23 @@ def main(compute, reconstruct):
         
         if(reconstruct):
             # TODO: this doesn't do anything
-            path_ann = path_smb + 'ANN\\LOGO\\'
-            path_cv_ann = path_ann + 'CV\\'
+            path_ann = os.path.join(path_smb, 'ANN', 'LOGO')
+            path_cv_ann = os.path.join(path_ann, 'CV')
         else:
             # Set LOGO for model validation
             if(settings.smb_model_type == 'ann_no_weights'):
-                path_ann = path_smb + 'ANN\\LOGO\\'
-                path_cv_ann = path_ann + 'CV\\'
+                path_ann = os.path.join(path_smb, 'ANN', 'LOGO')
+                path_cv_ann = os.path.join(path_ann, 'CV')
             elif(settings.smb_model_type == 'ann_weights'):
-                path_ann = path_smb + 'ANN\\LOGO\\weights\\'
-                path_cv_ann = path_ann + 'CV\\'
+                path_ann = os.path.join(path_smb, 'ANN', 'LOGO', 'weights')
+                path_cv_ann = os.path.join(path_ann, 'CV')
         
         # Close all previous open plots in the workflow
         plt.close('all')
             
         # We read the SMB from the csv file
-        SMB_raw = genfromtxt(path_smb + 'SMB_raw_extended.csv', delimiter=';', dtype=float)
-        SMB_uncertainties = genfromtxt(path_glacier_coordinates + 'glaciers_rabatel_uncertainties.csv', delimiter=';', dtype=float)
+        SMB_raw = genfromtxt(os.path.join(path_smb, 'SMB_raw_extended.csv'), delimiter=';', dtype=float)
+        SMB_uncertainties = genfromtxt(os.path.join(path_glacier_coordinates, 'glaciers_rabatel_uncertainties.csv'), delimiter=';', dtype=float)
         
         ### We detect the forcing between SPAZM, SAFRAN or ADAMONT
         if(settings.simulation_type == "future"):
@@ -452,26 +452,26 @@ def main(compute, reconstruct):
             forcing = settings.historical_forcing
             
         # We determine the path depending on the forcing
-        path_smb_function_forcing = path_smb + 'smb_function\\' + forcing + "\\"
+        path_smb_function_forcing = os.path.join(path_smb, 'smb_function', forcing)
         
         #### GLIMS data for 1985, 2003 and 2015
-        glims_2015 = genfromtxt(path_glims + 'GLIMS_2015.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('GLIMS_ID', '<a50')])
-        glims_2003 = genfromtxt(path_glims + 'GLIMS_2003.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('GLIMS_ID', '<a50'), ('Massif_SAFRAN', '<i8'), ('Aspect_num', '<i8'), ('ID', '<i8')])
-        glims_1985 = genfromtxt(path_glims + 'GLIMS_1985.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('GLIMS_ID', '<a50')])
-        glims_1967 = genfromtxt(path_glims + 'GLIMS_1967-71.csv', delimiter=';', skip_header=1,  dtype=[('Glacier', '<a50'), ('Latitude', '<f8'), ('Longitude', '<f8'), ('Massif', '<a50'),  ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('Year', '<f8'), ('Perimeter', '<f8'), ('Area', '<f8'),  ('Code_WGI', '<a50'), ('Length', '<f8'), ('MEAN_Pixel', '<f8'), ('Slope', '<f8'), ('Aspect', '<a50'), ('Code', '<a50'), ('BV', '<a50'), ('GLIMS_ID', '<a50')])
+        glims_2015 = genfromtxt(os.path.join(path_glims, 'GLIMS_2015.csv'), delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('GLIMS_ID', '<a50')])
+        glims_2003 = genfromtxt(os.path.join(path_glims, 'GLIMS_2003.csv'), delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('GLIMS_ID', '<a50'), ('Massif_SAFRAN', '<i8'), ('Aspect_num', '<i8'), ('ID', '<i8')])
+        glims_1985 = genfromtxt(os.path.join(path_glims, 'GLIMS_1985.csv'), delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('GLIMS_ID', '<a50')])
+        glims_1967 = genfromtxt(os.path.join(path_glims, 'GLIMS_1967-71.csv'), delimiter=';', skip_header=1,  dtype=[('Glacier', '<a50'), ('Latitude', '<f8'), ('Longitude', '<f8'), ('Massif', '<a50'),  ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('Year', '<f8'), ('Perimeter', '<f8'), ('Area', '<f8'),  ('Code_WGI', '<a50'), ('Length', '<f8'), ('MEAN_Pixel', '<f8'), ('Slope', '<f8'), ('Aspect', '<a50'), ('Code', '<a50'), ('BV', '<a50'), ('GLIMS_ID', '<a50')])
 
         
         ####  GLIMS data for the 30 glaciers with remote sensing SMB data (Rabatel et al. 2016)   ####
-        glims_rabatel = genfromtxt(path_glims + 'GLIMS_Rabatel_30_2015.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('slope20', '<f8'), ('GLIMS_ID', '<a50'), ('Massif_SAFRAN', '<f8'), ('Aspect_num', '<f8'), ('slope20_evo', '<f8')])        
+        glims_rabatel = genfromtxt(os.path.join(path_glims, 'GLIMS_Rabatel_30_2015.csv'), delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('slope20', '<f8'), ('GLIMS_ID', '<a50'), ('Massif_SAFRAN', '<f8'), ('Aspect_num', '<f8'), ('slope20_evo', '<f8')])        
         
-        best_models = genfromtxt(path_smb + 'chosen_models_3_5.csv', delimiter=';', skip_header=1, dtype=None) 
+        best_models = genfromtxt(os.path.join(path_smb, 'chosen_models_3_5.csv'), delimiter=';', skip_header=1, dtype=None) 
         
         # We open all the files with the data to be modelled
         
         # Use latin1 encoding to avoid incompatibities between Python 2 and 3
-        with open(path_smb+'smb_function\\full_scaler_spatial.txt', 'rb') as full_scaler_f:
+        with open(os.path.join(path_smb, 'smb_function, full_scaler_spatial.txt'), 'rb') as full_scaler_f:
             full_scaler = np.load(full_scaler_f,  allow_pickle=True)[()]                 
-        with open(path_smb_function+'lasso_logo_models.txt', 'rb') as lasso_logos_f:
+        with open(os.path.join(path_smb_function, 'lasso_logo_models.txt'), 'rb') as lasso_logos_f:
             lasso_logo_models = np.load(lasso_logos_f,  allow_pickle=True)
             
         # We load the climate forcings
@@ -479,27 +479,27 @@ def main(compute, reconstruct):
         # We load the compacted seasonal and monthly meteo forcings
 #        with open(path_smb_function_forcing+'season_meteo_SMB.txt', 'rb') as season_f:
 #            season_meteo_SMB = np.load(season_f,  allow_pickle=True)
-        with open(path_smb_function_forcing+'season_meteo_anomalies_SMB.txt', 'rb') as season_a_f:
+        with open(os.path.join(path_smb_function_forcing, 'season_meteo_anomalies_SMB.txt'), 'rb') as season_a_f:
             season_meteo_anomalies_SMB = np.load(season_a_f,  allow_pickle=True)[()]
 #        with open(path_smb_function_forcing+'season_raw_meteo_anomalies_SMB.txt', 'rb') as season_raw_a_f:
 #            season_raw_meteo_anomalies_SMB = np.load(season_raw_a_f)
 #        with open(path_smb_function_forcing+'monthly_meteo_SMB.txt', 'rb') as mon_f:
 #            monthly_meteo_SMB = np.load(mon_f,  allow_pickle=True)
-        with open(path_smb_function_forcing+'monthly_meteo_anomalies_SMB.txt', 'rb') as mon_a_f:
+        with open(os.path.join(path_smb_function_forcing, 'monthly_meteo_anomalies_SMB.txt'), 'rb') as mon_a_f:
             monthly_meteo_anomalies_SMB = np.load(mon_a_f, allow_pickle=True)[()]
             
         # Meteo data for all the glaciers
-        with open(path_smb_function_forcing+'season_meteo.txt', 'rb') as season_f:
+        with open(os.path.join(path_smb_function_forcing, 'season_meteo.txt'), 'rb') as season_f:
             season_meteo = np.load(season_f,  allow_pickle=True)
-        with open(path_smb_function_forcing+'monthly_meteo.txt', 'rb') as mon_f:
+        with open(os.path.join(path_smb_function_forcing, 'monthly_meteo.txt'), 'rb') as mon_f:
             monthly_meteo = np.load(mon_f,  allow_pickle=True)
             
         # We retrieve all the SAFRAN glacier coordinates
-        with open(path_smb_function_forcing+'all_glacier_coordinates.txt', 'rb') as coords_f:
+        with open(os.path.join(path_smb_function_forcing, 'all_glacier_coordinates.txt'), 'rb') as coords_f:
             all_glacier_coordinates = np.load(coords_f,  allow_pickle=True)
             
         # CV model RMSE to compute the dynamic ensemble weights
-        with open(settings.path_ann +'RMSE_per_fold.txt', 'rb') as rmse_f:
+        with open(os.path.join(settings.path_ann, 'RMSE_per_fold.txt'), 'rb') as rmse_f:
             CV_RMSE = np.load(rmse_f,  allow_pickle=True)
             
         # We extract the simulation interval in years
@@ -609,7 +609,7 @@ def main(compute, reconstruct):
                         # We store all the ensemble predictions of SMB
                         if not os.path.exists(path_smb_all_ensemble_smb):
                             os.makedirs(path_smb_all_ensemble_smb)
-                        file_name_h = path_smb_all_ensemble_smb + str(combined_ID) + '_'
+                        file_name_h = os.path.join(path_smb_all_ensemble_smb, str(combined_ID) + '_')
                         file_name_t = 'ensemble_SMB.txt'
                         automatic_file_name_save(file_name_h, file_name_t, SMB_ensemble, 'txt')
                         
@@ -619,7 +619,7 @@ def main(compute, reconstruct):
                 
                 # We store the cumulative glacier-wide SMB of all the glaciers in the French Alps
                 cumulative_smb_glaciers = np.asarray(cumulative_smb_glaciers)
-                store_smb_data(path_smb_all_glaciers + 'cumulative_smb_all_glaciers.csv', cumulative_smb_glaciers)
+                store_smb_data(os.path.join(path_smb_all_glaciers, 'cumulative_smb_all_glaciers.csv'), cumulative_smb_glaciers)
                 
             else:
                 #### SMB validation of the 32 glaciers with training data  ####
@@ -628,9 +628,9 @@ def main(compute, reconstruct):
                 SMB_all = copy.deepcopy(SMB_raw)
                 
                 # We remove all previous simulations
-                empty_folder(path_training_data + 'glacier_info\\')
-                empty_folder(path_training_data + 'slope20\\')
-                empty_folder(path_training_data + 'SMB\\')
+                empty_folder(os.path.join(path_training_data, 'glacier_info'))
+                empty_folder(os.path.join(path_training_data, 'slope20'))
+                empty_folder(os.path.join(path_training_data, 'SMB'))
                  
                 # We split the sample weights in order to iterate them in the main loop
                 SMB_flat = SMB_raw.flatten()
@@ -680,7 +680,7 @@ def main(compute, reconstruct):
         
                         # We retrie de CV ANN model
                         glacier_idx = np.where(glimsID.encode('ascii') == glims_rabatel['GLIMS_ID'])[0][0]
-                        cv_ann_model = load_model(path_cv_ann + 'glacier_' + str(glacier_idx+1) + '_model.h5', custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error})
+                        cv_ann_model = load_model(os.path.join(path_cv_ann, 'glacier_' + str(glacier_idx+1) + '_model.h5'), custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error})
                         
                         glacier_mean_altitude = interpolate_glims_variable('MEAN_Pixel', glims_glacier, glims_2003, glims_1985)
                         glacier_area = interpolate_glims_variable('Area', glims_glacier, glims_2003, glims_1985)
@@ -758,12 +758,12 @@ def main(compute, reconstruct):
                         print("\nStoring data...")
                         # We store the simulated SMB 
                          
-                        store_file(SMB_nn, path_training_data, "SMB\\", "SMB", glimsID, start_ref, end_ref+1)
-                        store_glacier_info(glacier_info, path_training_data + 'glacier_info\\')
+                        store_file(SMB_nn, path_training_data, "SMB", "SMB", glimsID, start_ref, end_ref+1)
+                        store_glacier_info(glacier_info, os.path.join(path_training_data, 'glacier_info'))
                         
                         glacier_slope = np.repeat(x_reg_nn[0][5], end_ref+1-start_ref)
 #                        import pdb; pdb.set_trace()
-                        store_file(glacier_slope, path_training_data, "slope20\\", "Slope_20", glimsID, start_ref, end_ref+1)
+                        store_file(glacier_slope, path_training_data, "slope20", "Slope_20", glimsID, start_ref, end_ref+1)
                         
                         glacier_idx = glacier_idx+1
             
@@ -778,13 +778,13 @@ def main(compute, reconstruct):
                     np.save(smb_f, SMB_all_glaciers)
                     
                 for glacier in SMB_all_glaciers:
-                    store_smb_data(path_smb + 'smb_validation\\' + glacier['Glacier'] + '.csv', glacier['SMB'])
+                    store_smb_data(os.path.join(path_smb, 'smb_validation', glacier['Glacier'] + '.csv'), glacier['SMB'])
                     
                 import pdb; pdb.set_trace()
                 
                 print("\nGathering all plots in a pdf file... ")
                 try:
-                    pdf_plots = path_smb_function_forcing + "SMB_lasso_ANN_SMB_simulations.pdf"
+                    pdf_plots = os.path.join(path_smb_function_forcing, "SMB_lasso_ANN_SMB_simulations.pdf")
                     pdf = matplotlib.backends.backend_pdf.PdfPages(pdf_plots)
                     for fig in range(1, nfigure+1): 
                         pdf.savefig( fig )

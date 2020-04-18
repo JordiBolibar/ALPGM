@@ -21,14 +21,14 @@ import glacier_evolution
 
 from pathlib import Path
 
-workspace = str(Path(os.getcwd()).parent) + '\\'
+workspace = str(Path(os.getcwd()).parent)
 
 #path_adamont = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\FORCING_ADAMONT_IGE_BERGER\\normal\\'
 #path_adamont = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\FORCING_ADAMONT_IGE_BERGER\\INERIS\\'
 #path_adamont = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\FORCING_ADAMONT_IGE_BERGER\\HIRHAM5\\'
 #path_adamont = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\FORCING_ADAMONT_IGE_BERGER\\projections\\'
 #path_adamont = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\FORCING_ADAMONT_IGE_BERGER\\subset_AGU\\projections\\'
-path_smb = workspace + 'glacier_data\\smb\\'
+path_smb = os.path.join(workspace, 'glacier_data', 'smb')
 
 def init(hist_forcing, proj_forcing, simu_type, smb_model, cluster):
     print("Applying settings...")
@@ -59,16 +59,16 @@ def init(hist_forcing, proj_forcing, simu_type, smb_model, cluster):
     global path_ensemble_ann
     global smb_model_type
     if(smb_model == 'ann_no_weights'):
-        path_ann = path_smb + 'ANN\\LSYGO\\'
+        path_ann = os.path.join(path_smb, 'ANN', 'LSYGO')
 #        path_ann = path_smb + 'ANN\\LOGO\\'
 #        path_ann = path_smb + 'ANN\\LOYO\\'
-        path_cv_ann = path_ann + 'CV\\'
-        path_ensemble_ann = path_ann + 'ensemble\\'
+        path_cv_ann = os.path.join(path_ann, 'CV')
+        path_ensemble_ann = os.path.join(path_ann, 'ensemble')
         smb_model_type = smb_model
     elif(smb_model == 'ann_weights'):
-        path_ann = path_smb + 'ANN\\LSYGO\\weights\\'
-        path_cv_ann = path_ann + 'CV\\'
-        path_ensemble_ann = path_ann + 'ensemble\\'
+        path_ann = os.path.join(path_smb, 'ANN', 'LSYGO', 'weights')
+        path_cv_ann = os.path.join(path_ann, 'CV')
+        path_ensemble_ann = os.path.join(path_ann, 'ensemble')
         smb_model_type = smb_model
     elif(smb_model == 'lasso'):
         smb_model_type = smb_model 
@@ -108,8 +108,8 @@ def adamont_simulation(simulation_type, compute_projection_forcings, compute_evo
             if(forcing_threshold <= counter):
                 current_ADAMONT_model_daymean = str(ADAMONT_proj_filepaths[i])
                 current_ADAMONT_model_daysum = str(ADAMONT_proj_filepaths[i+1])
-                current_ADAMONT_forcing_mean = 'projections\\' + ADAMONT_proj_filepaths[i]
-                current_ADAMONT_forcing_sum =  'projections\\' + ADAMONT_proj_filepaths[i+1]
+                current_ADAMONT_forcing_mean = os.path.join('projections', ADAMONT_proj_filepaths[i])
+                current_ADAMONT_forcing_sum =  os.path.join('projections', ADAMONT_proj_filepaths[i+1])
                 adamont_forcings.main(compute_projection_forcings)
                 glacier_evolution.main(compute_evolution, ensemble_SMB_models, overwrite, use_cluster, counter_threshold, thickness_idx)
             counter = counter+1
