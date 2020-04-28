@@ -392,7 +392,7 @@ year_idx = 0
 glacier_idx = 0
 # TODO: see if block seed
 #np.random.seed(10)
-n_folds = 100
+n_folds = 60
 #n_folds = 15
 random_years = np.random.randint(0, 57, n_folds*4) # Random year idxs
 random_glaciers = np.random.randint(0, 32, n_folds*4) # Random glacier indexes
@@ -410,8 +410,8 @@ idx, i, j = 0, 0, 0
 for i in range(0, y_o.shape[0]):
     for j in range(0, y_o.shape[1]):
         if(np.isfinite(y_o[i,j])):
-            if(j < 27):
-                p_weights[idx] = p_weights[idx] + 1/2 # Add weight for the 1959-1967
+            if(j < 26):
+                p_weights[idx] = p_weights[idx] + 1/3 # Add weight for the 1959-1967
 #                if(i == y_o.shape[0]-1):
 #                    p_weights[idx] = p_weights[idx] + 1/3 # Add weight for the 1959-1967
 #                else:
@@ -421,7 +421,8 @@ for i in range(0, y_o.shape[0]):
             idx=idx+1
 
 #p_weights = np.where(y_o[y_not_nan] > 0, p_weights + p_weights.max()/4, p_weights)
-            
+   
+avg_sampled_smb = []         
 for fold in range(1, n_folds+1):
     test_matrix, train_matrix = np.zeros((32, 57), dtype=np.int8), np.ones((32, 57), dtype=np.int8)
     
@@ -440,6 +441,7 @@ for fold in range(1, n_folds+1):
     print("\nChosen glacier: " + str(glacier_idx))
     print("Chosen year: " + str(year_idx))
     print("SMB: " + str(y_o[glacier_idx,year_idx]))
+    avg_sampled_smb = np.concatenate((avg_sampled_smb, np.concatenate((y_o[glacier_idx,:], y_o[:,year_idx]))))
     
     # Make sure Sarennes and Saint Sorlin appear in the folds
 #    if(fold >= 1 and fold < 5):
@@ -510,6 +512,8 @@ for fold in range(1, n_folds+1):
 
 # We capture the mask from the SMB data to remove the nan gaps  
 finite_mask = np.isfinite(y)
+
+print("\nAverage sampled SMB LSYGO: " + str(np.nanmean(avg_sampled_smb)))
 
 X = X[finite_mask,:]
 y = y[finite_mask]
@@ -954,7 +958,7 @@ else:
     
     # We create N models in an ensemble approach to be averaged
     if(final_model):
-        ensemble_size = 30
+        ensemble_size = 50
         path_ann_ensemble = os.path.join(path_ann, 'ensemble')
         average_overall_score, average_pos_rmse, average_neg_rmse, average_bias = [],[],[],[]
         
@@ -1014,7 +1018,7 @@ else:
             print("\nFull model score: " + str(full_original_score))
             print("\nFull model bias: " + str(overall_bias))
             
-            if(pos_rmse < 0.75 and neg_rmse < 0.75 and np.abs(overall_bias) < 0.1):
+            if(pos_rmse < 0.35 and neg_rmse < 0.4 and np.abs(overall_bias) < 0.1):
                 average_overall_score.append(full_original_score[0])
                 average_pos_rmse.append(pos_rmse)
                 average_neg_rmse.append(neg_rmse)
