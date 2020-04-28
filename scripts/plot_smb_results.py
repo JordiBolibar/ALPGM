@@ -23,8 +23,8 @@ from scipy import stats
 #import seaborn as sns
 
 ######   FLAGS    ############
-#n_cv_members = 60 # LSYGO
-n_cv_members = 100 # LSYGO
+n_cv_members = 60 # LSYGO
+#n_cv_members = 100 # LSYGO
 #n_cv_members = 32 # LOGO
 ### Process Marzeion et al. SMB data ###
 process_marzeion = True

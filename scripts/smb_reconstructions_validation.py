@@ -38,7 +38,7 @@ def retrieve_glacier_reconstructions(glacier_info, glims_2003):
         
         # Retrieve SMB reconstructions
         if(glacier_file[:14] == glacier_info['GLIMS_ID'] and glacier_file[15:19] == glacier_info['RGI_ID']):
-            glacier_SMB_reconstruction = genfromtxt(path_smb + glacier_file, delimiter=';') 
+            glacier_SMB_reconstruction = genfromtxt(os.path.join(path_smb, glacier_file), delimiter=';') 
             
             # Retrieve glacier info from database
             
@@ -88,7 +88,7 @@ if(not only_final):
     SMB_rs_european_alps = genfromtxt(os.path.join(path_obs, 'MB_remote_sensing_Davaze_et_al_French_Alps.csv'), delimiter=';', skip_header=1, dtype=str) 
     
     # Open the glacier inventory for the French Alps
-    glims_2003 = genfromtxt(path_glims + 'GLIMS_2003.csv', delimiter=';', skip_header=1, dtype=[('Area', '<f8'), 
+    glims_2003 = genfromtxt(os.path.join(path_glims, 'GLIMS_2003.csv'), delimiter=';', skip_header=1, dtype=[('Area', '<f8'), 
                          ('Perimeter', '<f8'), ('Glacier', '<U50'), ('Annee', '<i8'), ('Massif', '<U50'), ('MEAN_Pixel', '<f8'), 
                          ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<U50'), 
                          ('x_coord', '<f8'), ('y_coord', '<f8'), ('GLIMS_ID', '<U50'), ('Massif_SAFRAN', '<f8'), ('Aspect_num', '<f8'), ('ID', '<f8')])

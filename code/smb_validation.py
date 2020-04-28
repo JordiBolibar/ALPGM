@@ -469,7 +469,7 @@ def main(compute, reconstruct):
         # We open all the files with the data to be modelled
         
         # Use latin1 encoding to avoid incompatibities between Python 2 and 3
-        with open(os.path.join(path_smb, 'smb_function, full_scaler_spatial.txt'), 'rb') as full_scaler_f:
+        with open(os.path.join(path_smb, 'smb_function', 'full_scaler_spatial.txt'), 'rb') as full_scaler_f:
             full_scaler = np.load(full_scaler_f,  allow_pickle=True)[()]                 
         with open(os.path.join(path_smb_function, 'lasso_logo_models.txt'), 'rb') as lasso_logos_f:
             lasso_logo_models = np.load(lasso_logos_f,  allow_pickle=True)
