@@ -59,7 +59,11 @@ def init(hist_forcing, proj_forcing, simu_type, smb_model, cluster):
     global path_ensemble_ann
     global smb_model_type
     if(smb_model == 'ann_no_weights'):
-        path_ann = os.path.join(path_smb, 'ANN', 'LSYGO')
+        if(simulation_type == 'historical'):
+            path_ann = os.path.join(path_smb, 'ANN', 'LSYGO_soft')
+        elif(simulation_type == 'future'):
+            path_ann = os.path.join(path_smb, 'ANN', 'LSYGO_hard')
+#            path_ann = os.path.join(path_smb, 'ANN', 'LSYGO')
 #        path_ann = path_smb + 'ANN\\LOGO\\'
 #        path_ann = path_smb + 'ANN\\LOYO\\'
         path_cv_ann = os.path.join(path_ann, 'CV')
@@ -106,8 +110,8 @@ def adamont_simulation(simulation_type, compute_projection_forcings, compute_evo
 #        for thickness_idx in range(0,2):
         for i in range(0, ADAMONT_proj_filepaths.size, 2):
             if(forcing_threshold <= counter):
-                current_ADAMONT_model_daymean = str(ADAMONT_proj_filepaths[i])
-                current_ADAMONT_model_daysum = str(ADAMONT_proj_filepaths[i+1])
+                current_ADAMONT_model_daymean = str(os.path.join(path_adamont, ADAMONT_proj_filepaths[i]))
+                current_ADAMONT_model_daysum = str(os.path.join(path_adamont, ADAMONT_proj_filepaths[i+1]))
                 current_ADAMONT_forcing_mean = os.path.join('projections', ADAMONT_proj_filepaths[i])
                 current_ADAMONT_forcing_sum =  os.path.join('projections', ADAMONT_proj_filepaths[i+1])
                 adamont_forcings.main(compute_projection_forcings)

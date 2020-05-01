@@ -151,8 +151,6 @@ if(not only_final):
                 print("\nDavaze et al. (2020) SMB 2003-2012: " + str(glacier_annual_obs[-13:-4]))
                 print("Avg SMB: " + str(np.mean(glacier_annual_obs[-13:-4])))
                 
-                print("\nBolibar et al. (2020) avg SMB 2003-2012: " + str(glacier_annual_reconstructions[-13:-4].mean()))
-                
                 # We plot the comparison and store the individual plots
                 plot_and_save(glacier_info, glacier_annual_obs, glacier_annual_reconstructions, plot_count)
     
@@ -160,6 +158,8 @@ if(not only_final):
                 
             else:
                 glacier_metrics['RMSE'].append([])
+            
+            print("\nBolibar et al. (2020) avg SMB 2003-2012: " + str(glacier_annual_reconstructions[-13:-4].mean()))
                 
             print("\n----------------------------------------------")
                 
@@ -179,7 +179,7 @@ if(not only_final):
     plt.show()
     
                 
-    #import pdb; pdb.set_trace()
+#import pdb; pdb.set_trace()
     
 ##### FINAL WHISKERS PLOTS   ###############
     
@@ -189,8 +189,8 @@ raw_SMB_2003_2012 = genfromtxt(os.path.join(path_smb_validation, 'SMB_2003_2012.
 SMB_2000_2015 = genfromtxt(os.path.join(path_smb_validation, 'SMB_2000_2015.csv'), delimiter=';', dtype=None)
 SMB_2003_2012 = genfromtxt(os.path.join(path_smb_validation, 'SMB_2003_2012.csv'), delimiter=';', dtype=None)
 
-uncertainties_2000_2015 = np.array([0.27, 0.4, 0.55])
-uncertainties_2003_2012 = np.array([0.27, 0.4, 0.55, 0.2])
+uncertainties_2000_2015 = np.array([0.27, 0.16, 0.55])
+uncertainties_2003_2012 = np.array([0.27, 0.55, 0.55, 0.2])
 
 
 #import pdb; pdb.set_trace()
@@ -213,8 +213,7 @@ for glacier in SMB_2000_2015[1:,0]:
 m_colors = np.array(['golden brown', 'sienna', 'slate blue'])
 #e_colors = np.array(['palegreen', 'steelblue', 'wheat'])
 
-
-f1, axs1 = plot.subplots(ncols=4, nrows=3, share=2, tight=True, axwidth=1)
+f1, axs1 = plot.subplots(ncols=4, nrows=4, share=2, tight=True, axwidth=1)
 for idx in range(0, raw_SMB_2000_2015.shape[0]):
     if(raw_SMB_2000_2015[idx,:].size > 0):
         axs1[idx].axhline(y=0, color='black', linewidth=0.5, linestyle='-', zorder=0)
@@ -227,9 +226,9 @@ for idx in range(0, raw_SMB_2000_2015.shape[0]):
 #import pdb; pdb.set_trace()
     
 axs1.format(
-    suptitle='2000-2015 annual glacier-wide SMB bias',
+    suptitle='2000-2015 annual glacier-wide SMB',
     abc=True, abcstyle='a', abcloc='ul', abcborder=True,
-    ylabel='Bias (m w.e. $a^{-1}$)',
+    ylabel='Glacier-wide SMB (m w.e. $a^{-1}$)',
 #    xlim=(1, 10), xticks=1,
     ylim=(-2.5, 0.25), yticks=plot.arange(-2.5, 0.25), 
 #    xtickdir='inout', xtickminor=False,
@@ -271,9 +270,9 @@ for idx in range(0, raw_SMB_2003_2012.shape[0]):
 #import pdb; pdb.set_trace()
     
 axs2.format(
-    suptitle='2003-2012 annual glacier-wide SMB bias',
+    suptitle='2003-2012 glacier-wide SMB',
     abc=True, abcstyle='a', abcloc='ul', abcborder=True,
-    ylabel='Bias (m w.e. $a^{-1}$)',
+    ylabel='Glacier-wide SMB (m w.e. $a^{-1}$)',
 #    xlim=(1, 10), xticks=1,
     ylim=(-2.75, 0.25), yticks=plot.arange(-2.75, 0.25), 
 #    xtickdir='inout', xtickminor=False,
@@ -292,7 +291,7 @@ subprocess.Popen(os.path.join(path_smb_plots, "pdf", "SMB_bias_2003_2012.pdf"), 
 
 #plt.show()
 
-import pdb; pdb.set_trace()
+#import pdb; pdb.set_trace()
 
 
 

@@ -67,9 +67,10 @@ path_ann_LSYGO_past = os.path.join(path_smb, 'ANN', 'LSYGO_past')
 #  Training with or without weights  #
 w_weights = False
 #cross_validation = "LOGO"
-#cross_validation = "LOYO"
-cross_validation = "LSYGO"
+cross_validation = "LOYO"
+#cross_validation = "LSYGO"
 #cross_validation = "LSYGO_past"
+lsygo_soft = False
 #######  Flag to switch between training with a         ###############
 #######  single group of glaciers or cross-validation   ###############
 training = False
@@ -285,13 +286,13 @@ def create_lsygo_model(n_features, final):
         model.add(Dense(40, kernel_initializer='he_normal'))
         model.add(BatchNormalization())
         model.add(LeakyReLU(alpha=0.05))
-        model.add(Dropout(0.35))
+        model.add(Dropout(0.30))
     #    model.add(Dropout(0.1))
         
         model.add(Dense(20, kernel_initializer='he_normal'))
         model.add(BatchNormalization()) 
         model.add(LeakyReLU(alpha=0.05))
-        model.add(Dropout(0.25))
+        model.add(Dropout(0.20))
     #    model.add(Dropout(0.1))
         
         model.add(Dense(10, kernel_initializer='he_normal'))
@@ -390,21 +391,17 @@ lsygo_test_matrixes, lsygo_train_matrixes = [],[]
 # LSYGO folds
 year_idx = 0
 glacier_idx = 0
-# TODO: see if block seed
 #np.random.seed(10)
-n_folds = 60
-#n_folds = 15
-random_years = np.random.randint(0, 57, n_folds*4) # Random year idxs
-random_glaciers = np.random.randint(0, 32, n_folds*4) # Random glacier indexes
+#n_folds = 60
+n_folds = 100
+random_years = np.random.randint(0, 57, n_folds*6) # Random year idxs
+random_glaciers = np.random.randint(0, 32, n_folds*6) # Random glacier indexes
 
 y_not_nan = np.isfinite(y_o)
 y_is_nan = np.isnan(y_o)
 
-#p_weights = compute_sample_weight(class_weight='balanced', y=y_o[y_not_nan])
+### Weighted bagging ########
 p_weights = np.ones(y_o[y_not_nan].shape)
-
-# We balance the positive SMB in the sample
-#diff = (y_o[y_not_nan].max() - y_o[y_not_nan].min())/y_o[y_not_nan].mean()
 
 idx, i, j = 0, 0, 0
 for i in range(0, y_o.shape[0]):
@@ -412,108 +409,105 @@ for i in range(0, y_o.shape[0]):
         if(np.isfinite(y_o[i,j])):
             if(j < 26):
                 p_weights[idx] = p_weights[idx] + 1/3 # Add weight for the 1959-1967
-#                if(i == y_o.shape[0]-1):
-#                    p_weights[idx] = p_weights[idx] + 1/3 # Add weight for the 1959-1967
-#                else:
-#                    p_weights[idx] = p_weights[idx] + 1/2 # Add weight for the 1959-1967
-                # Accounting for 33% of the time period
-#            print("counter = " + str(idx))
             idx=idx+1
 
-#p_weights = np.where(y_o[y_not_nan] > 0, p_weights + p_weights.max()/4, p_weights)
-   
-avg_sampled_smb = []         
+avg_sampled_smb = []    
+#############################
+     
 for fold in range(1, n_folds+1):
     test_matrix, train_matrix = np.zeros((32, 57), dtype=np.int8), np.ones((32, 57), dtype=np.int8)
     
-    choice = weighted_choice(np.asarray(range(0,1048)), p_weights)
+    if(lsygo_soft):
+        ##################  Soft LSYGO   ###################################
+        choice = weighted_choice(np.asarray(range(0,1048)), p_weights)
+        
+        # Weighted bagging 
+        idx, i, j = 0, 0, 0
+        for i in range(0, y_o.shape[0]):
+            for j in range(0, y_o.shape[1]):
+                if(np.isfinite(y_o[i,j])):
+                    if(choice == idx):
+                        glacier_idx = i
+                        year_idx = j
+        #            print("counter = " + str(idx))
+                    idx=idx+1
+        
+        print("\nChosen glacier: " + str(glacier_idx))
+        print("Chosen year: " + str(year_idx))
+        print("SMB: " + str(y_o[glacier_idx,year_idx]))
+        avg_sampled_smb = np.concatenate((avg_sampled_smb, np.concatenate((y_o[glacier_idx,:], y_o[:,year_idx]))))
+        
+        # Fill test matrix
+        test_matrix[glacier_idx, :] = 1
+        # Fill train matrix
+        train_matrix[glacier_idx, :] = 0
+        
+        # Fill test matrix
+        test_matrix[:, year_idx] = 1
+        
+        # Fill train matrix
+        train_matrix[:, year_idx] = 0
     
-    idx, i, j = 0, 0, 0
-    for i in range(0, y_o.shape[0]):
-        for j in range(0, y_o.shape[1]):
-            if(np.isfinite(y_o[i,j])):
-                if(choice == idx):
-                    glacier_idx = i
-                    year_idx = j
-    #            print("counter = " + str(idx))
-                idx=idx+1
+    else:
+        ############  Hard LSYGO   ##########################################
+        
+#        print("\nglacier_idx: " + str(glacier_idx))
+#        print("year_idx: " + str(year_idx))
+#        print("random_glaciers[glacier_idx]: " + str(random_glaciers[glacier_idx]))
+#        print("random_years[year_idx]: " + str(random_years[year_idx]))
+        
+        # Fill test matrix
+        # 1
+        test_matrix[random_glaciers[glacier_idx], random_years[year_idx]] = 1
+        test_matrix[random_glaciers[glacier_idx], random_years[year_idx+1]] = 1
+        test_matrix[random_glaciers[glacier_idx], random_years[year_idx+2]] = 1
+        test_matrix[random_glaciers[glacier_idx], random_years[year_idx+3]] = 1
+        
+        # 2
+        test_matrix[random_glaciers[glacier_idx+1], random_years[year_idx]] = 1
+        test_matrix[random_glaciers[glacier_idx+1], random_years[year_idx+1]] = 1
+        test_matrix[random_glaciers[glacier_idx+1], random_years[year_idx+2]] = 1
+        test_matrix[random_glaciers[glacier_idx+1], random_years[year_idx+3]] = 1
+        
+        # 3
+        test_matrix[random_glaciers[glacier_idx+2], random_years[year_idx]] = 1
+        test_matrix[random_glaciers[glacier_idx+2], random_years[year_idx+1]] = 1
+        test_matrix[random_glaciers[glacier_idx+2], random_years[year_idx+2]] = 1
+        test_matrix[random_glaciers[glacier_idx+2], random_years[year_idx+3]] = 1
+        
+        # 4
+        test_matrix[random_glaciers[glacier_idx+3], random_years[year_idx]] = 1
+        test_matrix[random_glaciers[glacier_idx+3], random_years[year_idx+1]] = 1
+        test_matrix[random_glaciers[glacier_idx+3], random_years[year_idx+2]] = 1
+        test_matrix[random_glaciers[glacier_idx+3], random_years[year_idx+3]] = 1
+        
+        # Fill train matrix
+        train_matrix[random_glaciers[glacier_idx], :] = 0
+        train_matrix[random_glaciers[glacier_idx+1], :] = 0
+        train_matrix[random_glaciers[glacier_idx+2], :] = 0
+        train_matrix[random_glaciers[glacier_idx+3], :] = 0
+        
+        train_matrix[:, random_years[year_idx]] = 0
+        train_matrix[:, random_years[year_idx+1]] = 0
+        train_matrix[:, random_years[year_idx+2]] = 0
+        train_matrix[:, random_years[year_idx+3]] = 0
+        
+        ###########################################################################
     
-    print("\nChosen glacier: " + str(glacier_idx))
-    print("Chosen year: " + str(year_idx))
-    print("SMB: " + str(y_o[glacier_idx,year_idx]))
-    avg_sampled_smb = np.concatenate((avg_sampled_smb, np.concatenate((y_o[glacier_idx,:], y_o[:,year_idx]))))
-    
-    # Make sure Sarennes and Saint Sorlin appear in the folds
-#    if(fold >= 1 and fold < 5):
-#        test_matrix[-1, :] = 1
-#        # Fill train matrix
-#        train_matrix[-1, :] = 0
-#    if(fold >= 1 and fold < 11):
-##        test_matrix[2, :] = 1
-#        test_matrix[:, :27] = 1
-#        # Fill train matrix
-##        train_matrix[2, :] = 0
-#        train_matrix[:, :27] = 0
-##    else:
-    # Fill test matrix
-    test_matrix[glacier_idx, :] = 1
-    # Fill train matrix
-    train_matrix[glacier_idx, :] = 0
-#        
-    
-    # Fill test matrix
-#    test_matrix[random_glaciers[glacier_idx], :] = 1
-#    test_matrix[random_glaciers[glacier_idx+1], :] = 1
-#    if(not(fold >= 1 and fold < 11)):
-    test_matrix[:, year_idx] = 1
-#    test_matrix[:, random_years[year_idx+1]] = 1
-    
-#    # 1
-#    test_matrix[random_glaciers[glacier_idx], random_years[year_idx]] = 1
-#    test_matrix[random_glaciers[glacier_idx], random_years[year_idx+1]] = 1
-#    test_matrix[random_glaciers[glacier_idx], random_years[year_idx+2]] = 1
-#    test_matrix[random_glaciers[glacier_idx], random_years[year_idx+3]] = 1
-#    
-#    # 2
-#    test_matrix[random_glaciers[glacier_idx+1], random_years[year_idx]] = 1
-#    test_matrix[random_glaciers[glacier_idx+1], random_years[year_idx+1]] = 1
-#    test_matrix[random_glaciers[glacier_idx+1], random_years[year_idx+2]] = 1
-#    test_matrix[random_glaciers[glacier_idx+1], random_years[year_idx+3]] = 1
-#    
-#    # 3
-#    test_matrix[random_glaciers[glacier_idx+2], random_years[year_idx]] = 1
-#    test_matrix[random_glaciers[glacier_idx+2], random_years[year_idx+1]] = 1
-#    test_matrix[random_glaciers[glacier_idx+2], random_years[year_idx+2]] = 1
-#    test_matrix[random_glaciers[glacier_idx+2], random_years[year_idx+3]] = 1
-#    
-#    # 4
-#    test_matrix[random_glaciers[glacier_idx+3], random_years[year_idx]] = 1
-#    test_matrix[random_glaciers[glacier_idx+3], random_years[year_idx+1]] = 1
-#    test_matrix[random_glaciers[glacier_idx+3], random_years[year_idx+2]] = 1
-#    test_matrix[random_glaciers[glacier_idx+3], random_years[year_idx+3]] = 1
-    
+    # Add matrixes to folds
     lsygo_test_matrixes.append(test_matrix)
-    
-    # Fill train matrix
-#    train_matrix[random_glaciers[glacier_idx], :] = 0
-#    train_matrix[random_glaciers[glacier_idx+1], :] = 0
-#    train_matrix[random_glaciers[glacier_idx+2], :] = 0
-#    train_matrix[random_glaciers[glacier_idx+3], :] = 0
-#    if(not(fold >= 1 and fold < 11)):
-    train_matrix[:, year_idx] = 0
-#    train_matrix[:, random_years[year_idx+1]] = 0
-#    train_matrix[:, random_years[year_idx+2]] = 0
-#    train_matrix[:, random_years[year_idx+3]] = 0
-    
     lsygo_train_matrixes.append(train_matrix)
     
     year_idx = year_idx+4
     glacier_idx = glacier_idx+4
 
+#import pdb; pdb.set_trace()
+
 # We capture the mask from the SMB data to remove the nan gaps  
 finite_mask = np.isfinite(y)
 
-print("\nAverage sampled SMB LSYGO: " + str(np.nanmean(avg_sampled_smb)))
+if(lsygo_soft):
+    print("\nAverage sampled SMB LSYGO: " + str(np.nanmean(avg_sampled_smb)))
 
 X = X[finite_mask,:]
 y = y[finite_mask]
@@ -530,8 +524,10 @@ year_groups = np.where(year_groups < 0, 0, year_groups)
 lsygo_test_int_folds, lsygo_train_int_folds = [],[]
 # Filter LSYGO folds
 for test_fold, train_fold in zip(lsygo_test_matrixes, lsygo_train_matrixes):
-    lsygo_test_int_folds.append(test_fold.flatten()[finite_mask])
-    lsygo_train_int_folds.append(train_fold.flatten()[finite_mask])
+#    print("test_fold.flatten()[finite_mask]: " + str(np.sum(test_fold.flatten()[finite_mask])))
+    if(np.sum(test_fold.flatten()[finite_mask]) > 0):
+        lsygo_test_int_folds.append(test_fold.flatten()[finite_mask])
+        lsygo_train_int_folds.append(train_fold.flatten()[finite_mask])
 
 # From int to boolean
 lsygo_test_folds = np.array(lsygo_test_int_folds, dtype=bool)
@@ -730,6 +726,7 @@ else:
     
     SMB_nn_all = []
     RMSE_nn_all, RMSE_nn_all_w = [],[]
+    bias_nn_all = []
     r2_nn_all, r2_nn_all_w = [],[]
     SMB_ref_all = []
     fold_idx = 1
@@ -884,6 +881,7 @@ else:
                 
                 r2_nn_all = np.concatenate((r2_nn_all, r2_score(y_test, SMB_nn)), axis=None)
                 RMSE_nn_all = np.concatenate((RMSE_nn_all, math.sqrt(mean_squared_error(y_test, SMB_nn))), axis=None)
+                bias_nn_all = np.concatenate((bias_nn_all, np.average(y_test - SMB_nn)), axis=None)
                 SMB_ref_all = np.concatenate((SMB_ref_all, y_test), axis=None)
                 
                 if(w_weights):
@@ -900,6 +898,7 @@ else:
             
         r2_nn_all = np.asarray(r2_nn_all)
         RMSE_nn_all = np.asarray(RMSE_nn_all)
+        bias_nn_all = np.asarray(bias_nn_all)
         if(w_weights):
             r2_nn_all_w = np.asarray(r2_nn_all_w)
             RMSE_nn_all_w = np.asarray(RMSE_nn_all_w)
@@ -924,11 +923,14 @@ else:
             print("\nMean overall RMSE w/ weights: " + str(math.sqrt(mean_squared_error(SMB_ref_all, SMB_nn_all, weights_validation))))
             
         print("\nRMSE per fold: " + str(RMSE_nn_all))
+        print("\nBias per fold: " + str(bias_nn_all))
         
         print("\nAverage bias: " + str(np.average(SMB_nn_all - SMB_ref_all)))
         
         with open(os.path.join(path_ann, 'RMSE_per_fold.txt'), 'wb') as rmse_f: 
             np.save(rmse_f, RMSE_nn_all)
+        with open(os.path.join(path_ann, 'bias_per_fold.txt'), 'wb') as bias_f: 
+            np.save(bias_f, bias_nn_all)
         
 #        import pdb; pdb.set_trace()
         

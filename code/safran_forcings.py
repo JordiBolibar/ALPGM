@@ -291,7 +291,7 @@ def main(compute):
         
         #### Flags  #####
         bypass_glacier_data = False
-        t_lim = 2.0
+        t_lim = 0.0
         
 #        year_start = 1984
 #        year_start = 1967

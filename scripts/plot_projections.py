@@ -34,36 +34,36 @@ year_start = 2015
 ######   FILE PATHS    #######
 
 # Folders     
-workspace = str(Path(os.getcwd()).parent) + '\\'
-path_glims = workspace + 'glacier_data\\GLIMS\\' 
+workspace = str(Path(os.getcwd()).parent) 
+path_glims = os.path.join(workspace, 'glacier_data', 'GLIMS') 
 #path_obs = 'C:\\Jordi\\PhD\\Data\\Obs\\'
-path_smb = workspace + 'glacier_data\\smb\\'
-path_glacier_evolution = workspace + 'glacier_data\\glacier_evolution\\'
+path_smb = os.path.join(workspace, 'glacier_data', 'smb')
+path_glacier_evolution = os.path.join(workspace, 'glacier_data', 'glacier_evolution')
 #path_glacier_evolution = 'C:\\Jordi\\PhD\\Simulations\\AGU 2018\\'
-path_smb_simulations = path_smb + 'smb_simulations\\'
-path_glacier_evolution_plots = path_glacier_evolution + 'plots\\'
-path_glacier_area = path_glacier_evolution + 'glacier_area\\'
-path_glacier_volume = path_glacier_evolution + 'glacier_volume\\'
-path_glacier_zmean = path_glacier_evolution + 'glacier_zmean\\'
-path_glacier_slope20 = path_glacier_evolution + 'glacier_slope20\\'
-path_glacier_melt_years = path_glacier_evolution + 'glacier_melt_years\\'
-path_glacier_w_errors = path_glacier_evolution + 'glacier_w_errors\\'
-path_glacier_CPDDs = path_glacier_evolution + 'glacier_CPDDs\\'
-path_glacier_snowfall = path_glacier_evolution + 'glacier_snowfall\\'
-path_glacier_discharge = path_glacier_evolution + 'glacier_meltwater_discharge\\'
+path_smb_simulations = os.path.join(path_smb, 'smb_simulations')
+path_glacier_evolution_plots = os.path.join(path_glacier_evolution, 'plots')
+path_glacier_area = os.path.join(path_glacier_evolution, 'glacier_area')
+path_glacier_volume = os.path.join(path_glacier_evolution, 'glacier_volume')
+path_glacier_zmean = os.path.join(path_glacier_evolution, 'glacier_zmean')
+path_glacier_slope20 = os.path.join(path_glacier_evolution, 'glacier_slope20')
+path_glacier_melt_years = os.path.join(path_glacier_evolution, 'glacier_melt_years')
+path_glacier_w_errors = os.path.join(path_glacier_evolution, 'glacier_w_errors')
+path_glacier_CPDDs = os.path.join(path_glacier_evolution, 'glacier_CPDDs')
+path_glacier_snowfall = os.path.join(path_glacier_evolution, 'glacier_snowfall')
+path_glacier_discharge = os.path.join(path_glacier_evolution, 'glacier_meltwater_discharge')
 
 #### We fetch all the data from the simulations
-path_area_root = np.asarray(os.listdir(path_glacier_area + "projections\\"))
-path_melt_years_root = np.asarray(os.listdir(path_glacier_melt_years + "projections\\"))
-path_slope20_root = np.asarray(os.listdir(path_glacier_slope20 + "projections\\"))
-path_volume_root = np.asarray(os.listdir(path_glacier_volume + "projections\\"))
-path_errors_root = np.asarray(os.listdir(path_glacier_w_errors + "projections\\"))
-path_zmean_root = np.asarray(os.listdir(path_glacier_zmean + "projections\\"))
-path_CPDDs_root = np.asarray(os.listdir(path_glacier_CPDDs + "projections\\"))
-path_snowfall_root = np.asarray(os.listdir(path_glacier_snowfall + "projections\\"))
-path_SMB_root = np.asarray(os.listdir(path_smb_simulations + "projections\\"))
+path_area_root = np.asarray(os.listdir(os.path.join(path_glacier_area, "projections")))
+path_melt_years_root = np.asarray(os.listdir(os.path.join(path_glacier_melt_years, "projections")))
+path_slope20_root = np.asarray(os.listdir(os.path.join(path_glacier_slope20, "projections")))
+path_volume_root = np.asarray(os.listdir(os.path.join(path_glacier_volume, "projections")))
+path_errors_root = np.asarray(os.listdir(os.path.join(path_glacier_w_errors, "projections")))
+path_zmean_root = np.asarray(os.listdir(os.path.join(path_glacier_zmean, "projections")))
+path_CPDDs_root = np.asarray(os.listdir(os.path.join(path_glacier_CPDDs, "projections")))
+path_snowfall_root = np.asarray(os.listdir(os.path.join(path_glacier_snowfall, "projections")))
+path_SMB_root = np.asarray(os.listdir(os.path.join(path_smb_simulations, "projections")))
 
-glims_2003 = genfromtxt(path_glims + 'GLIMS_2003.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('GLIMS_ID', '<a50'), ('Massif_SAFRAN', '<i8'), ('Aspect_num', '<i8')])
+glims_2003 = genfromtxt(os.path.join(path_glims, 'GLIMS_2003.csv'), delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('GLIMS_ID', '<a50'), ('Massif_SAFRAN', '<i8'), ('Aspect_num', '<i8')])
 glacier_name_filter = glims_2003['Glacier'][glims_2003['GLIMS_ID'] == glacier_ID_filter.encode('UTF-8')]
 glacier_name_filter = glacier_name_filter[0].decode('UTF-8')
 #print("\nFiltered glacier name: " + str(glacier_name_filter))
@@ -88,17 +88,17 @@ members_with_26 = np.array(['KNMI-RACMO22E_MOHC-HadGEM2-ES', 'MPI-CSC-REMO2009_M
 def save_plot_as_pdf(fig, variables, with_26):
     # Save as PDF
     if(with_26):
-        fig.savefig(path_glacier_evolution_plots + 'summary\\pdf\\glacier_' + str(variables) + '_evolution_with_26.pdf')
-        fig.savefig(path_glacier_evolution_plots + 'summary\\png\\glacier_' + str(variables) + '_evolution_with_26.png')
+        fig.savefig(os.path.join(path_glacier_evolution_plots, 'summary', 'pdf', 'glacier_' + str(variables) + '_evolution_with_26.pdf'))
+        fig.savefig(os.path.join(path_glacier_evolution_plots, 'summary', 'png', 'glacier_' + str(variables) + '_evolution_with_26.png'))
     else:
-        fig.savefig(path_glacier_evolution_plots + 'summary\\pdf\\glacier_' + str(variables) + '_evolution.pdf')
-        fig.savefig(path_glacier_evolution_plots + 'summary\\png\\glacier_' + str(variables) + '_evolution.png')
+        fig.savefig(os.path.join(path_glacier_evolution_plots, 'summary', 'pdf', 'glacier_' + str(variables) + '_evolution.pdf'))
+        fig.savefig(os.path.join(path_glacier_evolution_plots, 'summary', 'png', 'glacier_' + str(variables) + '_evolution.png'))
         
         
 # Store the RCP means in CSV files
 def store_RCP_mean(path_variable, variable, RCP_means):
     
-    path_RCP_means = path_variable + "RCP_means\\"
+    path_RCP_means = os.path.join(path_variable, "RCP_means")
     if not os.path.exists(path_RCP_means):
             os.makedirs(path_RCP_means)
     RCPs = ['26', '45', '85']
@@ -109,9 +109,9 @@ def store_RCP_mean(path_variable, variable, RCP_means):
             data_years = np.transpose(np.stack((data,years)))
             
             if(with_26):
-                np.savetxt(path_RCP_means + "RCP" + str(RCP) + "_glacier_with_26_" + str(variable) + "_" + str(years[0])+ "_" + str(years[-1]) + '.csv', data_years, delimiter=";", fmt="%s")
+                np.savetxt(os.path.join(path_RCP_means, "RCP" + str(RCP) + "_glacier_with_26_" + str(variable) + "_" + str(years[0])+ "_" + str(years[-1]) + '.csv'), data_years, delimiter=";", fmt="%s")
             else:
-                np.savetxt(path_RCP_means + "RCP" + str(RCP) + "_glacier_" + str(variable) + "_" + str(years[0])+ "_" + str(years[-1]) + '.csv', data_years, delimiter=";", fmt="%s")
+                np.savetxt(os.path.join(path_RCP_means, "RCP" + str(RCP) + "_glacier_" + str(variable) + "_" + str(years[0])+ "_" + str(years[-1]) + '.csv'), data_years, delimiter=";", fmt="%s")
 
 ##################################################################################################
         
@@ -128,7 +128,7 @@ member_26_idx, member_45_idx, member_85_idx = 0, 0, 0
 for path_forcing_SMB, path_forcing_area, path_forcing_melt_years, path_forcing_slope20, path_forcing_volume, path_forcing_zmean, path_forcing_CPDDs, path_forcing_snowfall in zip(path_SMB_root, path_area_root, path_melt_years_root, path_slope20_root, path_volume_root, path_zmean_root, path_CPDDs_root, path_snowfall_root):
     
     current_RCP = path_forcing_area[-28:-26]
-    current_member = path_forcing_area[8:-32]
+    current_member = path_forcing_area[8:-33]
     
     # Filter members depending if we want to include RCP 2.6 or not
     if((with_26 and np.any(current_member == members_with_26)) or (not with_26 and current_RCP != '26')):
@@ -144,14 +144,14 @@ for path_forcing_SMB, path_forcing_area, path_forcing_melt_years, path_forcing_s
             
 #        print("member_idx: " + str(member_idx))
             
-        path_area_glaciers = np.asarray(os.listdir(path_glacier_area + "projections\\" + path_forcing_area))
-        path_melt_years_glaciers = np.asarray(os.listdir(path_glacier_melt_years + "projections\\" + path_forcing_melt_years))
-        path_slope20_glaciers = np.asarray(os.listdir(path_glacier_slope20 + "projections\\" + path_forcing_slope20))
-        path_volume_glaciers = np.asarray(os.listdir(path_glacier_volume + "projections\\" + path_forcing_volume))
-        path_zmean_glaciers = np.asarray(os.listdir(path_glacier_zmean + "projections\\" + path_forcing_zmean))
-        path_CPDDs_glaciers = np.asarray(os.listdir(path_glacier_CPDDs + "projections\\" + path_forcing_CPDDs))
-        path_snowfall_glaciers = np.asarray(os.listdir(path_glacier_snowfall + "projections\\" + path_forcing_snowfall))
-        path_SMB_glaciers = np.asarray(os.listdir(path_smb_simulations + "projections\\" + path_forcing_SMB))
+        path_area_glaciers = np.asarray(os.listdir(os.path.join(path_glacier_area, "projections", path_forcing_area)))
+        path_melt_years_glaciers = np.asarray(os.listdir(os.path.join(path_glacier_melt_years, "projections", path_forcing_melt_years)))
+        path_slope20_glaciers = np.asarray(os.listdir(os.path.join(path_glacier_slope20, "projections", path_forcing_slope20)))
+        path_volume_glaciers = np.asarray(os.listdir(os.path.join(path_glacier_volume, "projections", path_forcing_volume)))
+        path_zmean_glaciers = np.asarray(os.listdir(os.path.join(path_glacier_zmean, "projections", path_forcing_zmean)))
+        path_CPDDs_glaciers = np.asarray(os.listdir(os.path.join(path_glacier_CPDDs, "projections", path_forcing_CPDDs)))
+        path_snowfall_glaciers = np.asarray(os.listdir(os.path.join(path_glacier_snowfall, "projections", path_forcing_snowfall)))
+        path_SMB_glaciers = np.asarray(os.listdir(os.path.join(path_smb_simulations, "projections", path_forcing_SMB)))
         
         # Initialize data structures
         # We add a new member to the RCP group
@@ -168,13 +168,13 @@ for path_forcing_SMB, path_forcing_area, path_forcing_melt_years, path_forcing_s
         # Iterate volume scaling folders
         for path_SMB_scaled, path_area_scaled, path_volume_scaled, path_zmean_scaled, path_slope20_scaled, path_CPDDs_scaled, path_snowfall_scaled in zip(path_SMB_glaciers, path_area_glaciers, path_volume_glaciers, path_zmean_glaciers, path_slope20_glaciers, path_CPDDs_glaciers, path_snowfall_glaciers):
             
-            path_area_glaciers_scaled = np.asarray(os.listdir(path_glacier_area + "projections\\" + path_forcing_area + "\\" + path_area_scaled))
-            path_volume_glaciers_scaled = np.asarray(os.listdir(path_glacier_volume + "projections\\" + path_forcing_volume + "\\" +path_volume_scaled))
-            path_zmean_glaciers_scaled = np.asarray(os.listdir(path_glacier_zmean + "projections\\" + path_forcing_zmean + "\\" + path_zmean_scaled))
-            path_slope20_glaciers_scaled = np.asarray(os.listdir(path_glacier_slope20 + "projections\\" + path_forcing_slope20 + "\\" + path_slope20_scaled))
-            path_CPDDs_glaciers_scaled = np.asarray(os.listdir(path_glacier_CPDDs + "projections\\" + path_forcing_CPDDs + "\\" + path_CPDDs_scaled))
-            path_snowfall_glaciers_scaled = np.asarray(os.listdir(path_glacier_snowfall + "projections\\" + path_forcing_snowfall + "\\" + path_snowfall_scaled))
-            path_SMB_glaciers_scaled = np.asarray(os.listdir(path_smb_simulations + "projections\\" + path_forcing_SMB + "\\" + path_SMB_scaled))
+            path_area_glaciers_scaled = np.asarray(os.listdir(os.path.join(path_glacier_area, "projections", path_forcing_area, path_area_scaled)))
+            path_volume_glaciers_scaled = np.asarray(os.listdir(os.path.join(path_glacier_volume, "projections", path_forcing_volume, path_volume_scaled)))
+            path_zmean_glaciers_scaled = np.asarray(os.listdir(os.path.join(path_glacier_zmean, "projections", path_forcing_zmean, path_zmean_scaled)))
+            path_slope20_glaciers_scaled = np.asarray(os.listdir(os.path.join(path_glacier_slope20, "projections", path_forcing_slope20, path_slope20_scaled)))
+            path_CPDDs_glaciers_scaled = np.asarray(os.listdir(os.path.join(path_glacier_CPDDs, "projections", path_forcing_CPDDs, path_CPDDs_scaled)))
+            path_snowfall_glaciers_scaled = np.asarray(os.listdir(os.path.join(path_glacier_snowfall, "projections", path_forcing_snowfall, path_snowfall_scaled)))
+            path_SMB_glaciers_scaled = np.asarray(os.listdir(os.path.join(path_smb_simulations, "projections", path_forcing_SMB, path_SMB_scaled)))
             
             glacier_count = 0
 #            if(path_area_scaled == '1'):
@@ -187,13 +187,14 @@ for path_forcing_SMB, path_forcing_area, path_forcing_melt_years, path_forcing_s
     #                print("glacier_ID_filter: " + str(glacier_ID_filter))
     #                if(path_SMB[:14] == glacier_ID_filter):
                     if((filter_glacier and glacier_ID_filter == path_SMB[:14]) or not filter_glacier):
-                        area_glacier = genfromtxt(path_glacier_area + "projections\\" + path_forcing_area + "\\" + path_area_scaled + "\\" + path_area, delimiter=';')
-                        volume_glacier = genfromtxt(path_glacier_volume + "projections\\" + path_forcing_volume + "\\" + path_volume_scaled + "\\" + path_volume, delimiter=';')
-                        zmean_glacier = genfromtxt(path_glacier_zmean + "projections\\" + path_forcing_zmean + "\\" + path_zmean_scaled + "\\" + path_zmean, delimiter=';')
-                        slope20_glacier = genfromtxt(path_glacier_slope20 + "projections\\" + path_forcing_slope20 + "\\" + path_slope20_scaled + "\\" + path_slope20, delimiter=';')
-                        CPDD_glacier = genfromtxt(path_glacier_CPDDs + "projections\\" + path_forcing_CPDDs + "\\" + path_CPDDs_scaled + "\\" + path_CPDD, delimiter=';')
-                        snowfall_glacier = genfromtxt(path_glacier_snowfall + "projections\\" + path_forcing_snowfall + "\\" + path_snowfall_scaled + "\\" + path_snowfall, delimiter=';')
-                        SMB_glacier = genfromtxt(path_smb_simulations + "projections\\" + path_forcing_SMB + "\\" + path_SMB_scaled + "\\" + path_SMB, delimiter=';')
+                        
+                        area_glacier = genfromtxt(os.path.join(path_glacier_area, "projections", path_forcing_area, path_area_scaled, path_area), delimiter=';')
+                        volume_glacier = genfromtxt(os.path.join(path_glacier_volume, "projections", path_forcing_volume, path_volume_scaled, path_volume), delimiter=';')
+                        zmean_glacier = genfromtxt(os.path.join(path_glacier_zmean, "projections", path_forcing_zmean, path_zmean_scaled, path_zmean), delimiter=';')
+                        slope20_glacier = genfromtxt(os.path.join(path_glacier_slope20, "projections", path_forcing_slope20, path_slope20_scaled, path_slope20), delimiter=';')
+                        CPDD_glacier = genfromtxt(os.path.join(path_glacier_CPDDs, "projections", path_forcing_CPDDs, path_CPDDs_scaled, path_CPDD), delimiter=';')
+                        snowfall_glacier = genfromtxt(os.path.join(path_glacier_snowfall, "projections", path_forcing_snowfall, path_snowfall_scaled, path_snowfall), delimiter=';')
+                        SMB_glacier = genfromtxt(os.path.join(path_smb_simulations, "projections", path_forcing_SMB, path_SMB_scaled, path_SMB), delimiter=';')
                         
                         if(len(SMB_glacier.shape) > 1):
                             for year in range(year_start, 2100):
