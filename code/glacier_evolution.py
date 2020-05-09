@@ -314,9 +314,9 @@ def make_ensemble_simulation(ensemble_SMB_models, x_ann, batch_size, glimsID, gl
         SMB_ensemble_members = ensemble_SMB_models['full']
         print("\nFull ensemble models")
     else:
-    SMB_ensemble_members = ensemble_SMB_models['CV']
-    CV_ensemble = True
-    print("\nCross-validation ensemble models")
+        SMB_ensemble_members = ensemble_SMB_models['CV']
+        CV_ensemble = True
+        print("\nCross-validation ensemble models")
     
     # We iterate the previously loaded ensemble models
     for ensemble_model in SMB_ensemble_members:
