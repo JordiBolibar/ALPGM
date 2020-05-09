@@ -15,8 +15,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib_scalebar.scalebar import ScaleBar
 import numpy as np
-# To ignore errors when raster has only one pixel and normalization is divided by 0
-np.seterr(divide='ignore', invalid='ignore') 
+import xarray as xr
 from numpy import genfromtxt
 from numba import jit
 import unicodedata
@@ -24,6 +23,7 @@ import subprocess
 import os
 import shutil
 import sys
+import time
 from osgeo import gdal, ogr, osr
 import copy
 from difflib import SequenceMatcher
@@ -35,6 +35,10 @@ from sklearn.preprocessing import StandardScaler, normalize
 
 from keras import backend as K
 from keras.models import load_model
+
+# To ignore errors when raster has only one pixel and normalization is divided by 0
+np.seterr(divide='ignore', invalid='ignore') 
+
 #import tensorflow as tf
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -45,52 +49,45 @@ plt.ioff()
 
 os.environ['SHAPE_ENCODING'] = "latin-1"
 
-
-
 ######   FILE PATHS    #######
     
 # Folders     
-
-workspace = str(Path(os.getcwd()).parent) + '\\'
+workspace = Path(os.getcwd()).parent
 #workspace = 'C:\\Jordi\\PhD\\Python\\'
-path_smb = workspace + 'glacier_data\\smb\\'
-path_glacier_evolution = workspace + 'glacier_data\\glacier_evolution\\'
+path_smb = os.path.join(workspace, 'glacier_data', 'smb')
+path_glacier_evolution = os.path.join(workspace, 'glacier_data', 'glacier_evolution')
 # Delta h parameterization functions
-path_delta_h_param = workspace + "glacier_data\\delta_h_param\\"
+path_delta_h_param = os.path.join(workspace, "glacier_data", "delta_h_param")
 # Shapefiles
-path_glacier_shapefiles = workspace + 'glacier_data\\glacier_shapefiles\\'
-path_glacier_2003_shapefiles = workspace + 'glacier_data\\glacier_shapefiles\\2003\\'
-path_glacier_2015_shapefiles = workspace + 'glacier_data\\glacier_shapefiles\\2015\\'
-path_glacier_flowlines_shapefile = path_glacier_2003_shapefiles + 'GLIMS_flowlines_2003' + '.shp'
+path_glacier_shapefiles = os.path.join(workspace, 'glacier_data', 'glacier_shapefiles')
+path_glacier_2003_shapefiles = os.path.join(workspace, 'glacier_data', 'glacier_shapefiles', '2003')
+path_glacier_2015_shapefiles = os.path.join(workspace, 'glacier_data', 'glacier_shapefiles', '2015')
+path_glacier_flowlines_shapefile = os.path.join(path_glacier_2003_shapefiles, 'GLIMS_flowlines_2003' + '.shp')
 # Rasters
-path_glacier_ID_rasters = workspace + 'glacier_data\\glacier_rasters\\glacier_thickness\\thickness_tif\\'
-path_glacier_DEM_rasters = workspace + 'glacier_data\\glacier_rasters\\glacier_thickness\\dem_tif\\'
-path_glacier_evolution_DEM_rasters = path_glacier_DEM_rasters + 'glacier_evolution\\' 
-path_glacier_evolution_ID_rasters = path_glacier_ID_rasters + 'glacier_evolution\\'
+path_glacier_ID_rasters = os.path.join(workspace, 'glacier_data', 'glacier_rasters', 'glacier_thickness', 'thickness_tif')
+path_glacier_DEM_rasters =os.path.join( workspace, 'glacier_data', 'glacier_rasters', 'glacier_thickness', 'dem_tif')
+path_glacier_evolution_DEM_rasters = os.path.join(path_glacier_DEM_rasters, 'glacier_evolution') 
+path_glacier_evolution_ID_rasters = os.path.join(path_glacier_ID_rasters, 'glacier_evolution')
 # Glacier evolution files
-path_glacier_evolution_plots = path_glacier_evolution + 'plots\\'
-path_glacier_area = path_glacier_evolution + 'glacier_area\\'
-path_glacier_volume = path_glacier_evolution + 'glacier_volume\\'
-path_glacier_zmean = path_glacier_evolution + 'glacier_zmean\\'
-path_glacier_slope20 = path_glacier_evolution + 'glacier_slope20\\'
-path_glacier_melt_years = path_glacier_evolution + 'glacier_melt_years\\'
-path_glacier_w_errors = path_glacier_evolution + 'glacier_w_errors\\'
-path_glacier_CPDDs = path_glacier_evolution + 'glacier_CPDDs\\'
-path_glacier_snowfall = path_glacier_evolution + 'glacier_snowfall\\'
+path_glacier_evolution_plots = os.path.join(path_glacier_evolution, 'plots')
+path_glacier_area = os.path.join(path_glacier_evolution, 'glacier_area')
+path_glacier_volume = os.path.join(path_glacier_evolution, 'glacier_volume')
+path_glacier_zmean = os.path.join(path_glacier_evolution, 'glacier_zmean')
+path_glacier_slope20 = os.path.join(path_glacier_evolution, 'glacier_slope20')
+path_glacier_melt_years = os.path.join(path_glacier_evolution, 'glacier_melt_years')
+path_glacier_w_errors = os.path.join(path_glacier_evolution, 'glacier_w_errors')
+path_glacier_CPDDs = os.path.join(path_glacier_evolution, 'glacier_CPDDs')
+path_glacier_snowfall = os.path.join(path_glacier_evolution, 'glacier_snowfall')
 # GLIMS data
-path_glims = workspace + 'glacier_data\\GLIMS\\' 
-# SAFRAN climate forcings
-path_safran_forcings = 'C:\\Jordi\\PhD\\Data\\SAFRAN-Nivo-2017\\'
+path_glims = os.path.join(workspace, 'glacier_data', 'GLIMS') 
+
 global path_smb_function_safran 
-path_smb_function_safran = path_smb + 'smb_function\\SAFRAN\\'
+path_smb_function_safran = os.path.join(path_smb, 'smb_function', 'SAFRAN')
 global path_smb_function_adamont
-path_smb_function_adamont = path_smb + 'smb_function\\ADAMONT\\'
-# Path to be updated with ADAMONT forcings local path
-path_adamont_forcings = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\treated\\'
-#path_adamont_forcings = 'C:\\Jordi\\PhD\\Data\\ADAMONT\\\FORCING_ADAMONT_IGE_BERGER\\projections\\'
+path_smb_function_adamont = os.path.join(path_smb, 'smb_function', 'ADAMONT')
 # SMB simulation files
-path_smb_simulations = path_smb + 'smb_simulations\\'
-path_smb_function = path_smb + 'smb_function\\'
+path_smb_simulations = os.path.join(path_smb, 'smb_simulations')
+path_smb_function = os.path.join(path_smb, 'smb_function')
 
 
 
@@ -149,12 +146,12 @@ def store_file(data, path, midfolder, file_description, glimsID, year_start, yea
     year_range = np.asarray(range(year_start, year))
     data =  np.asarray(data).reshape(-1,1)
     data_w_years = np.column_stack((year_range, data))
-    path_midfolder = path + midfolder
+    path_midfolder = os.path.join(path, midfolder)
     if not os.path.exists(path_midfolder):
         os.makedirs(path_midfolder)
         
 #    file_name = path + midfolder + glimsID + "_" + str(file_description) + '.csv'
-    file_name_h = path + midfolder + str(glimsID) + "_"
+    file_name_h = os.path.join(path, midfolder, str(glimsID) + "_")
     file_name_t = str(file_description) + '.csv'
     # We save the file with an unexisting name
     automatic_file_name_save(file_name_h, file_name_t, data_w_years, 'csv')
@@ -235,9 +232,13 @@ def preload_ensemble_SMB_models():
     path_CV_ensemble = settings.path_cv_ann
     path_CV_ensemble_members = np.asarray(os.listdir(path_CV_ensemble))
     
+    print("\nTaking CV ensemble models from: " + str(path_CV_ensemble))
+    
     # Full model ensemble
     path_ensemble = settings.path_ensemble_ann
     path_ensemble_members = np.asarray(os.listdir(path_ensemble))
+    
+    print("\nTaking full ensemble models from: " + str(path_ensemble))
     
     CV_ensemble_members = np.ndarray(path_CV_ensemble_members.shape, dtype=np.object)
     ensemble_members = np.ndarray(path_ensemble_members.shape, dtype=np.object)
@@ -246,22 +247,22 @@ def preload_ensemble_SMB_models():
     print("\nPreloading CV ensemble SMB models...")
     for path_CV_member in path_CV_ensemble_members:
         # We retrieve the ensemble member ANN model
-        ann_CV_member_model = load_model(path_CV_ensemble + path_CV_member, custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error}, compile=False)
+        ann_CV_member_model = load_model(os.path.join(path_CV_ensemble, path_CV_member), custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error}, compile=False)
 #        CV_ensemble_members.append(ann_CV_member_model)
         CV_ensemble_members[member_idx] = ann_CV_member_model
         print("|", end="", flush=True)
         member_idx = member_idx+1
     
-    member_idx = 0
-    print("\n\nPreloading ensemble full SMB models...")
-    for path_member in path_ensemble_members:
-        # We retrieve the ensemble member ANN model
-        ann_member_model = load_model(path_ensemble + path_member + '\\ann_glacier_model.h5', custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error}, compile=False)
-#        ensemble_members.append(ann_member_model)
-        ensemble_members[member_idx] = ann_member_model
-        print("|", end="", flush=True)
-        member_idx = member_idx+1
-        
+#    member_idx = 0
+#    print("\n\nPreloading ensemble full SMB models...")
+#    for path_member in path_ensemble_members:
+#        # We retrieve the ensemble member ANN model
+#        ann_member_model = load_model(os.path.join(path_ensemble, path_member, 'ann_glacier_model.h5'), custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error}, compile=False)
+##        ensemble_members.append(ann_member_model)
+#        ensemble_members[member_idx] = ann_member_model
+#        print("|", end="", flush=True)
+#        member_idx = member_idx+1
+#        
     CV_ensemble_members = np.asarray(CV_ensemble_members)
     ensemble_members = np.asarray(ensemble_members)
     print("\n")
@@ -306,16 +307,16 @@ def make_ensemble_simulation(ensemble_SMB_models, x_ann, batch_size, glimsID, gl
     member_idx = 0
     
     # We compute the quadratic slope difference 
-    slope_dist = (training_slopes - ref_slope)**2
+#    slope_dist = (training_slopes - ref_slope)**2
     
     # Depending if glacier is present in training dataset we use the CV or full model
-    if(np.any(glims_rabatel['GLIMS_ID'] == glimsID.encode('utf-8'))):
+    if(not evolution and np.any(glims_rabatel['GLIMS_ID'] == glimsID.encode('utf-8'))):
         SMB_ensemble_members = ensemble_SMB_models['full']
         print("\nFull ensemble models")
     else:
-        SMB_ensemble_members = ensemble_SMB_models['CV']
-        CV_ensemble = True
-        print("\nCross-validation ensemble models")
+    SMB_ensemble_members = ensemble_SMB_models['CV']
+    CV_ensemble = True
+    print("\nCross-validation ensemble models")
     
     # We iterate the previously loaded ensemble models
     for ensemble_model in SMB_ensemble_members:
@@ -498,13 +499,13 @@ def crop_inital_rasters_to_GLIMS(path_glacier_ID_rasters, path_glacier_DEM_raste
         print("glacierID: " + str(glacierID))
         
         if(glacierID == 3638): # If Argentiere glacier, use field data
-            current_glacier_ice_depth = path_glacier_ID_rasters + "argentiere_2003_glacioclim.tif"
+            current_glacier_ice_depth = os.path.join(path_glacier_ID_rasters, "argentiere_2003_glacioclim.tif")
         else:
-            current_glacier_ice_depth = path_glacier_ID_rasters + "RGI60-11.0" + str(glacierID) + "_thickness.tif"
+            current_glacier_ice_depth = os.path.join(path_glacier_ID_rasters, "RGI60-11.0" + str(glacierID) + "_thickness.tif")
         
-        current_glacier_DEM = path_glacier_DEM_rasters + "dem_0" + str(glacierID) + ".asc.tif"
+        current_glacier_DEM = os.path.join(path_glacier_DEM_rasters, "dem_0" + str(glacierID) + ".asc.tif")
 #        
-        path_glacier_ID_GLIMS = path_glacier_ID_rasters + "thick_0" + str(glacierID) + "_GLIMS2003.tif"
+        path_glacier_ID_GLIMS = os.path.join(path_glacier_ID_rasters, "thick_0" + str(glacierID) + "_GLIMS2003.tif")
         path_glacier_DEM_GLIMS = current_glacier_DEM
         
         path_glacier_DEM_2003 = path_glacier_DEM_GLIMS
@@ -518,11 +519,11 @@ def crop_inital_rasters_to_GLIMS(path_glacier_ID_rasters, path_glacier_DEM_raste
         
     elif(year_start == 2015):
         # We open the 2015 projected F19 files
-        path_glacier_ID_GLIMS = path_glacier_ID_rasters + "glacier_evolution\\SAFRAN\\1\\" + "IceDepth_Glacier_0" + str(glacierID) + "_2014.tif"
-        path_glacier_DEM_GLIMS = path_glacier_DEM_rasters + "glacier_evolution\\SAFRAN\\1\\" + "DEM_Glacier_0" + str(glacierID) + "_2014.tif"
+        path_glacier_ID_GLIMS = os.path.join(path_glacier_ID_rasters, "glacier_evolution", "SAFRAN", "1", "IceDepth_Glacier_0" + str(glacierID) + "_2014.tif")
+        path_glacier_DEM_GLIMS = os.path.join(path_glacier_DEM_rasters, "glacier_evolution", "SAFRAN", "1", "DEM_Glacier_0" + str(glacierID) + "_2014.tif")
         
-        path_glacier_DEM_2003 = path_glacier_DEM_rasters + "dem_0" + str(glacierID) + ".asc.tif"
-        path_glacier_ID_2003 = path_glacier_ID_rasters + "RGI60-11.0" + str(glacierID) + "_thickness.tif"
+        path_glacier_DEM_2003 = os.path.join(path_glacier_DEM_rasters, "dem_0" + str(glacierID) + ".asc.tif")
+        path_glacier_ID_2003 = os.path.join(path_glacier_ID_rasters, "RGI60-11.0" + str(glacierID) + "_thickness.tif")
 #        path_glacier_ID_2003 = path_glacier_ID_rasters + "thick_0" + str(glacierID) + "_GLIMS2003.tif"
         
 #        print("Clipping raster to GLIMS extent... ")
@@ -531,8 +532,8 @@ def crop_inital_rasters_to_GLIMS(path_glacier_ID_rasters, path_glacier_DEM_raste
         
     elif(year_start == 2019):
         if(glacierID == 3651): # If Tré la Tête glacier, use field data
-            path_glacier_ID_GLIMS = path_glacier_ID_rasters + "interp_cleaned_masked_newh_25m.tif"
-            path_glacier_DEM_GLIMS = path_glacier_DEM_rasters + "masked_dem_lidar_25m.tif"
+            path_glacier_ID_GLIMS = os.path.join(path_glacier_ID_rasters, "interp_cleaned_masked_newh_25m.tif")
+            path_glacier_DEM_GLIMS = os.path.join(path_glacier_DEM_rasters, "masked_dem_lidar_25m.tif")
             path_glacier_DEM_2003 = ''
             path_glacier_ID_2003 = ''
         else:
@@ -591,7 +592,7 @@ def get_slope20(_masked_DEM_current_glacier_u, DEM_sorted_current_glacier_u, gla
     
     raster_current_DEM = gdal.Open(path_raster_current_DEM) 
     
-    path_temp_shapefile = path_glacier_DEM_rasters + "aux_vector_" + str(glacierName) + ".shp"
+    path_temp_shapefile = os.path.join(path_glacier_DEM_rasters, "aux_vector_" + str(glacierName) + ".shp")
     flowline_altitudes_full, flowline_coordinates = get_point_values(flowline, raster_current_DEM)
     if(flowline_altitudes_full.size == 0):
         print("[ ERROR ] No match between DEM and flowline. Skipping glacier...")
@@ -666,7 +667,7 @@ def find_glacier_coordinates(massif_number, zs, aspects, glims_data):
 
 def get_SAFRAN_glacier_coordinates(glims_dataset):
      # We read the first year to get some basic information
-    dummy_SAFRAN_forcing = Dataset(path_safran_forcings + '84\\FORCING.nc')
+    dummy_SAFRAN_forcing = Dataset(os.path.join(path_safran_forcings, '84', 'FORCING.nc'))
     
     aspects = dummy_SAFRAN_forcing.variables['aspect'][:]
     zs = dummy_SAFRAN_forcing.variables['ZS'][:]
@@ -676,78 +677,11 @@ def get_SAFRAN_glacier_coordinates(glims_dataset):
     
     return all_glacier_coordinates
 
-@jit
-# Mean daily temperature
-def get_mean_temps(datetimes, hourly_data):
-    ref_day = -9
-    daily_data = []
-    idx, day_idx = 0, 0
-    first = True
-    for time_hour in datetimes:
-        current_day = time_hour.astype(object).timetuple().tm_yday
-        if(current_day == ref_day):
-            daily_data[day_idx] = daily_data[day_idx] + hourly_data[idx]/24.0
-        else:
-            ref_day = current_day
-            daily_data.append(hourly_data[idx]/24.0)
-            if(not first):
-                day_idx = day_idx + 1
-            else:
-                first = False
-            
-        idx = idx + 1 
-        
-    return np.asarray(daily_data)
-
-@jit
-# Daily precipitations
-def get_precips(datetimes, hourly_data):
-    ref_day = -9
-    daily_data = []
-    idx, day_idx = 0, 0
-    isFirst = True
-    for time_hour in datetimes:
-        current_day = time_hour.astype(object).timetuple().tm_yday
-        if(current_day == ref_day):
-            daily_data[day_idx] = daily_data[day_idx] + hourly_data[idx]
-        else:
-            ref_day = current_day
-            daily_data.append(hourly_data[idx])
-            if(not isFirst):                 
-                day_idx = day_idx + 1
-            else:
-                isFirst = False
-        idx = idx + 1 
-    return np.asarray(daily_data)
-
-def get_monthly_temps(daily_data, daily_datetimes):
+def compute_local_anomalies(glacier_CPDD, glacier_winter_snow, glacier_summer_snow, meteo_refs):
     
-    d = {'Dates': daily_datetimes, 'Temps': daily_data}
-    df_datetimes = pd.DataFrame(data=d)
-    df_datetimes.set_index('Dates', inplace=True)
-    df_datetimes.index = pd.to_datetime(df_datetimes.index)
-    df_datetimes = df_datetimes.resample('M').mean()
-    
-    monthly_avg_data = df_datetimes.Temps.to_numpy()
-    
-    return monthly_avg_data[:12]
-    
-def get_monthly_snow(daily_data, daily_datetimes):
-    d = {'Dates': daily_datetimes, 'Temps': daily_data}
-    df_datetimes = pd.DataFrame(data=d)
-    df_datetimes.set_index('Dates', inplace=True)
-    df_datetimes.index = pd.to_datetime(df_datetimes.index)
-    df_datetimes = df_datetimes.resample('M').sum()
-    
-    monthly_avg_data = df_datetimes.Temps.to_numpy()
-    
-    return monthly_avg_data[:12]
-
-def compute_local_anomalies(glacier_CPDD, glacier_winter_snow, glacier_summer_snow, meteo_anomalies):
-    
-    local_CPDD_anomaly = glacier_CPDD - meteo_anomalies['CPDD']
-    local_w_snow_anomaly = glacier_winter_snow - meteo_anomalies['w_snow']
-    local_s_snow_anomaly = glacier_summer_snow - meteo_anomalies['s_snow']
+    local_CPDD_anomaly = glacier_CPDD - meteo_refs['CPDD']
+    local_w_snow_anomaly = glacier_winter_snow - meteo_refs['w_snow']
+    local_s_snow_anomaly = glacier_summer_snow - meteo_refs['s_snow']
     
     return local_CPDD_anomaly, local_w_snow_anomaly, local_s_snow_anomaly
 
@@ -761,11 +695,11 @@ def compute_monthly_anomalies(mon_temps, mon_snow, mon_temp_ref, mon_snow_ref):
 # Fetches the preprocessed SAFRAN daily data 
 def get_default_SAFRAN_forcings(safran_start, safran_end):
     
-    path_temps = path_smb_function_safran +'daily_temps_years_' + str(safran_start) + '-' + str(safran_end) + '.txt'
-    path_snow = path_smb_function_safran +'daily_snow_years_' + str(safran_start) + '-' + str(safran_end) + '.txt'
-    path_rain = path_smb_function_safran +'daily_rain_years_' + str(safran_start) + '-' + str(safran_end) + '.txt'
-    path_dates = path_smb_function_safran +'daily_dates_years_' + str(safran_start) + '-' + str(safran_end) + '.txt'
-    path_zs = path_smb_function_safran +'zs_years' + str(safran_start) + '-' + str(safran_end) + '.txt'
+    path_temps = os.path.join(path_smb_function_safran, 'daily_temps_years_' + str(safran_start) + '-' + str(safran_end) + '.txt')
+    path_snow = os.path.join(path_smb_function_safran, 'daily_snow_years_' + str(safran_start) + '-' + str(safran_end) + '.txt')
+    path_rain = os.path.join(path_smb_function_safran, 'daily_rain_years_' + str(safran_start) + '-' + str(safran_end) + '.txt')
+    path_dates = os.path.join(path_smb_function_safran, 'daily_dates_years_' + str(year_start) + '-' + str(year_end) + '.txt')
+    path_zs = os.path.join(path_smb_function_safran, 'zs_years' + str(safran_start) + '-' + str(safran_end) + '.txt')
     
     if(os.path.exists(path_temps) & os.path.exists(path_snow) & os.path.exists(path_rain) & os.path.exists(path_dates) & os.path.exists(path_zs)):
         print("\nFetching SAFRAN forcings...")
@@ -788,125 +722,59 @@ def get_default_SAFRAN_forcings(safran_start, safran_end):
     
     return daily_meteo_data
 
-# Adjusts the daily SAFRAN data for each glacier
-def get_adjusted_glacier_SAFRAN_forcings(year, year_start, glacier_mean_altitude, SAFRAN_idx, daily_meteo_data, meteo_anomalies):
+# Adjusts the daily SAFRAN data for each glacier for a specific year
+def get_adjusted_glacier_SAFRAN_forcings(year, year_start, glacier_mean_altitude, SAFRAN_idx, daily_meteo_data, meteo_refs):
+    
     # We also need to fetch the previous year since data goes from 1st of August to 31st of July
-    idx = year - year_start +1
+    idx = year - year_start 
     glacier_idx = int(SAFRAN_idx)
-    print("Year idx: " + str(idx))
+    t_lim = 2.0
+#    print("Year idx: " + str(idx))
     
-    daily_temps_years = daily_meteo_data['temps']
-    daily_snow_years = daily_meteo_data['snow']
-    daily_rain_years = daily_meteo_data['rain']
-    zs = daily_meteo_data['zs']
-    daily_dates_years = daily_meteo_data['dates']
+#    import pdb; pdb.set_trace()
     
-    daily_temps_mean_1 = copy.deepcopy(daily_temps_years[idx-1]) + ((zs[glacier_idx] - glacier_mean_altitude)/1000.0)*6.0
-    daily_temps_mean = copy.deepcopy(daily_temps_years[idx]) + ((zs[glacier_idx] - glacier_mean_altitude)/1000.0)*6.0
+    # Retrieve raw meteo data for the current year
+    zs = daily_meteo_data['zs'][idx][0]
+    dates = daily_meteo_data['dates'][idx]
     
-    snow_sum_1 = copy.deepcopy(daily_snow_years[idx-1])
-    snow_sum = copy.deepcopy(daily_snow_years[idx])
+    safran_tmean_d = xr.DataArray(daily_meteo_data['temps'][idx], coords=[dates, zs], dims=['time', 'zs'])
+    safran_snow_d = xr.DataArray(daily_meteo_data['snow'][idx], coords=[dates, zs], dims=['time', 'zs'])
+    safran_rain_d = xr.DataArray(daily_meteo_data['rain'][idx], coords=[dates, zs], dims=['time', 'zs'])
     
-    rain_sum_1 = copy.deepcopy(daily_rain_years[idx-1])
-    rain_sum = copy.deepcopy(daily_rain_years[idx])
+    # Re-scale temperature at glacier's actual altitude
+    safran_tmean_d_g = copy.deepcopy(safran_tmean_d[:, glacier_idx] + ((zs[glacier_idx] - glacier_mean_altitude)/1000.0)*6.0)
     
-    # We get the daily datetimes
-    daily_datetimes_1 = copy.deepcopy(daily_dates_years[idx-1])
-    daily_datetimes = copy.deepcopy(daily_dates_years[idx])
-    
-    #### We compute the monthly average data
-    # Monthly average temperature
-    glacier_temps_1 = daily_temps_mean_1[:, glacier_idx] 
-    glacier_temps = daily_temps_mean[:, glacier_idx]
-    mon_temps_1 = get_monthly_temps(glacier_temps_1, daily_datetimes_1) 
-    mon_temps = get_monthly_temps(glacier_temps, daily_datetimes)
-    mon_temp_year = np.append(mon_temps_1[2:], mon_temps[:2])
-    
-    # Monthly average snowfall
     # We adjust the snowfall rate at the glacier's altitude
-    glacier_snow_1 = snow_sum_1[:, glacier_idx] 
-    glacier_snow = snow_sum[:, glacier_idx] 
-    glacier_rain_1 = rain_sum_1[:, glacier_idx] 
-    glacier_rain = rain_sum[:, glacier_idx] 
-    glacier_snow_1 = np.where(glacier_temps_1 > 0.0, 0.0, glacier_snow_1)
-    glacier_snow_1 = np.where(((glacier_temps_1 < 0.0) & (glacier_snow_1 == 0.0)), glacier_rain_1, glacier_snow_1)
-    glacier_snow = np.where(glacier_temps > 0.0, 0.0, glacier_snow)
-    glacier_snow = np.where(((glacier_temps < 0.0) & (glacier_snow == 0.0)), glacier_rain, glacier_snow)
+    safran_snow_d_g = copy.deepcopy(safran_snow_d[:, glacier_idx])
+    safran_rain_d_g = copy.deepcopy(safran_rain_d[:, glacier_idx])
+    safran_snow_d_g.data = np.where(safran_tmean_d_g.data > t_lim, 0.0, safran_snow_d_g.data)
+    safran_snow_d_g.data = np.where(safran_tmean_d_g.data < t_lim, safran_snow_d_g.data + safran_rain_d_g.data, safran_snow_d_g.data)
     
-    mon_snow_1 = get_monthly_snow(glacier_snow_1, daily_datetimes_1)
-    mon_snow = get_monthly_snow(glacier_snow, daily_datetimes)
-    mon_snow_year = np.append(mon_snow_1[2:], mon_snow[:2])
+    # Monthly data during the current hydrological year
+    safran_tmean_m_g = safran_tmean_d_g.resample(time="1MS").mean().data
+    safran_snow_m_g = safran_snow_d_g.resample(time="1MS").sum().data
     
-    year_1_offset = 213
-    year_offset = 152
-    temp_year = np.append(daily_temps_mean_1[-year_1_offset:, glacier_idx], daily_temps_mean[:year_offset, glacier_idx]) 
-    pos_temp_year = np.where(temp_year < 0, 0, temp_year)
-    integ_temp = np.cumsum(pos_temp_year)
+    # Compute CPDD
+    # Compute dask arrays prior to storage
+    glacier_CPDD = np.sum(np.where(safran_tmean_d_g.data < 0, 0, safran_tmean_d_g.data))
     
-    start_div, end_div = 30, 10
-    
-    ### Dynamic temperature ablation period
-    start_y_ablation = np.where(integ_temp > integ_temp.max()/start_div)[0]
-#            start_y_ablation = np.where(integ_temp > 30)[0]
-    end_y_ablation = np.where(integ_temp > (integ_temp.max() - integ_temp.max()/end_div))[0]
-    
-    start_ablation = start_y_ablation[0] + (daily_temps_mean_1[:,glacier_idx].size - year_1_offset)
-    end_ablation = end_y_ablation[0] - year_1_offset
-    if(start_ablation > 366):
-        start_ablation = 366
-        
-    # We get the dynamic indexes for the ablation and accumulation periods for temperature
-    ablation_temp_idx_1 = range(start_ablation, daily_datetimes_1.size)
-    ablation_temp_idx = range(0, end_ablation)
-#    accum_temp_idx_1 = range(end_ablation+1, start_ablation-1)
-    
-    # We get the indexes for the ablation and accumulation periods for snowfall
-    # Classic 120-270 ablation period
-    ablation_idx_1 = range(daily_datetimes_1.size-95, daily_datetimes_1.size)
-    ablation_idx = range(0, 55)
-    accum_idx_1 = range(56, daily_datetimes_1.size-96)
-    
-    glacier_ablation_temps = np.append(daily_temps_mean_1[ablation_temp_idx_1, glacier_idx], daily_temps_mean[ablation_temp_idx, glacier_idx]) 
-#    glacier_accumulation_temps = daily_temps_mean_1[accum_temp_idx_1, glacier_idx] 
-    dummy_glacier_ablation_temps = np.append(daily_temps_mean_1[ablation_idx_1, glacier_idx], daily_temps_mean[ablation_idx, glacier_idx]) 
-    dummy_glacier_accumulation_temps = daily_temps_mean_1[accum_idx_1, glacier_idx] 
-    
-#    glacier_ablation_temps = glacier_ablation_temps + ((zs[glacier_idx] - glacier_mean_altitude)/1000.0)*6.0
-#    glacier_accumulation_temps = glacier_accumulation_temps + ((zs[glacier_idx] - glacier_mean_altitude)/1000.0)*6.0
-                    
-    glacier_year_pos_temps = np.where(glacier_ablation_temps < 0, 0, glacier_ablation_temps)
-#    glacier_accum_pos_temps = np.where(glacier_accumulation_temps < 0, 0, glacier_accumulation_temps)
-    dummy_glacier_ablation_pos_temps = np.where(dummy_glacier_ablation_temps < 0, 0, dummy_glacier_ablation_temps)
-    dummy_glacier_accum_pos_temps = np.where(dummy_glacier_accumulation_temps < 0, 0, dummy_glacier_accumulation_temps)
-    
-    glacier_accum_snow = snow_sum_1[accum_idx_1, glacier_idx]
-    glacier_accum_rain = rain_sum_1[accum_idx_1, glacier_idx]
-    
-    glacier_ablation_snow = np.append(snow_sum_1[ablation_idx_1, glacier_idx], snow_sum[ablation_idx, glacier_idx])
-    glacier_ablation_rain = np.append(rain_sum_1[ablation_idx_1, glacier_idx], rain_sum[ablation_idx, glacier_idx])
-    
-    # We recompute the rain/snow limit with the new adjusted temperatures
-    glacier_accum_snow = np.where(dummy_glacier_accum_pos_temps > 0.0, 0.0, glacier_accum_snow)
-    glacier_accum_snow = np.where(((dummy_glacier_accumulation_temps < 0.0) & (glacier_accum_snow == 0.0)), glacier_accum_rain, glacier_accum_snow)
-    glacier_ablation_snow = np.where(dummy_glacier_ablation_pos_temps > 0.0, 0.0, glacier_ablation_snow)
-    glacier_ablation_snow = np.where(((dummy_glacier_ablation_temps < 0.0) & (glacier_ablation_snow == 0.0)), glacier_ablation_rain, glacier_ablation_snow)
-    
-    # We compute the cumulative yearly CPDD and snowfall
-    glacier_CPDD = np.sum(glacier_year_pos_temps)
-    glacier_winter_snow = np.sum(glacier_accum_snow) 
-    glacier_summer_snow = np.sum(glacier_ablation_snow)
+    # Compute snowfall
+    # Compute dask arrays prior to storage
+    glacier_winter_snow = np.sum(safran_snow_d_g.sel(time = slice(str(year-1)+'-10-01', str(year)+'-03-31')).data)
+    glacier_summer_snow = np.sum(safran_snow_d_g.sel(time = slice(str(year)+'-04-01', str(year)+'-07-31')).data)
     
     # We compute the seasonal anomalies
-    CPDD_LocalAnomaly, winter_snow_LocalAnomaly, summer_snow_LocalAnomaly = compute_local_anomalies(glacier_CPDD, glacier_winter_snow, glacier_summer_snow,
-                                                                                                    meteo_anomalies)
+    CPDD_LocalAnomaly, winter_snow_LocalAnomaly, summer_snow_LocalAnomaly = compute_local_anomalies(glacier_CPDD, 
+                                                                                                    glacier_winter_snow, 
+                                                                                                    glacier_summer_snow,
+                                                                                                    meteo_refs)
 
     # We compute the monthly anomalies
-    mon_temp_anomaly, mon_snow_anomaly = compute_monthly_anomalies(mon_temp_year, mon_snow_year, meteo_anomalies['mon_temp'], meteo_anomalies['mon_snow'])
-    
+    mon_temp_anomaly, mon_snow_anomaly = compute_monthly_anomalies(safran_tmean_m_g, safran_snow_m_g, 
+                                                                   meteo_refs['mon_temp'], meteo_refs['mon_snow'])
     
     season_anomalies_y = {'CPDD': CPDD_LocalAnomaly, 'winter_snow':winter_snow_LocalAnomaly, 'summer_snow': summer_snow_LocalAnomaly}
     monthly_anomalies_y = {'temps': mon_temp_anomaly, 'snow': mon_snow_anomaly}
-    
     
     return season_anomalies_y,  monthly_anomalies_y
 
@@ -925,17 +793,17 @@ def get_ADAMONT_idx(massif, glacier_altitude, massif_number, zs):
     return ADAMONT_idx
 
     
-def get_default_ADAMONT_forcings(year_start, year_end, midfolder):
+def get_default_ADAMONT_forcings(year_start, year_end, midfolder, overwrite):
     
-    path_temps = path_smb_function_adamont + midfolder + 'daily_temps_years_' + str(year_start) + '-' + str(year_end) + '.txt'
-    path_snow = path_smb_function_adamont + midfolder + 'daily_snow_years_' + str(year_start) + '-' + str(year_end) + '.txt'
-    path_rain = path_smb_function_adamont + midfolder + 'daily_rain_years_' + str(year_start) + '-' + str(year_end) + '.txt'
-    path_dates = path_smb_function_adamont + midfolder + 'daily_datetimes_' + str(year_start) + '-' + str(year_end) + '.txt'
-    path_zs = path_smb_function_adamont + midfolder + 'zs_' + str(year_start) + '-' + str(year_end) + '.txt'
-    path_massif = path_smb_function_adamont + midfolder + 'massif_number.txt'
-    path_aspect = path_smb_function_adamont + midfolder + 'aspects.txt'
+    path_temps = os.path.join(path_smb_function_adamont, midfolder, 'daily_temps_years_' + str(year_start) + '-' + str(year_end) + '.txt')
+    path_snow = os.path.join(path_smb_function_adamont, midfolder, 'daily_snow_years_' + str(year_start) + '-' + str(year_end) + '.txt')
+    path_rain = os.path.join(path_smb_function_adamont, midfolder, 'daily_rain_years_' + str(year_start) + '-' + str(year_end) + '.txt')
+    path_dates = os.path.join(path_smb_function_adamont, midfolder, 'daily_datetimes_' + str(year_start) + '-' + str(year_end) + '.txt')
+    path_zs = os.path.join(path_smb_function_adamont, midfolder, 'zs_' + str(year_start) + '-' + str(year_end) + '.txt')
+    path_massif = os.path.join(path_smb_function_adamont, midfolder, 'massif_number.txt')
+    path_aspect = os.path.join(path_smb_function_adamont, midfolder, 'aspects.txt')
     
-    if(os.path.exists(path_temps) & os.path.exists(path_snow) & os.path.exists(path_rain) & os.path.exists(path_dates) & os.path.exists(path_zs) & os.path.exists(path_massif) & os.path.exists(path_aspect)):
+    if((os.path.exists(path_temps) & os.path.exists(path_snow) & os.path.exists(path_rain) & os.path.exists(path_dates) & os.path.exists(path_zs) & os.path.exists(path_massif) & os.path.exists(path_aspect))):
         print("Fetching ADAMONT forcings...")
         with open(path_temps, 'rb') as temps_f:
             daily_temps_years = np.load(temps_f,  allow_pickle=True)
@@ -955,244 +823,129 @@ def get_default_ADAMONT_forcings(year_start, year_end, midfolder):
         daily_meteo_data = {'temps':daily_temps_years, 'snow': daily_snow_years, 'rain': daily_rain_years, 'dates': daily_datetimes, 'zs': zs}
     else:
         # We read all the files
-        print("Re-computing ADAMONT forcings...")
+        print("\nRe-computing ADAMONT forcings...")
+        
         forcing_daymean = settings.current_ADAMONT_model_daymean
         forcing_daysum = settings.current_ADAMONT_model_daysum
-        print("Current ADAMONT combination: " + str(forcing_daymean) + "\\n")
+        print("\nCurrent ADAMONT combination: " + str(forcing_daymean) + "\n")
         
-        file_forcing_daymean = Dataset(path_adamont_forcings + forcing_daymean)
-        file_forcing_daysum = Dataset(path_adamont_forcings + forcing_daysum)
+        start = time.time()
+         # We load the two ADAMONT files
+        adamont_mean_climate = xr.open_dataset(forcing_daymean)
+        adamont_sum_climate = xr.open_dataset(forcing_daysum)
         
-    #        lat = file_forcing_daymean.variables['LAT'][:]
-    #        lon = file_forcing_daymean.variables['LON'][:]
+        # Rename the time coordinates to match the ADAMONT format
+        adamont_mean_climate = adamont_mean_climate.rename({"TIME": "time"})
+        adamont_sum_climate = adamont_sum_climate.rename({"TIME": "time"})
+            
+        end = time.time()
+        print("\n-> open ADAMONT dataset processing time: " + str(end - start) + " s")
         
-        zs = file_forcing_daymean.variables['ZS'][:]
-        # TODO: Change depending on the ADAMONT version 
-#        massif_number = file_forcing_daymean.variables['massif_number'][:]
-        massif_number = file_forcing_daymean.variables['MASSIF_NUMBER'][:]
-        
-        # Aspects commented until they are available for ADAMONT
-#        aspects = file_forcing_daymean.variables['aspect'][:]
+        zs = adamont_mean_climate['ZS'].compute()
+        massif_number = adamont_mean_climate['MASSIF_NUMBER'].compute()
         aspects = np.repeat(-1, len(zs))
         
-        # Temperatures (from K to C)
-        temps_mean = file_forcing_daymean.variables['Tair'][:] -273.15
-        
-        rain_sum = file_forcing_daysum.variables['RAIN'][:]
-#        rain_sum = file_forcing_daysum.variables['Rainf'][:] * 3600
-        
-        snow_sum = file_forcing_daysum.variables['SNOW'][:]
-#        snow_sum = file_forcing_daysum.variables['Snowf'][:] * 3600
-        
-        times = file_forcing_daysum.variables['TIME'][:]
-#        times = file_forcing_daysum.variables['time'][:]
-        start = np.datetime64('2005-08-01 06:00:00')
-        datetimes = np.array([start + np.timedelta64(np.int32(time), 'h') for time in times])
-        yeartimes = []
-        for h in datetimes:
-            yeartimes.append(h.astype(object).timetuple().tm_year)
-        yeartimes = np.asarray(yeartimes)
-    
-        # We also need to fetch the previous year since data goes from 1st of August to 31st of July
         daily_temps_years, daily_snow_years, daily_rain_years, daily_datetimes = [],[],[],[]
-        adamont_year_range = range(year_start-1, year_end+1)
-        for year in adamont_year_range:
             
-            current_year_idx = np.where(yeartimes == year)
+        for year in range(year_start, year_end+1): 
+            print("Hydrological year: " + str(year-1) + "-" + str(year))
             
-            if(len(current_year_idx) != 0):
-                daily_temps_mean = temps_mean[current_year_idx,:]
-                daily_snow_sum = snow_sum[current_year_idx,:]
-                daily_rain_sum = rain_sum[current_year_idx,:]
-                
-                daily_temps_mean = np.asarray(daily_temps_mean[0,:,:])
-                
-                if(len(daily_temps_mean) >= 365):
-                    daily_temps_years.append(daily_temps_mean)
-                    daily_snow_sum = np.asarray(daily_snow_sum[0,:,:])
-                    daily_snow_years.append(daily_snow_sum)
-                    daily_rain_sum = np.asarray(daily_rain_sum[0,:,:])
-                    daily_rain_years.append(daily_rain_sum)
-                    daily_datetimes.append(datetimes[current_year_idx])
-                else:
-                    # We change the end year for the forcings who finish at 2098
-                    print("End year at " + str(year-1))
-                    year_end = year-1
-        
-        daily_temps_years = np.asarray(daily_temps_years)
-        daily_snow_years = np.asarray(daily_snow_years)
-        daily_rain_years = np.asarray(daily_rain_years)
+            start = time.time()
+            # We load into memory only the current year to speed things up
+            # Only two years are loaded: compute dask arrays in memory so computations are faster
+            safran_tmean_d = (adamont_mean_climate.sel(time = slice(str(year-1)+'-10-01', str(year)+'-09-30'))['Tair'].resample(time="1D").mean() -273.15).compute()
+            safran_snow_d = (adamont_sum_climate.sel(time = slice(str(year-1)+'-10-01', str(year)+'-09-30'))['SNOW'].resample(time="1D").sum()).compute()
+            safran_rain_d = (adamont_sum_climate.sel(time = slice(str(year-1)+'-10-01', str(year)+'-09-30'))['RAIN'].resample(time="1D").sum()).compute()
             
-        zs  = np.asarray(zs)
+            # Store daily raw data for future re-processing
+            daily_temps_years.append(safran_tmean_d.data)
+            daily_snow_years.append(safran_snow_d.data)
+            daily_rain_years.append(safran_rain_d.data)
+            daily_datetimes.append(safran_tmean_d.time.data)
         
         daily_meteo_data = {'temps':daily_temps_years, 'snow': daily_snow_years, 'rain': daily_rain_years, 'dates': daily_datetimes, 'zs': zs}
         
         # We create the folder if it's not there
-        if(not os.path.exists(path_smb_function_adamont+midfolder)):
-            os.makedirs(path_smb_function_adamont+midfolder)
+        if(not os.path.exists(os.path.join(path_smb_function_adamont, midfolder))):
+            os.makedirs(os.path.join(path_smb_function_adamont, midfolder))
             
-        with open(path_smb_function_adamont+midfolder+'daily_temps_years_' + str(year_start) + '-' + str(year_end) + '.txt', 'wb') as dtemp_f:
+        with open(os.path.join(path_smb_function_adamont, midfolder, 'daily_temps_years_' + str(year_start) + '-' + str(year_end) + '.txt'), 'wb') as dtemp_f:
                             np.save(dtemp_f, daily_temps_years)
-        with open(path_smb_function_adamont+midfolder+'daily_snow_years_' + str(year_start) + '-' + str(year_end) + '.txt', 'wb') as dsnow_f:
+        with open(os.path.join(path_smb_function_adamont, midfolder, 'daily_snow_years_' + str(year_start) + '-' + str(year_end) + '.txt'), 'wb') as dsnow_f:
                             np.save(dsnow_f, daily_snow_years)
-        with open(path_smb_function_adamont+midfolder+'daily_rain_years_' + str(year_start) + '-' + str(year_end) + '.txt', 'wb') as drain_f:
+        with open(os.path.join(path_smb_function_adamont, midfolder, 'daily_rain_years_' + str(year_start) + '-' + str(year_end) + '.txt'), 'wb') as drain_f:
                             np.save(drain_f, daily_rain_years)
-        with open(path_smb_function_adamont+midfolder+'daily_datetimes_' + str(year_start) + '-' + str(year_end) + '.txt', 'wb') as ddates_f:
+        with open(os.path.join(path_smb_function_adamont, midfolder, 'daily_datetimes_' + str(year_start) + '-' + str(year_end) + '.txt'), 'wb') as ddates_f:
                             np.save(ddates_f, daily_datetimes)
-        with open(path_smb_function_adamont+midfolder+'zs_' + str(year_start) + '-' + str(year_end) + '.txt', 'wb') as dzs_f:
+        with open(os.path.join(path_smb_function_adamont, midfolder, 'zs_' + str(year_start) + '-' + str(year_end) + '.txt'), 'wb') as dzs_f:
                             np.save(dzs_f, zs)
-        with open(path_smb_function_adamont+midfolder+'massif_number.txt', 'wb') as massif_f:
+        with open(os.path.join(path_smb_function_adamont, midfolder, 'massif_number.txt'), 'wb') as massif_f:
                             np.save(massif_f, massif_number.data)
-        with open(path_smb_function_adamont+midfolder+'aspects.txt', 'wb') as aspects_f:
+        with open(os.path.join(path_smb_function_adamont, midfolder, 'aspects.txt'), 'wb') as aspects_f:
                             np.save(aspects_f, aspects.data)
                             
     return daily_meteo_data, massif_number, aspects, year_end
 
 def get_adjusted_glacier_ADAMONT_forcings(year, year_start, glacier_mean_altitude, ADAMONT_idx, daily_meteo_data, meteo_anomalies):
     # We also need to fetch the previous year since data goes from 1st of August to 31st of July
-    idx = year - year_start + 1
+    idx = year - year_start 
 #    print("ADAMONT_idx: " + str(ADAMONT_idx))
     glacier_idx = int(ADAMONT_idx)
+    t_lim = 0.0
     
-    daily_temps_years = daily_meteo_data['temps']
-    daily_snow_years = daily_meteo_data['snow']
-    daily_rain_years = daily_meteo_data['rain']
-    zs = daily_meteo_data['zs']
-    daily_datetimes_years = daily_meteo_data['dates']
     
-    # We convert the temperature to daily accumulated snowfall
-    daily_temps_mean_1 = copy.deepcopy(daily_temps_years[idx-1][:,glacier_idx].flatten()) + ((zs[glacier_idx] - glacier_mean_altitude)/1000.0)*6.0
-    daily_temps_mean = copy.deepcopy(daily_temps_years[idx][:,glacier_idx].flatten()) + ((zs[glacier_idx] - glacier_mean_altitude)/1000.0)*6.0
-    
-    # We convert the snow to daily accumulated snowfall
-    daily_snow_sum_1 = copy.deepcopy(daily_snow_years[idx-1][:,glacier_idx].flatten())
-    daily_snow_sum = copy.deepcopy(daily_snow_years[idx][:,glacier_idx].flatten())
-    
-    daily_rain_sum_1 = copy.deepcopy(daily_rain_years[idx-1][:,glacier_idx].flatten())
-    daily_rain_sum = copy.deepcopy(daily_rain_years[idx][:,glacier_idx].flatten())
-    
-    # We get the daily datetimes
-    daily_datetimes_1 = copy.deepcopy(daily_datetimes_years[idx-1])
-    daily_datetimes = copy.deepcopy(daily_datetimes_years[idx])
-    
-    #### We compute the monthly average data
-    # Monthly average temperature
-    mon_temps_1 = get_monthly_temps(daily_temps_mean_1, daily_datetimes_1) 
-    mon_temps = get_monthly_temps(daily_temps_mean, daily_datetimes)
-    mon_temp_year = np.append(mon_temps_1[9:], mon_temps[:9])
+    # We create a dataset for the current year
+    adamont_ds = xr.Dataset({'temperature': (['time','space'], daily_meteo_data['temps'][idx]),
+                                  'snow': (['time','space'], daily_meteo_data['snow'][idx]),
+                                  'rain': (['time','space'], daily_meteo_data['rain'][idx])},
+                                   coords={'zs': daily_meteo_data['zs'],
+                                   'time': daily_meteo_data['dates'][idx]})
+            
+    # Re-scale temperature at glacier's actual altitude
+    adamont_tmean_d_g = copy.deepcopy(adamont_ds['temperature'][:, glacier_idx] + ((adamont_ds['zs'][glacier_idx].data - glacier_mean_altitude)/1000.0)*6.0)
     
     # We adjust the snowfall rate at the glacier's altitude
-    glacier_snow_1 = np.where(daily_temps_mean_1 > 0.0, 0.0, daily_snow_sum_1)
-    glacier_snow_1 = np.where(((daily_temps_mean_1 < 2.0) & (glacier_snow_1 == 0.0)), daily_rain_sum_1, glacier_snow_1)
-    glacier_snow = np.where(daily_temps_mean > 0.0, 0.0, daily_snow_sum)
-    glacier_snow = np.where(((daily_temps_mean < 0.0) & (glacier_snow == 0.0)), daily_rain_sum, glacier_snow)
+    adamont_snow_d_g = copy.deepcopy(adamont_ds['snow'][:, glacier_idx])
+    adamont_rain_d_g = copy.deepcopy(adamont_ds['rain'][:, glacier_idx])
     
-    mon_snow_1 = get_monthly_snow(glacier_snow_1, daily_datetimes_1)
-    mon_snow = get_monthly_snow(glacier_snow, daily_datetimes)
-    mon_snow_year = np.append(mon_snow_1[9:], mon_snow[:9])
+    adamont_snow_d_g.data = np.where(adamont_tmean_d_g.data > t_lim, 0.0, 
+                                     adamont_snow_d_g.data)
+    adamont_snow_d_g.data = np.where((adamont_tmean_d_g.data < t_lim), adamont_snow_d_g.data + adamont_rain_d_g.data, 
+                                     adamont_snow_d_g.data)
     
-    # We get the indexes for the ablation and accumulation periods
-    start_div, end_div = 30, 10
-#    temp_year = np.append(daily_temps_mean_1[-year_1_offset:], daily_temps_mean[:year_offset]) 
-    pos_temp_year = np.where(daily_temps_mean < 0, 0, daily_temps_mean)
-    pos_temp_year_1 = np.where(daily_temps_mean_1 < 0, 0, daily_temps_mean_1)
-    integ_temp = np.cumsum(pos_temp_year)
-    integ_temp_1 = np.cumsum(pos_temp_year_1)
+    # Monthly data during the current hydrological year
+    adamont_tmean_m_g = adamont_tmean_d_g.resample(time="1MS").mean().data
+    adamont_snow_m_g = adamont_snow_d_g.resample(time="1MS").sum().data
     
-    if(np.all(integ_temp == 0)):
-        print("-- Year without ablation --")
-        # No ablation during this year
-        end_y_ablation_1 = np.where(integ_temp_1 > (integ_temp_1.max() - integ_temp_1.max()/end_div))[0]
-        if(end_y_ablation_1.size > 0):
-            end_ablation_1 = end_y_ablation_1[0]
-        else:
-            end_ablation_1 = -1
-        
-        ablation_temp_idx = []
-        accum_temp_idx_1 = range(end_ablation_1+1, daily_temps_mean_1.size)
-        accum_temp_idx = range(0, daily_temps_mean.size)
-    else:
-        if(np.all(integ_temp_1 == 0)):
-            start_y_ablation = np.where(integ_temp > integ_temp.max()/start_div)[0]
-            end_y_ablation = np.where(integ_temp > (integ_temp.max() - integ_temp.max()/end_div))[0]
-            
-#            print("start_y_ablation: " + str(start_y_ablation))
-#            print("end_y_ablation: " + str(end_y_ablation))
-            
-            start_ablation = start_y_ablation[0] 
-            end_ablation = end_y_ablation[0] 
-            
-            # We get the indexes for the ablation and accumulation periods
-            #Dynamic ablation period
-            ablation_temp_idx = range(start_ablation, end_ablation+1)
-            accum_temp_idx_1 = range(0, daily_temps_mean_1.size)
-            accum_temp_idx = range(0, start_ablation)
-        else:
-            start_y_ablation = np.where(integ_temp > integ_temp.max()/start_div)[0]
-#            start_y_ablation_1 = np.where(integ_temp_1 > integ_temp_1.max()/start_div)[0]
-        #            start_y_ablation = np.where(integ_temp > 30)[0]
-            end_y_ablation = np.where(integ_temp > (integ_temp.max() - integ_temp.max()/end_div))[0]
-            end_y_ablation_1 = np.where(integ_temp_1 > (integ_temp_1.max() - integ_temp_1.max()/end_div))[0]
-            
-#            print("start_y_ablation: " + str(start_y_ablation))
-#            print("end_y_ablation: " + str(end_y_ablation))
-            
-            start_ablation = start_y_ablation[0] 
-            end_ablation = end_y_ablation[0] 
-#            start_ablation_1 = start_y_ablation_1[0] 
-            end_ablation_1 = end_y_ablation_1[0] 
-            
-            # We get the indexes for the ablation and accumulation periods
-            #Dynamic ablation period
-            ablation_temp_idx = range(start_ablation, end_ablation+1)
-            accum_temp_idx_1 = range(end_ablation_1+1, daily_temps_mean_1.size)
-            accum_temp_idx = range(0, start_ablation)
-       
-    # Classic 120-270 ablation period for the snow
-    ablation_idx = range(120, 271)
-    accum_idx_1 = range(271, daily_temps_mean_1.size)
-    accum_idx = range(0, 120)
+    #### /!\ If climate data is not complete for year 2099, skip this year  #######
+    if(adamont_tmean_m_g.size != 12):
+        return {'CPDD': []}, {'temps': []}
     
-    glacier_ablation_temps =  daily_temps_mean[ablation_temp_idx]
-    glacier_accumulation_temps = np.append(daily_temps_mean_1[accum_temp_idx_1], daily_temps_mean[accum_temp_idx])
+    # Compute CPDD
+    glacier_CPDD = np.sum(np.where(adamont_tmean_d_g.data < 0, 0, 
+                                   adamont_tmean_d_g.data))
     
-    dummy_glacier_ablation_temps = daily_temps_mean[ablation_idx]
-    dummy_glacier_accumulation_temps = np.append(daily_temps_mean_1[accum_idx_1], daily_temps_mean[accum_idx])
-
-    glacier_year_pos_temps = np.where(glacier_ablation_temps < 0, 0, glacier_ablation_temps)
-    dummy_glacier_ablation_pos_temps = np.where(dummy_glacier_ablation_temps < 0, 0, dummy_glacier_ablation_temps)
-    dummy_glacier_accum_pos_temps = np.where(dummy_glacier_accumulation_temps < 0, 0, dummy_glacier_accumulation_temps)
-    
-    glacier_accum_snow = np.append(daily_snow_sum_1[accum_idx_1], daily_snow_sum[accum_idx])
-    glacier_accum_rain = np.append(daily_rain_sum_1[accum_idx_1], daily_rain_sum[accum_idx])
-    
-    glacier_ablation_snow = daily_snow_sum[ablation_idx]
-    glacier_ablation_rain = daily_rain_sum[ablation_idx]
-    
-    # We recompute the rain/snow limit with the new adjusted temperatures
-    glacier_accum_snow = np.where(dummy_glacier_accum_pos_temps > 0.0, 0.0, glacier_accum_snow)
-    glacier_accum_snow = np.where(((dummy_glacier_accumulation_temps < 0.0) & (glacier_accum_snow == 0.0)), glacier_accum_rain, glacier_accum_snow)
-    glacier_ablation_snow = np.where(dummy_glacier_ablation_pos_temps > 0.0, 0.0, glacier_ablation_snow)
-    glacier_ablation_snow = np.where(((dummy_glacier_ablation_temps < 0.0) & (glacier_ablation_snow == 0.0)), glacier_ablation_rain, glacier_ablation_snow)
-    
-    
-#            glacier_ablation_season = end_y_ablation[0] - start_y_ablation[0]
-#    glacier_ablation_season = len(ablation_temp_idx) + len(ablation_temp_idx)
-#            print("Ablation season length: " + str(glacier_ablation_season)
-    
-    glacier_CPDD = np.sum(glacier_year_pos_temps)
-    glacier_winter_snow = np.sum(glacier_accum_snow) 
-    glacier_summer_snow = np.sum(glacier_ablation_snow)
+    # Compute snowfall
+    glacier_winter_snow = np.sum(adamont_snow_d_g.sel(time = slice(str(year-1)+'-10-01', str(year)+'-03-31')).data)
+    glacier_summer_snow = np.sum(adamont_snow_d_g.sel(time = slice(str(year)+'-04-01', str(year)+'-07-31')).data)
     
     # Seasonal anomalies
-    CPDD_LocalAnomaly, winter_snow_LocalAnomaly, summer_snow_LocalAnomaly = compute_local_anomalies(glacier_CPDD, glacier_winter_snow, glacier_summer_snow,
+    CPDD_LocalAnomaly, winter_snow_LocalAnomaly, summer_snow_LocalAnomaly = compute_local_anomalies(glacier_CPDD, 
+                                                                                                    glacier_winter_snow, 
+                                                                                                    glacier_summer_snow,
                                                                                                     meteo_anomalies)                                                         
     
     # Monthly anomalies
-    mon_temp_anomaly, mon_snow_anomaly = compute_monthly_anomalies(mon_temp_year, mon_snow_year, meteo_anomalies['mon_temp'], meteo_anomalies['mon_snow'])
+    mon_temp_anomaly, mon_snow_anomaly = compute_monthly_anomalies(adamont_tmean_m_g, 
+                                                                   adamont_snow_m_g, 
+                                                                   meteo_anomalies['mon_temp'], 
+                                                                   meteo_anomalies['mon_snow'])
          
-    season_anomalies_y = {'CPDD': CPDD_LocalAnomaly, 'winter_snow':winter_snow_LocalAnomaly, 'summer_snow': summer_snow_LocalAnomaly}
-    monthly_anomalies_y = {'temps': mon_temp_anomaly, 'snow': mon_snow_anomaly}
+    season_anomalies_y = {'CPDD': CPDD_LocalAnomaly, 
+                          'winter_snow':winter_snow_LocalAnomaly, 
+                          'summer_snow': summer_snow_LocalAnomaly}
+    monthly_anomalies_y = {'temps': mon_temp_anomaly, 
+                           'snow': mon_snow_anomaly}
     
 #    print("\nCPDD_LocalAnomaly: " + str(CPDD_LocalAnomaly))
 #    print("winter_snow_LocalAnomaly: " + str(winter_snow_LocalAnomaly))
@@ -1285,7 +1038,7 @@ def store_plot(masked_ID_current_glacier, masked_DEM_current_glacier_u, masked_I
         
 #                plt.show(block=False)
     # We store the plots as images
-    plt.savefig(newpath + "Glacier " + glacierName + "_" + str(year))
+    plt.savefig(os.path.join(newpath, "Glacier " + glacierName + "_" + str(year)))
     plt.close()
     
     nfigure = nfigure+1
@@ -1295,12 +1048,12 @@ def store_plot(masked_ID_current_glacier, masked_DEM_current_glacier_u, masked_I
     return nfigure, isNotFirst
 
 def store_rasters(masked_DEM_current_glacier_u, masked_ID_current_glacier_u, midfolder, glacierID, year):
-    path_DEM_raster_year = path_glacier_evolution_DEM_rasters + midfolder + "DEM_Glacier_0" + str(glacierID) + "_" + str(year) + ".tif"
-    if not os.path.exists(path_glacier_evolution_DEM_rasters + midfolder):
-        os.makedirs(path_glacier_evolution_DEM_rasters + midfolder)
-    path_ID_raster_year = path_glacier_evolution_ID_rasters + midfolder + "IceDepth_Glacier_0" + str(glacierID) + "_" + str(year) + ".tif"
-    if not os.path.exists(path_glacier_evolution_ID_rasters + midfolder):
-        os.makedirs(path_glacier_evolution_ID_rasters + midfolder)
+    path_DEM_raster_year = os.path.join(path_glacier_evolution_DEM_rasters, midfolder, "DEM_Glacier_0" + str(glacierID) + "_" + str(year) + ".tif")
+    if not os.path.exists(os.path.join(path_glacier_evolution_DEM_rasters, midfolder)):
+        os.makedirs(os.path.join(path_glacier_evolution_DEM_rasters, midfolder))
+    path_ID_raster_year = os.path.join(path_glacier_evolution_ID_rasters, midfolder, "IceDepth_Glacier_0" + str(glacierID) + "_" + str(year) + ".tif")
+    if not os.path.exists(os.path.join(path_glacier_evolution_ID_rasters, midfolder)):
+        os.makedirs(os.path.join(path_glacier_evolution_ID_rasters, midfolder))
     array2raster(path_DEM_raster_year, r_origin, r_pixelwidth, r_pixelheight, masked_DEM_current_glacier_u)
     array2raster(path_ID_raster_year, r_origin, r_pixelwidth, r_pixelheight, masked_ID_current_glacier_u)
     
@@ -1341,7 +1094,7 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
     
     # We shorten the name of the glacier if it's too long
     glacierName = shorten_name(glacierName)
-    newpath = path_glacier_evolution_plots +  midfolder + strip_accents(massif) + '\\' + "Glacier " + strip_accents(glacierName) + "\\"
+    newpath = os.path.join(path_glacier_evolution_plots, midfolder, strip_accents(massif), "Glacier " + strip_accents(glacierName))
     
     path_raster_current_DEM = current_glacier_DEM
     
@@ -1383,6 +1136,10 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
                 season_anomalies_y, monthly_anomalies_y = get_adjusted_glacier_ADAMONT_forcings(year, year_start, 
                                                                                              masked_DEM_current_glacier_u.compressed().mean(), SAFRAN_idx, 
                                                                                              daily_meteo_data, meteo_anomalies)
+                ### Check if data is not available for year 2099 ###
+                if(len(monthly_anomalies_y['temps']) == 0):
+                    # Skip year
+                    break
                 
             ####  CREATION OF THE MODEL TEST DATASET  ####
             x_lasso, x_ann = create_input_array(season_anomalies_y, monthly_anomalies_y, mean_glacier_alt, max_glacier_alt, slope20, current_glacierArea, lat, lon, aspect)
@@ -1496,9 +1253,9 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
         store_file(yearly_glacier_slope20, path_glacier_slope20, midfolder, "slope20", glimsID, year_start, year)
         # Melt year (if available)
         if(glacier_melted_flag):
-            if not os.path.exists(path_glacier_melt_years + midfolder):
-                os.makedirs(path_glacier_melt_years + midfolder)
-            file_name_h = path_glacier_melt_years + midfolder + str(glimsID) + '_'
+            if not os.path.exists(os.path.join(path_glacier_melt_years, midfolder)):
+                os.makedirs(os.path.join(path_glacier_melt_years, midfolder))
+            file_name_h = os.path.join(path_glacier_melt_years, midfolder, str(glimsID) + '_')
             file_name_t = '_melt_year.csv'
             glacier_melt_year = np.asarray(glacier_melt_year)
             automatic_file_name_save(file_name_h, file_name_t, glacier_melt_year, 'txt')
@@ -1516,7 +1273,7 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
 
 
 
-def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickness_idx):
+def main(compute, ensemble_SMB_models, overwrite_flag, use_cluster, counter_threshold, thickness_idx):
 
     ##################################################################################
     ##################		                MAIN                #####################
@@ -1530,29 +1287,32 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
         # We close all previous plots
         plt.close('all')
         
-        path_smb = workspace + 'glacier_data\\smb\\'
-        path_smb_function = path_smb + 'smb_function\\'
-        path_glacier_outlines_shapefile = path_glacier_2003_shapefiles + 'GLIMS_glaciers_2003_ID_massif' + '.shp' 
+        path_smb = os.path.join(workspace, 'glacier_data', 'smb')
+        path_smb_function = os.path.join(path_smb, 'smb_function')
+        path_glacier_outlines_shapefile = os.path.join(path_glacier_2003_shapefiles, 'GLIMS_glaciers_2003_ID_massif' + '.shp') 
+        # SAFRAN climate forcings
         path_ann = settings.path_ann
-        path_safran_forcings = path_smb_function + 'SAFRAN\\'
+        path_safran_forcings = os.path.join(path_smb_function, 'SAFRAN')
+        # Path to be updated with ADAMONT forcings local path
+        path_adamont_forcings = settings.path_adamont
         
-        if(settings.smb_model_type == 'ann_no_weights'):
-            path_ann_train = path_smb + 'ANN\\LSYGO\\no_weights\\'
-            path_cv_ann = path_ann_train + 'CV\\'
-        elif(settings.smb_model_type == 'ann_weights'):
-            path_ann_train = path_smb + 'ANN\\LSYGO\\weights\\'
-            path_cv_ann = path_ann_train + 'CV\\'
+#        if(settings.smb_model_type == 'ann_no_weights'):
+#            path_ann_train = path_smb + 'ANN\\LSYGO\\no_weights\\'
+#            path_cv_ann = path_ann_train + 'CV\\'
+#        elif(settings.smb_model_type == 'ann_weights'):
+#            path_ann_train = path_smb + 'ANN\\LSYGO\\weights\\'
+#            path_cv_ann = path_ann_train + 'CV\\'
         
         ### We detect the forcing between SAFRAN or ADAMONT
         forcing = settings.projection_forcing
 #        print("forcing: " + str(forcing))
         
         # We determine the path depending on the forcing
-        path_smb_function_forcing = path_smb_function + forcing + "\\"
+        path_smb_function_forcing = os.path.join(path_smb_function, forcing)
         
 #        glims_2015 = genfromtxt(path_glims + 'GLIMS_2015_massif.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('GLIMS_ID', '<a50'), ('Massif_SAFRAN', '<i8'),('Aspect_num', '<i8')])
-#        glims_2003 = genfromtxt(path_glims + 'GLIMS_2003.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('GLIMS_ID', '<a50'), ('Massif_SAFRAN', '<i8'), ('Aspect_num', '<i8')])
-        glims_rabatel = genfromtxt(path_glims + 'GLIMS_Rabatel_30_2003.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('slope20', '<f8'), ('GLIMS_ID', '<a50'), ('Massif_SAFRAN', '<f8'), ('Aspect_num', '<f8')])        
+#        glims_2003 = genfromtxt(path_glims + 'GLIMS_2003.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('GLIMS_ID', '<a50'), ('Massif_SAFRAN', '<i8'), ('Aspect_num', '<i8'), ('ID', '<f8')])
+        glims_rabatel = genfromtxt(os.path.join(path_glims, 'GLIMS_Rabatel_30_2003.csv'), delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('slope20', '<f8'), ('GLIMS_ID', '<a50'), ('Massif_SAFRAN', '<f8'), ('Aspect_num', '<f8')])        
 
         # Flag to determine if raster plots should be stored (time consuming)
         store_plots = True
@@ -1572,22 +1332,26 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
         
         pixel_area = 0.000625 # km2 (25*25 m2, from Farinotti et al. 2019 rasters)
         if(settings.simulation_type == "historical"):
+            # Glacier simulations time span
             year_start = 2004 
             year_end = 2015
+            # Reanalysis forcings references
             ref_start = 1959
             ref_end = 2015
         elif(settings.simulation_type == "future"):
+            # Glacier projections time span
             year_start = 2015 
 #            year_start = 2019 
             year_end = 2099
+            # Projection forcings references
             ref_start = 2006
             ref_end = 2099
         
         #### ONLY HISTORICAL SAFRAN DATA FOR REFS  ####
         # We load the compacted seasonal and monthly meteo forcings
-        with open(path_safran_forcings+'season_meteo.txt', 'rb') as season_f:
+        with open(os.path.join(path_safran_forcings, 'season_meteo.txt'), 'rb') as season_f:
             season_meteo = np.load(season_f,  allow_pickle=True)[()]
-        with open(path_safran_forcings+'monthly_meteo.txt', 'rb') as mon_f:
+        with open(os.path.join(path_safran_forcings, 'monthly_meteo.txt'), 'rb') as mon_f:
             monthly_meteo = np.load(mon_f,  allow_pickle=True)[()]
             
         ###  We load the SMB models  ###
@@ -1595,10 +1359,10 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
         # ANN nonlinear models ensemble preloaded separetly
         # Lasso
         # Data scaler
-        with open(path_smb_function+'model_lasso_temporal.txt', 'rb') as lasso_model_f:
+        with open(os.path.join(path_smb_function, 'model_lasso_temporal.txt'), 'rb') as lasso_model_f:
             lasso_model = np.load(lasso_model_f,  allow_pickle=True)
         # Lasso linear model
-        with open(path_smb_function+'LOYO\\full_scaler_temporal.txt', 'rb') as lasso_scaler_f:
+        with open(os.path.join(path_smb_function, 'LOYO', 'full_scaler_temporal.txt'), 'rb') as lasso_scaler_f:
             lasso_scaler = np.load(lasso_scaler_f,  allow_pickle=True)[()]
         
         # We open the raster files and shapefiles:
@@ -1606,7 +1370,7 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
         layer_glaciers = shapefile_glacier_outlines.GetLayer()
         
         # We recover the list of discarded glaciers by cloud cover
-        delta_h_processed_glaciers = np.asarray(genfromtxt(path_delta_h_param+"delta_h_processed_glaciers.csv", delimiter=';', dtype=np.dtype('str')))
+        delta_h_processed_glaciers = np.asarray(genfromtxt(os.path.join(path_delta_h_param, "delta_h_processed_glaciers.csv"), delimiter=';', dtype=np.dtype('str')))
         
         # We create the folders to store the glacier area and volume data
         if not os.path.exists(path_glacier_area):
@@ -1615,40 +1379,40 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
             os.makedirs(path_glacier_volume)
             
         if(forcing == 'ADAMONT'):
-            midfolder_base = str(settings.current_ADAMONT_forcing_mean[:-11]) + "\\"
-            daily_meteo_data, massif_number, aspects, year_end = get_default_ADAMONT_forcings(year_start, year_end, midfolder_base)
+            midfolder_base = str(settings.current_ADAMONT_forcing_mean[:-11])
+            daily_meteo_data, massif_number, aspects, year_end = get_default_ADAMONT_forcings(year_start, year_end, midfolder_base, overwrite_forcings)
 #            all_glacier_coordinates = get_ADAMONT_glacier_coordinates(glims_2015, massif_number, zs_years)
             print("\nCurrent RCP-GCM-RCM member: " + str(settings.current_ADAMONT_forcing_mean))
         else:
-            midfolder_base = 'SAFRAN\\'
+            midfolder_base = 'SAFRAN'
             daily_meteo_data = get_default_SAFRAN_forcings(ref_start, ref_end)
             # We retrieve all the SAFRAN glacier coordinates
-            with open(path_smb_function_forcing+'all_glacier_coordinates.txt', 'rb') as coords_f:
+            with open(os.path.join(path_smb_function_forcing, 'all_glacier_coordinates.txt'), 'rb') as coords_f:
                 all_glacier_coordinates = np.load(coords_f,  allow_pickle=True)
                 
         ### We modify the ice depth in order to compute the effects of the uncertainties ###
         if(thickness_idx == 1):
-            thickness_folder_tail = "1.3\\"
+            thickness_folder_tail = "1.3"
             print("\nIce thickness *1.3 simulation \n")
         elif(thickness_idx == 2):
-            thickness_folder_tail = "0.7\\"
+            thickness_folder_tail = "0.7"
             print("\nIce thickness *0.7 simulation \n")
         else:
-            thickness_folder_tail = "1\\"
+            thickness_folder_tail = "1"
             print("\nOriginal Ice thickness simulation \n")
-        midfolder = midfolder_base+thickness_folder_tail
+        midfolder = os.path.join(midfolder_base, thickness_folder_tail)
         
         # We remove all the previous SMB and topo simulations
-        empty_folder(path_smb_simulations+midfolder)
-        empty_folder(path_glacier_area+midfolder)
-        empty_folder(path_glacier_volume+midfolder)
-        empty_folder(path_glacier_zmean+midfolder)
-        empty_folder(path_glacier_slope20+midfolder)
-        empty_folder(path_glacier_melt_years+midfolder)
-        empty_folder(path_glacier_CPDDs+midfolder)
-        empty_folder(path_glacier_snowfall+midfolder)
-        empty_folder(path_glacier_evolution_ID_rasters+midfolder)
-        empty_folder(path_glacier_evolution_DEM_rasters+midfolder)
+        empty_folder(os.path.join(path_smb_simulations, midfolder))
+        empty_folder(os.path.join(path_glacier_area, midfolder))
+        empty_folder(os.path.join(path_glacier_volume, midfolder))
+        empty_folder(os.path.join(path_glacier_zmean, midfolder))
+        empty_folder(os.path.join(path_glacier_slope20, midfolder))
+        empty_folder(os.path.join(path_glacier_melt_years, midfolder))
+        empty_folder(os.path.join(path_glacier_CPDDs, midfolder))
+        empty_folder(os.path.join(path_glacier_snowfall, midfolder))
+        empty_folder(os.path.join(path_glacier_evolution_ID_rasters, midfolder))
+        empty_folder(os.path.join(path_glacier_evolution_DEM_rasters, midfolder))
         
         # We calculate the year range once we know if the ADAMONT forcings end in 2098 or 2099
         year_range = range(year_start, year_end+1)
@@ -1704,7 +1468,7 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
                     print("GLIMS ID: " + str(glimsID))
                     
                     # We crop the initial rasters to the extent of the GLIMS 2003 or 2015 database
-                    path_outline_current_glacier = path_glacier_2003_shapefiles + 'individual_GLIMS_2003\\' +  'GLIMS_ID_' + str(glimsID) + '.shp'
+                    path_outline_current_glacier = os.path.join(path_glacier_2003_shapefiles, 'individual_GLIMS_2003', 'GLIMS_ID_' + str(glimsID) + '.shp')
                     current_glacier_ice_depth, current_glacier_DEM, path_glacier_DEM_2003, path_glacier_ID_2003 = crop_inital_rasters_to_GLIMS(path_glacier_ID_rasters, path_glacier_DEM_rasters, path_outline_current_glacier, 
                                                                                              glacier, glacierID, midfolder_base, year_start)
                     
@@ -1714,8 +1478,8 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
                     
                     # We get the processed delta h function for each glacier or a linear one for small glaciers
                     if(glacier_delta_h):
-                        delta_h_DEM_current_glacier = genfromtxt(path_delta_h_param + glimsID + '_DEM.csv', delimiter=';')
-                        delta_h_dh_current_glacier = genfromtxt(path_delta_h_param + glimsID + '_dh.csv', delimiter=';')
+                        delta_h_DEM_current_glacier = genfromtxt(os.path.join(path_delta_h_param, glimsID + '_DEM.csv'), delimiter=';')
+                        delta_h_dh_current_glacier = genfromtxt(os.path.join(path_delta_h_param, glimsID + '_dh.csv'), delimiter=';')
                         
                         # Uncomment to add uncertainty assessement +-10%
 #                        delta_h_dh_current_glacier = delta_h_dh_current_glacier*1.1
@@ -1735,7 +1499,7 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
                     if os.path.exists(current_glacier_ice_depth):
                         raster_current_F19 = gdal.Open(current_glacier_ice_depth) 
                         ice_depth_current_glacier = raster_current_F19.ReadAsArray()
-                        if(np.all(ice_depth_current_glacier == 0)):
+                        if(np.all(ice_depth_current_glacier == 0) or np.all(np.isnan(ice_depth_current_glacier[ice_depth_current_glacier != 0]))):
                              print("/!\ Ice depth raster coordinates not aligned with GLIMS database for Glacier " + str(glacierName) + " with area = " + str(glacierArea) + " km2\n")
                              glaciers_with_errors.append(glacierName)
                              continue
@@ -1832,8 +1596,8 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
         glaciers_with_errors = np.asarray(glaciers_with_errors)
         melted_glaciers = np.asarray(melted_glaciers)
         
-        path_glacier_w_errors_current_combination = path_glacier_w_errors + midfolder
-        path_melt_years_current_combination = path_glacier_melt_years + midfolder
+        path_glacier_w_errors_current_combination = os.path.join(path_glacier_w_errors, midfolder)
+        path_melt_years_current_combination = os.path.join(path_glacier_melt_years, midfolder)
         
         if not os.path.exists(path_glacier_w_errors_current_combination):
             os.makedirs(path_glacier_w_errors_current_combination)
@@ -1842,18 +1606,18 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
             
         try:
             if(glaciers_with_errors.size > 0):
-                np.savetxt(path_glacier_w_errors_current_combination + "glaciers_w_errors_" + str(year_start)+ "_" + str(year_end) + '.csv', glaciers_with_errors, delimiter=";", fmt="%s")
+                np.savetxt(os.path.join(path_glacier_w_errors_current_combination, "glaciers_w_errors_" + str(year_start)+ "_" + str(year_end) + '.csv'), glaciers_with_errors, delimiter=";", fmt="%s")
             if(melted_glaciers.size > 0):
-                np.savetxt(path_melt_years_current_combination + "melted_glaciers_" + str(year_start)+ "_" + str(year_end) + '.csv', melted_glaciers, delimiter=";", fmt="%s")
+                np.savetxt(os.path.join(path_melt_years_current_combination, "melted_glaciers_" + str(year_start)+ "_" + str(year_end) + '.csv'), melted_glaciers, delimiter=";", fmt="%s")
         except IOError:
             print("File currently opened. Please close it to proceed.")
             os.system('pause')
             # We try again
             try:
                 if(glaciers_with_errors.size > 0):
-                    np.savetxt(path_glacier_evolution + midfolder + "glaciers_w_errors_" + str(year_start)+ "_" + str(year_end) + '.csv', glaciers_with_errors, delimiter=";", fmt="%s")
+                    np.savetxt(os.path.join(path_glacier_evolution, midfolder, "glaciers_w_errors_" + str(year_start)+ "_" + str(year_end) + '.csv'), glaciers_with_errors, delimiter=";", fmt="%s")
                 if(melted_glaciers.size > 0):
-                    np.savetxt(path_glacier_evolution + midfolder + "melted_glaciers_" + str(year_start)+ "_" + str(year_end) + '.csv', melted_glaciers, delimiter=";", fmt="%s")
+                    np.savetxt(os.path.join(path_glacier_evolution, midfolder, "melted_glaciers_" + str(year_start)+ "_" + str(year_end) + '.csv'), melted_glaciers, delimiter=";", fmt="%s")
             except IOError:
                 print("File still not available. Aborting simulations.")
         

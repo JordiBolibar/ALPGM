@@ -7,6 +7,8 @@ Created on Mon Nov 19 16:06:19 2018
 
 ## Dependencies: ##
 import matplotlib.pyplot as plt
+import matplotlib as mpl
+import scipy.stats as st
 import numpy as np
 from numpy import genfromtxt
 import os
@@ -20,6 +22,30 @@ import statsmodels.api as sm
 from scipy import stats
 #from sklearn.metrics import r2_score
 #import seaborn as sns
+
+######   FLAGS    ############
+n_cv_members = 60 # LSYGO
+#n_cv_members = 100 # LSYGO
+#n_cv_members = 32 # LOGO
+### Process Marzeion et al. SMB data ###
+process_marzeion = True
+
+
+#####  PROPLOT CONFIGURATION   #####
+#plot.rc.margin = 0.03
+#plot.rc.cycle = 'default'
+mpl.rcParams['axes.grid'] = True
+mpl.rcParams['grid.alpha'] = 0.1
+mpl.rcParams['grid.color'] = 'k'
+mpl.rcParams['grid.linestyle'] = '-'
+mpl.rcParams['grid.linewidth'] = 0.6
+#mpl.rcParams['axes.xmargin'] = 0.02
+#mpl.rcParams['axes.ymargin'] = 0.05
+mpl.rcParams['legend.fancybox'] = False
+mpl.rcParams['font.sans-serif'] = 'TeX Gyre Heros'
+#mpl.rc('font', family='sans-serif') 
+#mpl.rcParams['legend.borderaxespad'] = 0.5
+#mpl.rcParams['legend.framealpha'] = 0.7
 
 ######   FILE PATHS    #######
     
@@ -45,6 +71,7 @@ path_glacier_w_errors = path_glacier_evolution + 'glacier_w_errors\\SAFRAN\\1\\'
 path_glims = workspace + 'glacier_data\\GLIMS\\' 
 path_safran_forcings = 'C:\\Jordi\\PhD\\Data\\SAFRAN-Nivo-2017\\'
 path_smb_function = path_smb + 'smb_function\\'
+path_smb_plots = path_smb + 'smb_simulations\\reconstruction_plots\\'
 global path_smb_function_safran 
 path_smb_safran = path_smb + 'smb_simulations\\SAFRAN\\1\\all_glaciers_1967_2015\\smb\\'
 path_ensemble_smb_safran = path_smb + 'smb_simulations\\SAFRAN\\1\\all_glaciers_1967_2015\\ensemble_smb\\'
@@ -60,7 +87,7 @@ glims_2003 = genfromtxt(path_glims + 'GLIMS_2003.csv', delimiter=';', skip_heade
 glims_rabatel = genfromtxt(path_glims + 'GLIMS_Rabatel_30_2003.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('slope20', '<f8'), ('GLIMS_ID', '<a50'), ('Massif_SAFRAN', '<f8'), ('Aspect_num', '<f8')])        
 SMB_raw = genfromtxt(path_smb + 'SMB_raw_temporal.csv', delimiter=';', dtype=float)
 
-all_glacier_smb, flat_all_glacier_smb  = [],[]
+all_glacier_smb, flat_all_glacier_smb, all_cum_smb  = [],[],[]
 all_glaciers_avg_smb = {'avg_smb':[], 'GLIMS_ID':[], 'glacier_name':[]}
 annual_smb_obs = [] 
 annual_avg_smb_, annual_avg_smb_marzeion = [],[]
@@ -87,14 +114,11 @@ for year_idx in range(0, 49):
     annual_avg_area_marzeion.append([])
     annual_avg_slope.append([])
 
-# Annual mean SMB datat structure for each of the 32 ensemble members
+# Annual mean SMB data structure for each of the n_cv_members ensemble members
 ensemble_avg_annual_smb, a_avg_ensemble_smb = [],[]
-for member in range(0,32):
+for member in range(0,n_cv_members):
     ensemble_avg_annual_smb.append(copy.deepcopy(annual_avg_smb_))
     a_avg_ensemble_smb.append([])
-
-### Process Marzeion et al. SMB data ###
-process_marzeion = True
 
 #### Process Marzeion et al. glacier-wide SMB data   #######
 if(process_marzeion):
@@ -146,7 +170,7 @@ for year in annual_smb_obs:
 annual_avg_smb_obs = np.asarray(annual_avg_smb_obs)
 
 line0, = ax0.plot(range(1967, 2016), annual_avg_smb_obs, linewidth=3, label='Average SMB', c='midnightblue')
-ax0.legend()
+ax0.legend(fontsize=14)
 
 ax0.axhline(y=0, color='black', linewidth=0.7, linestyle='-')
 
@@ -180,14 +204,14 @@ glacier_massifs = []
 
 ###############   Plot with all reconstructed French alpine glaciers  ##############
 fig11, (ax11, ax21) = plt.subplots(2,1, figsize=(10,12))
-ax11.set_ylabel('Glacier-wide SMB (m.w.e. $a^{-1}$)', fontsize=12)
-ax11.tick_params(labelsize=12)
+ax11.set_ylabel('Glacier-wide SMB (m.w.e. $a^{-1}$)', fontsize=16)
+ax11.tick_params(labelsize=16)
 ax11.get_xaxis().set_ticks([])
 
 #fig11, ax21 = plt.subplots(figsize=(16,7))
-ax21.set_ylabel('Cumulative glacier-wide SMB (m.w.e)', fontsize=12)
-ax21.set_xlabel('Year', fontsize=12)
-ax21.tick_params(labelsize=12)
+ax21.set_ylabel('Cumulative glacier-wide SMB (m.w.e)', fontsize=16)
+ax21.set_xlabel('Year', fontsize=16)
+ax21.tick_params(labelsize=16)
 
 # We draw vertical and horizontal lines
 ax11.axvline(x=1970, color='grey', linewidth=0.9, linestyle='--')
@@ -203,13 +227,13 @@ ax21.axvline(x=2010, color='grey', linewidth=0.9, linestyle='--')
 
 ##############   Plot comparing Bolibar and Marzeion   #######################
 #fig1, ax1 = plt.subplots(figsize=(20,9))
-fig1, ax1 = plt.subplots(figsize=(14,7))
+fig1, (ax1, ax2) = plt.subplots(2,1, figsize=(10,12))
 ax1.set_ylabel('Glacier-wide SMB (m.w.e. $a^{-1}$)', fontsize=16)
 #ax1.set_xlabel('Year', fontsize=16)
 #ax1.set_title("Annual glacier-wide SMB of all French alpine glaciers")
 ax1.tick_params(labelsize=16)
 
-fig2, ax2 = plt.subplots(figsize=(14,7))
+#fig2, ax2 = plt.subplots(figsize=(14,7))
 ax2.set_ylabel('Cumulative glacier-wide SMB (m.w.e)', fontsize=16)
 ax2.set_xlabel('Year', fontsize=16)
 #ax2.set_title("Cumulative glacier-wide SMB of all French alpine glaciers")
@@ -253,7 +277,7 @@ for path_smb, path_ensemble_smb, path_area, path_slope in zip(path_smb_glaciers,
     # Glacier info
     # {'name':glacier_name, 'glimsID':glimsID, 'mean_altitude':glacier_mean_altitude, 'area': glacier_area}
     with open(path_area_safran + 'glacier_info_' + path_area[:14], 'rb') as glacier_info_f:
-        glacier_info = np.load(glacier_info_f, encoding='latin1').item()
+        glacier_info = np.load(glacier_info_f, encoding='latin1', allow_pickle=True).item()
         
 #    print("ensemble_smb_glacier_raw.shape: " + str(ensemble_smb_glacier_raw.shape))
 #    print("ensemble_smb_glacier_raw[0,:]: " + str(ensemble_smb_glacier_raw[0,:]))
@@ -262,6 +286,7 @@ for path_smb, path_ensemble_smb, path_area, path_slope in zip(path_smb_glaciers,
     mean_altitude = glacier_info['mean_altitude']
     
     all_glacier_smb.append(np.asarray(smb_glacier))
+        
     flat_all_glacier_smb = np.concatenate((flat_all_glacier_smb, smb_glacier), axis=0)
     all_glaciers_avg_smb['avg_smb'].append(np.mean(smb_glacier))
     all_glaciers_avg_smb['GLIMS_ID'].append(glacier_info['glimsID'])
@@ -276,7 +301,7 @@ for path_smb, path_ensemble_smb, path_area, path_slope in zip(path_smb_glaciers,
         nan_tail = np.zeros(2015-2003)
         nan_tail[:] = np.nan
         smb_glacier = np.concatenate((smb_glacier, nan_tail))
-        if(ensemble_smb_glacier_raw.shape[0] == 32):
+        if(ensemble_smb_glacier_raw.shape[0] == n_cv_members):
             for member in ensemble_smb_glacier_raw:
                 ensemble_smb_glacier.append(np.concatenate((member, nan_tail)))
             ensemble_smb_glacier = np.asarray(ensemble_smb_glacier)
@@ -287,7 +312,7 @@ for path_smb, path_ensemble_smb, path_area, path_slope in zip(path_smb_glaciers,
         area_glacier_i = area_glacier[-15]
         slope_glacier_i = slope_glacier[-15]
         
-        if(ensemble_smb_glacier_raw.shape[0] == 32):
+        if(ensemble_smb_glacier_raw.shape[0] == n_cv_members):
             ensemble_smb_glacier = np.asarray(ensemble_smb_glacier_raw)
     
     if(area_glacier_i < 0.1):
@@ -325,10 +350,12 @@ for path_smb, path_ensemble_smb, path_area, path_slope in zip(path_smb_glaciers,
         print(smb_glacier)
     
     # So far we filter them from the graphs
-    if((np.isfinite(smb_glacier[-1]) and np.sum(smb_glacier[:-15]) < 0) and np.sum(smb_glacier) > -60):
+    if((np.isfinite(smb_glacier[-1]) and np.sum(smb_glacier[:-15]) < 0) and np.sum(smb_glacier[:13]) > -15):
 #    if(True):
         line1, = ax11.plot(range(1967, 2016), smb_glacier, linewidth=linewidth, alpha=alpha)
         line2, = ax21.plot(range(1967, 2016), np.cumsum(smb_glacier), linewidth=linewidth, alpha=alpha)
+        if(smb_glacier.size > 40):
+            all_cum_smb.append(np.sum(smb_glacier))
     
     big_glacier, small_glacier, very_small_glacier, extremely_small_glacier = False, False, False, False
     s_0_20, s_20_30, s_30_40, s_40_50 = False, False, False, False
@@ -348,7 +375,7 @@ for path_smb, path_ensemble_smb, path_area, path_slope in zip(path_smb_glaciers,
 #            annual_avg_smb_marzeion[year_idx].append(np.nan)
         
         # We compute the same for each of the ensemble members
-        if(ensemble_smb_glacier_raw.shape[0] == 32):
+        if(ensemble_smb_glacier_raw.shape[0] == n_cv_members):
             member_idx = 0
             annual_ensemble_avg_area[year_idx].append(area_glacier_i)
             for smb_member in ensemble_smb_glacier:
@@ -472,6 +499,7 @@ mean_fullperiod_slope_glaciers = np.asarray(mean_fullperiod_slope_glaciers)
 
 # All glaciers
 all_glacier_smb = np.asarray(all_glacier_smb) 
+all_cum_smb = np.asarray(all_cum_smb)
 flat_all_glacier_smb = np.asarray(flat_all_glacier_smb)
 a_avg_smb, a_median_smb, a_avg_smb_marzeion, a_median_smb_marzeion = [],[],[],[]
 annual_avg_smb_area = {'big':[], 'small':[], 'v_small':[], 'x_small':[]}
@@ -511,7 +539,7 @@ for avg_smb, avg_smb_marzeion, avg_area, avg_area_marzeion in zip(annual_avg_smb
     member_idx=0
 #    print("annual_ensemble_avg_area.shape: " + str(np.asarray(annual_ensemble_avg_area).shape))
 #    print("ensemble_avg_annual_smb.shape: " + str(np.asarray(ensemble_avg_annual_smb).shape))
-    if(ensemble_smb_glacier_raw.shape[0] == 32):
+    if(ensemble_smb_glacier_raw.shape[0] == n_cv_members):
         for member in ensemble_smb_glacier:
             # Weighted mean
             finite_ensemble_mask = np.isfinite(ensemble_avg_annual_smb[member_idx][year_idx])
@@ -595,13 +623,16 @@ print("\nMax SMB common variance: " + str(glacier_correlation.max()))
 print("\nMin SMB common variance: " + str(glacier_correlation.min()))
 print("\nAverage SMB common variance: " + str(glacier_correlation.mean()))
 
+########### PLOTS  ##################################################################
+
 # Area weighted mean
 ax11.axhline(y=0, color='black', linewidth=0.9, linestyle='-')
 ax21.axhline(y=0, color='black', linewidth=0.9, linestyle='-')
 line111, = ax11.plot(range(1967, 2016), a_avg_smb, linewidth=3, c='midnightblue', label='Area weighted mean')
 line112, = ax21.plot(range(1967, 2016), np.cumsum(a_avg_smb), linewidth=3, c='midnightblue', label='Area weighted mean')
-ax11.legend(fontsize='large')
-ax21.legend(fontsize='large')
+ylim = ax21.get_ylim()
+ax11.legend(fontsize=16)
+ax21.legend(fontsize=16)
 fig11.tight_layout()
 
 for member in a_avg_ensemble_smb:
@@ -618,6 +649,32 @@ line21, = ax2.plot(range(1967, 2016), np.cumsum(a_avg_smb), linewidth=3, c='stee
 
 #ax1.legend(fontsize='x-large')
 ax2.legend(fontsize='x-large')
+fig1.tight_layout()
+
+
+## Histogram for cumulative SMB ####
+#ax_hist = plt.subplot(1,1,1)
+#plt.hist(all_cum_smb, density=True, bins=100, alpha=0.7)
+#plt.xlim(ylim)
+#kde_xs = np.linspace(all_cum_smb.min(), all_cum_smb.max(), 301)
+#kde = st.gaussian_kde(all_cum_smb)
+#plt.plot(kde_xs, kde.pdf(kde_xs), color='darkgoldenrod', linewidth='3', label="PDF")
+#plt.axvline(x=np.sum(a_avg_smb), color='midnightblue', linestyle='--', linewidth='3', label="Weighted average")
+#plt.gca().invert_xaxis()
+##plt.tick_params(
+##    axis='x',          # changes apply to the x-axis
+##    which='both',      # both major and minor ticks are affected
+##    bottom=False,      # ticks along the bottom edge are off
+##    top=False,         # ticks along the top edge are off
+##    labelbottom=False) # labels along the bottom edge are off
+#ax_hist.yaxis.tick_right()
+#plt.yticks(rotation='vertical')
+#plt.legend()
+#plt.ylabel('Probability')
+##plt.xlabel('Cumulative SMB (m w.e.)')
+##plt.title("Histogram");
+
+#import pdb; pdb.set_trace()
 
 print("\nNumber of glaciers disappeared between 2003 and 2015: " + str(glaciers_not_2015))
 
@@ -644,21 +701,23 @@ ax47.axhline(y=0, color='black', linewidth=0.7, linestyle='-')
 ax47.set_ylabel('Cumulative area influence on glacier-wide SMB signal (m.w.e.)', fontsize=14)
 ax47.set_xlabel('Year', fontsize=14)
 ax47.tick_params(labelsize=14)
-line25, = ax47.plot(range(1967, 2016)[-32:], a_median_smb[-32:], linestyle=':', linewidth=1, label='B: Reconstructed SMB', c='darkred')
-line25, = ax47.plot(range(1967, 2016)[-32:], a_median_smb_marzeion[-32:], linestyle=':', linewidth=1, label='M: Reconstructed SMB', c='midnightblue')
 line25, = ax47.plot(range(1967, 2016)[-32:], np.cumsum(annual_avg_smb_obs[-32:] - a_median_smb[-32:]), linestyle='--', linewidth=2, label='Observations', c='olivedrab')
+line25, = ax47.plot(range(1967, 2016)[-32:], a_median_smb[-32:], linestyle=':', linewidth=1, label='B: Reconstructed SMB', c='darkred')
 line14, = ax47.plot(range(1967, 2016)[-32:], np.cumsum(annual_avg_smb_area['x_small'][-32:] - a_median_smb[-32:]), linewidth=2, label='B: Glaciers < 0.1 km$^2$', c='darkred')
 line24, = ax47.plot(range(1967, 2016)[-32:], np.cumsum(annual_avg_smb_area['v_small'][-32:] - a_median_smb[-32:]), linewidth=2, label='B: Glaciers 0.1 - 0.5 km$^2$', c='crimson')
 line23, = ax47.plot(range(1967, 2016)[-32:], np.cumsum(annual_avg_smb_area['small'][-32:] - a_median_smb[-32:]), linewidth=2, label='B: Glaciers 0.5 - 2 km$^2$', c='darkorange')
 line22, = ax47.plot(range(1967, 2016)[-32:], np.cumsum(annual_avg_smb_area['big'][-32:] - a_median_smb[-32:]), linewidth=2, label='B: Glaciers > 2 km$^2$', c='tan')
 
+line25, = ax47.plot(range(1967, 2016)[-32:], a_median_smb_marzeion[-32:], linestyle=':', linewidth=1, label='M: Reconstructed SMB', c='midnightblue')
 line14, = ax47.plot(range(1967, 2016)[-32:], np.cumsum(marzeion_annual_avg_smb_area['x_small'][-32:] - a_median_smb_marzeion[-32:]), linewidth=2, label='M: Glaciers < 0.1 km$^2$', c='midnightblue')
 line14, = ax47.plot(range(1967, 2016)[-32:], np.cumsum(marzeion_annual_avg_smb_area['v_small'][-32:] - a_median_smb_marzeion[-32:]), linewidth=2, label='M: Glaciers 0.1 - 0.5 km$^2$', c='slateblue')
 line13, = ax47.plot(range(1967, 2016)[-32:], np.cumsum(marzeion_annual_avg_smb_area['small'][-32:] - a_median_smb_marzeion[-32:]), linewidth=2, label='M: Glaciers 0.5 - 2 km$^2$', c='mediumorchid')
 line12, = ax47.plot(range(1967, 2016)[-32:], np.cumsum(marzeion_annual_avg_smb_area['big'][-32:] - a_median_smb_marzeion[-32:]), linewidth=2, label='M: Glaciers > 2 km$^2$', c='thistle')
+
 #ax47.legend(loc='upper center', bbox_to_anchor=[-0.1, 1.25], ncol=4)
-ax47.legend(loc='upper center', bbox_to_anchor=[0.5, 1.25], ncol=3, fontsize='large')
+ax47.legend(ncol=2, fontsize='large')
 plt.subplots_adjust(top=0.80)
+
 
 ######    Influence of glacier area on glacier-wide SMB signal (Bolibar vs Marzeion) Full period   #################
 fig37, (ax37, ax47) = plt.subplots(1,2, figsize=(14,7))
@@ -1031,6 +1090,8 @@ avg_smb_10s_g = np.average(avg_smb_10s_g[finite_mask], weights=area_glaciers[fin
 avg_decadal_smb_g = np.array([avg_smb_70s_g, avg_smb_80s_g, avg_smb_90s_g, avg_smb_00s_g, avg_smb_10s_g])
 xmin = np.array([1970, 1980, 1990, 2000, 2010])
 xmax = np.array([1980, 1990, 2000, 2010, 2015])
+x_center = np.array([1975, 1985, 1995, 2005, 2012.5])
+decadal_uncertainties = np.array([0.18, 0.16, 0.14, 0.16, 0.11])
 total_avg_smb_g = np.average(avg_glacier_smb, weights=area_glaciers)
 
 fig9, ax9 = plt.subplots(figsize=(6, 4))
@@ -1045,11 +1106,14 @@ ax9.fill_between(range(1967, 2016), total_avg_smb_g-standard_deviation, total_av
 ax9.hlines(total_avg_smb_g, 1967, 2015, color='darkblue', linewidth=7, label='Total average SMB')
 #ax9.hlines(total_avg_smb_marzeion, 1967, 2015, color='darkred', linewidth=4, label='Total average SMB (update of Marzeion et al., 2015)')
 #ax9.hlines(avg_decadal_smb_g, xmin, xmax, color='steelblue', linewidth=6, label='Decadal average SMB (this study)')
+ax9.errorbar(x_center, avg_decadal_smb_g, yerr=decadal_uncertainties, fmt='none', elinewidth=1, ecolor='midnightblue')
 ax9.hlines(avg_decadal_smb_g, xmin, xmax, color='steelblue', linewidth=6, label='Decadal average SMB')
+#import pdb; pdb.set_trace()
+
 #ax9.hlines(avg_decadal_smb_marzeion, xmin, xmax, color='darkgoldenrod', linewidth=6, label='Decadal average SMB (update of Marzeion et al., 2015)')
 ax9.set_xticks([1970, 1980, 1990, 2000, 2010, 2015])
 ax9.set_xticklabels(('1970', '1980', '1990', '2000', '2010', '2015'))
-ax9.xaxis.grid(True)
+ax9.xaxis.grid(True, linewidth=2)
 #ax9.legend(loc='lower left', mode= 'expand', bbox_to_anchor=(0,1.02,1,0.2))
 #plt.subplots_adjust(top=0.80, left=0.15)
 ax9.legend()
@@ -1087,8 +1151,8 @@ for m in Line2D.markers:
 fig10, (ax10, ax11) = plt.subplots(2,1, figsize=(6,12))
 #fig10.suptitle("Annual glacier-wide SMB by massif")
 ax10.axhline(y=0, color='black', linewidth=0.7, linestyle='-')
-ax10.set_ylabel('Glacier-wide SMB (m.w.e. $a^{-1}$)', fontsize=13)
-ax10.tick_params(labelsize=11)
+ax10.set_ylabel('Glacier-wide SMB (m.w.e. $a^{-1}$)', fontsize=15)
+ax10.tick_params(labelsize=14)
 #ax10.set_xlabel('Year')
 
 avg_smb_per_massif = copy.deepcopy(smb_massif_template)  
@@ -1106,9 +1170,9 @@ for massif, color, marker in zip(avg_smb_massif, colors, markers):
     line101, = ax10.plot(range(1967, 2016), avg_smb_massif[massif], color=color, marker=marker, linewidth=1, label=massif)
     
 ax11.axhline(y=0, color='black', linewidth=0.7, linestyle='-')
-ax11.set_ylabel('Cumulative glacier-wide SMB (m.w.e.)', fontsize=13)
-ax11.set_xlabel('Year', fontsize=13)
-ax11.tick_params(labelsize=11)
+ax11.set_ylabel('Cumulative glacier-wide SMB (m.w.e.)', fontsize=15)
+ax11.set_xlabel('Year', fontsize=14)
+ax11.tick_params(labelsize=14)
 for massif, color, marker in zip(avg_smb_massif, colors, markers):
     format_str = "{color}{marker}-".format(color=color, marker=marker)
     line111, = ax11.plot(range(1967, 2016), np.cumsum(avg_smb_massif[massif]), color=color, marker=marker, linewidth=1, label=massif)
@@ -1116,7 +1180,7 @@ for massif, color, marker in zip(avg_smb_massif, colors, markers):
 handles, labels = ax11.get_legend_handles_labels()
 #ax11.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, -0.05), fancybox=True, shadow=True, ncol=5)
 #ax11.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=7, mode="expand", borderaxespad=0.)
-ax11.legend(prop={'size': 12})
+ax11.legend(prop={'size': 14})
 plt.tight_layout()
 plt.subplots_adjust(hspace = 0.08)
 
@@ -1128,4 +1192,13 @@ print('\nAverage decadal glacier-wide SMB: " + ' + str(avg_decadal_smb_g))
 
 #import pdb; pdb.set_trace()
 
-plt.show()
+#### Store all figures  ######
+
+figs = [plt.figure(n) for n in plt.get_fignums()]
+n_fig = 1
+for fig in figs:
+    fig.savefig(path_smb_plots + "pdf\\Figure_" + str(n_fig) + ".pdf", format='pdf')
+    fig.savefig(path_smb_plots + "png\\Figure_" + str(n_fig) + ".png", format='png')
+    n_fig=n_fig+1
+
+#plt.show()
