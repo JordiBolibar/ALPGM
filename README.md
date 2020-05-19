@@ -1,4 +1,4 @@
-# ALPGM (ALpine Parameterized Glacier Model) v1.1
+# ALPGM (ALpine Parameterized Glacier Model) v1.2
 
 ![ALPGM](https://www.dropbox.com/s/8zycrf67lloppr5/algpm_logo2.png?raw=1)
 
