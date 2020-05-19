@@ -514,7 +514,7 @@ def main(compute):
                         # Compute snowfall
                         # Compute dask arrays prior to storage
                         glacier_year_accum_snow = np.sum(safran_snow_d_g.sel(time = slice(str(year-1)+'-10-01', str(year)+'-03-31')).data)
-                        glacier_year_ablation_snow = np.sum(safran_snow_d_g.sel(time = slice(str(year)+'-04-01', str(year)+'-07-31')).data)
+                        glacier_year_ablation_snow = np.sum(safran_snow_d_g.sel(time = slice(str(year)+'-04-01', str(year)+'-09-30')).data)
                         
                         glacier_winter_snow_all[j]['years'].append(year) 
                         glacier_winter_snow_all[j]['snow'].append(glacier_year_accum_snow)

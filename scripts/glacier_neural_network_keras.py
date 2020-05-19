@@ -60,6 +60,7 @@ SMB_raw = genfromtxt(os.path.join(path_smb, 'SMB_raw_temporal.csv'), delimiter='
 path_ann_LOGO = os.path.join(path_smb , 'ANN', 'LOGO')
 path_ann_LOYO = os.path.join(path_smb, 'ANN', 'LOYO')
 path_ann_LSYGO = os.path.join(path_smb, 'ANN', 'LSYGO')
+path_ann_LSYGO_hard = os.path.join(path_smb, 'ANN', 'LSYGO_hard')
 path_ann_LSYGO_past = os.path.join(path_smb, 'ANN', 'LSYGO_past')
 
 
@@ -67,8 +68,9 @@ path_ann_LSYGO_past = os.path.join(path_smb, 'ANN', 'LSYGO_past')
 #  Training with or without weights  #
 w_weights = False
 #cross_validation = "LOGO"
-cross_validation = "LOYO"
+#cross_validation = "LOYO"
 #cross_validation = "LSYGO"
+cross_validation = "LSYGO_hard"
 #cross_validation = "LSYGO_past"
 lsygo_soft = False
 #######  Flag to switch between training with a         ###############
@@ -90,6 +92,9 @@ elif(cross_validation == 'LOYO'):
     path_cv_ann = os.path.join(path_ann, 'CV')
 elif(cross_validation == 'LSYGO'):
     path_ann = path_ann_LSYGO
+    path_cv_ann = os.path.join(path_ann, 'CV')
+elif(cross_validation == 'LSYGO_hard'):
+    path_ann = path_ann_LSYGO_hard
     path_cv_ann = os.path.join(path_ann, 'CV')
 elif(cross_validation == 'LSYGO_past'):
     path_ann = path_ann_LSYGO_past
@@ -408,8 +413,12 @@ for i in range(0, y_o.shape[0]):
     for j in range(0, y_o.shape[1]):
         if(np.isfinite(y_o[i,j])):
             if(j < 26):
-                p_weights[idx] = p_weights[idx] + 1/3 # Add weight for the 1959-1967
+                p_weights[idx] = p_weights[idx] + 1/3 # Add weight for the 1959-1967 period
             idx=idx+1
+            
+# Set the weights for different time periods        
+#y_weights = np.where(random_years > 44, 1/2, 1)
+y_weights = np.ones(random_years.shape)
 
 avg_sampled_smb = []    
 #############################
@@ -456,30 +465,36 @@ for fold in range(1, n_folds+1):
 #        print("random_glaciers[glacier_idx]: " + str(random_glaciers[glacier_idx]))
 #        print("random_years[year_idx]: " + str(random_years[year_idx]))
         
+        year_choice = []
+        for i in range(0, 4):
+            year_choice.append(weighted_choice(random_years, y_weights))
+        
+        print("Chosen years: " + str(year_choice))
+        
         # Fill test matrix
         # 1
-        test_matrix[random_glaciers[glacier_idx], random_years[year_idx]] = 1
-        test_matrix[random_glaciers[glacier_idx], random_years[year_idx+1]] = 1
-        test_matrix[random_glaciers[glacier_idx], random_years[year_idx+2]] = 1
-        test_matrix[random_glaciers[glacier_idx], random_years[year_idx+3]] = 1
+        test_matrix[random_glaciers[glacier_idx], year_choice[0]] = 1
+        test_matrix[random_glaciers[glacier_idx], year_choice[1]] = 1
+        test_matrix[random_glaciers[glacier_idx], year_choice[2]] = 1
+        test_matrix[random_glaciers[glacier_idx], year_choice[3]] = 1
         
         # 2
-        test_matrix[random_glaciers[glacier_idx+1], random_years[year_idx]] = 1
-        test_matrix[random_glaciers[glacier_idx+1], random_years[year_idx+1]] = 1
-        test_matrix[random_glaciers[glacier_idx+1], random_years[year_idx+2]] = 1
-        test_matrix[random_glaciers[glacier_idx+1], random_years[year_idx+3]] = 1
+        test_matrix[random_glaciers[glacier_idx+1], year_choice[0]] = 1
+        test_matrix[random_glaciers[glacier_idx+1], year_choice[1]] = 1
+        test_matrix[random_glaciers[glacier_idx+1], year_choice[2]] = 1
+        test_matrix[random_glaciers[glacier_idx+1], year_choice[3]] = 1
         
         # 3
-        test_matrix[random_glaciers[glacier_idx+2], random_years[year_idx]] = 1
-        test_matrix[random_glaciers[glacier_idx+2], random_years[year_idx+1]] = 1
-        test_matrix[random_glaciers[glacier_idx+2], random_years[year_idx+2]] = 1
-        test_matrix[random_glaciers[glacier_idx+2], random_years[year_idx+3]] = 1
+        test_matrix[random_glaciers[glacier_idx+2], year_choice[0]] = 1
+        test_matrix[random_glaciers[glacier_idx+2], year_choice[1]] = 1
+        test_matrix[random_glaciers[glacier_idx+2], year_choice[2]] = 1
+        test_matrix[random_glaciers[glacier_idx+2], year_choice[3]] = 1
         
         # 4
-        test_matrix[random_glaciers[glacier_idx+3], random_years[year_idx]] = 1
-        test_matrix[random_glaciers[glacier_idx+3], random_years[year_idx+1]] = 1
-        test_matrix[random_glaciers[glacier_idx+3], random_years[year_idx+2]] = 1
-        test_matrix[random_glaciers[glacier_idx+3], random_years[year_idx+3]] = 1
+        test_matrix[random_glaciers[glacier_idx+3], year_choice[0]] = 1
+        test_matrix[random_glaciers[glacier_idx+3], year_choice[1]] = 1
+        test_matrix[random_glaciers[glacier_idx+3], year_choice[2]] = 1
+        test_matrix[random_glaciers[glacier_idx+3], year_choice[3]] = 1
         
         # Fill train matrix
         train_matrix[random_glaciers[glacier_idx], :] = 0
@@ -487,10 +502,10 @@ for fold in range(1, n_folds+1):
         train_matrix[random_glaciers[glacier_idx+2], :] = 0
         train_matrix[random_glaciers[glacier_idx+3], :] = 0
         
-        train_matrix[:, random_years[year_idx]] = 0
-        train_matrix[:, random_years[year_idx+1]] = 0
-        train_matrix[:, random_years[year_idx+2]] = 0
-        train_matrix[:, random_years[year_idx+3]] = 0
+        train_matrix[:, year_choice[0]] = 0
+        train_matrix[:, year_choice[1]] = 0
+        train_matrix[:, year_choice[2]] = 0
+        train_matrix[:, year_choice[3]] = 0
         
         ###########################################################################
     
@@ -588,7 +603,7 @@ elif(cross_validation == 'LOYO'):
 # LOYO
     test_idx = np.where(year_groups == glacier_subset_idx)
     train_idx = np.where(year_groups != glacier_subset_idx)
-elif(cross_validation == "LSYGO" or cross_validation == "LSYGO_past"):
+elif(cross_validation == "LSYGO" or cross_validation == "LSYGO_past" or cross_validation == "LSYGO_hard"):
     test_idx = lsygo_test_folds[glacier_subset_idx]
     train_idx = lsygo_train_folds[glacier_subset_idx]
 
@@ -620,7 +635,7 @@ if(training):
         model = create_loyo_model(n_features)
     elif(cross_validation == 'LOGO'):
         model = create_logo_model(n_features, final=False)
-    elif(cross_validation == 'LSYGO' or cross_validation == 'LSYGO_past'):
+    elif(cross_validation == 'LSYGO' or cross_validation == 'LSYGO_past' or cross_validation == 'LSYGO_hard'):
         model = create_lsygo_model(n_features, final=False)
         
 #    train_idx = np.asarray(train_idx)
@@ -743,7 +758,7 @@ else:
         full_model = create_loyo_model(n_features)
         fold_filter = 0
         n_epochs = 2000
-    elif(cross_validation == 'LSYGO'):
+    elif(cross_validation == 'LSYGO' or cross_validation == 'LSYGO_hard'):
         splits = zip(lsygo_train_folds, lsygo_test_folds)
         full_model = create_lsygo_model(n_features, final=False)
         fold_filter = -1
@@ -813,7 +828,7 @@ else:
                     elif(cross_validation == "LOYO"):
                         model = create_loyo_model(n_features)
                         file_name = 'best_model_LOYO.h5'
-                    elif(cross_validation == "LSYGO"):
+                    elif(cross_validation == "LSYGO" or cross_validation == "LSYGO_hard"):
                         model = create_lsygo_model(n_features, final=False)
                         file_name = 'best_model_LSYGO.h5'
                     elif(cross_validation == "LSYGO_past"):
@@ -979,7 +994,7 @@ else:
             elif(cross_validation == "LOYO"):
                 full_model = create_loyo_model(n_features)
                 n_epochs = 2000
-            elif(cross_validation == 'LSYGO'):
+            elif(cross_validation == 'LSYGO' or cross_validation == 'LSYGO_hard'):
                 full_model = create_lsygo_model(n_features, final=True)
                 n_epochs = 3500
             elif(cross_validation == 'LSYGO_past'):
