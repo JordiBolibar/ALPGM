@@ -54,47 +54,6 @@ os.environ['SHAPE_ENCODING'] = "latin-1"
 # Folders     
 workspace = Path(os.getcwd()).parent
 #workspace = 'C:\\Jordi\\PhD\\Python\\'
-path_smb = os.path.join(workspace, 'glacier_data', 'smb')
-path_glacier_evolution = os.path.join(workspace, 'glacier_data', 'glacier_evolution')
-# Delta h parameterization functions
-path_delta_h_param = os.path.join(workspace, "glacier_data", "delta_h_param")
-# Shapefiles
-path_glacier_shapefiles = os.path.join(workspace, 'glacier_data', 'glacier_shapefiles')
-path_glacier_2003_shapefiles = os.path.join(workspace, 'glacier_data', 'glacier_shapefiles', '2003')
-path_glacier_2015_shapefiles = os.path.join(workspace, 'glacier_data', 'glacier_shapefiles', '2015')
-path_glacier_flowlines_shapefile = os.path.join(path_glacier_2003_shapefiles, 'GLIMS_flowlines_2003' + '.shp')
-# Rasters
-path_glacier_ID_rasters = os.path.join(workspace, 'glacier_data', 'glacier_rasters', 'glacier_thickness', 'thickness_tif')
-path_glacier_DEM_rasters =os.path.join( workspace, 'glacier_data', 'glacier_rasters', 'glacier_thickness', 'dem_tif')
-path_glacier_evolution_DEM_rasters = os.path.join(path_glacier_DEM_rasters, 'glacier_evolution') 
-path_glacier_evolution_ID_rasters = os.path.join(path_glacier_ID_rasters, 'glacier_evolution')
-# Glacier evolution files
-path_glacier_evolution_plots = os.path.join(path_glacier_evolution, 'plots')
-path_glacier_area = os.path.join(path_glacier_evolution, 'glacier_area')
-path_glacier_volume = os.path.join(path_glacier_evolution, 'glacier_volume')
-path_glacier_zmean = os.path.join(path_glacier_evolution, 'glacier_zmean')
-path_glacier_slope20 = os.path.join(path_glacier_evolution, 'glacier_slope20')
-path_glacier_melt_years = os.path.join(path_glacier_evolution, 'glacier_melt_years')
-path_glacier_w_errors = os.path.join(path_glacier_evolution, 'glacier_w_errors')
-path_glacier_CPDDs = os.path.join(path_glacier_evolution, 'glacier_CPDDs')
-path_glacier_s_CPDDs = os.path.join(path_glacier_evolution, 'glacier_summer_CPDDs')
-path_glacier_w_CPDDs = os.path.join(path_glacier_evolution, 'glacier_winter_CPDDs')
-path_glacier_snowfall = os.path.join(path_glacier_evolution, 'glacier_snowfall')
-path_glacier_s_snowfall = os.path.join(path_glacier_evolution, 'glacier_summer_snowfall')
-path_glacier_w_snowfall = os.path.join(path_glacier_evolution, 'glacier_winter_snowfall')
-path_glacier_s_rain = os.path.join(path_glacier_evolution, 'glacier_summer_rain')
-path_glacier_w_rain = os.path.join(path_glacier_evolution, 'glacier_winter_rain')
-
-# GLIMS data
-path_glims = os.path.join(workspace, 'glacier_data', 'GLIMS') 
-
-global path_smb_function_safran 
-path_smb_function_safran = os.path.join(path_smb, 'smb_function', 'SAFRAN')
-global path_smb_function_adamont
-path_smb_function_adamont = os.path.join(path_smb, 'smb_function', 'ADAMONT')
-# SMB simulation files
-path_smb_simulations = os.path.join(path_smb, 'smb_simulations')
-path_smb_function = os.path.join(path_smb, 'smb_function')
 
 
 
@@ -915,10 +874,16 @@ def get_adjusted_glacier_ADAMONT_forcings(year, year_start, glacier_mean_altitud
     adamont_snow_d_g = copy.deepcopy(adamont_ds['snow'][:, glacier_idx])
     adamont_rain_d_g = copy.deepcopy(adamont_ds['rain'][:, glacier_idx])
     
+    # Adapt snow/rain threshold
     adamont_snow_d_g.data = np.where(adamont_tmean_d_g.data > t_lim, 0.0, 
                                      adamont_snow_d_g.data)
     adamont_snow_d_g.data = np.where((adamont_tmean_d_g.data < t_lim), adamont_snow_d_g.data + adamont_rain_d_g.data, 
                                      adamont_snow_d_g.data)
+    
+    adamont_rain_d_g.data = np.where(adamont_rain_d_g.data < t_lim, 0.0, 
+                                     adamont_rain_d_g.data)
+    adamont_snow_d_g.data = np.where((adamont_rain_d_g.data > t_lim), adamont_snow_d_g.data + adamont_rain_d_g.data, 
+                                     adamont_rain_d_g.data)
     
     # Monthly data during the current hydrological year
     adamont_tmean_m_g = adamont_tmean_d_g.resample(time="1MS").mean().data
@@ -1079,14 +1044,18 @@ def store_plot(masked_ID_current_glacier, masked_DEM_current_glacier_u, masked_I
     return nfigure, isNotFirst
 
 def store_rasters(masked_DEM_current_glacier_u, masked_ID_current_glacier_u, midfolder, glacierID, year):
-    path_DEM_raster_year = os.path.join(path_glacier_evolution_DEM_rasters, midfolder, "DEM_Glacier_0" + str(glacierID) + "_" + str(year) + ".tif")
-    if not os.path.exists(os.path.join(path_glacier_evolution_DEM_rasters, midfolder)):
-        os.makedirs(os.path.join(path_glacier_evolution_DEM_rasters, midfolder))
-    path_ID_raster_year = os.path.join(path_glacier_evolution_ID_rasters, midfolder, "IceDepth_Glacier_0" + str(glacierID) + "_" + str(year) + ".tif")
-    if not os.path.exists(os.path.join(path_glacier_evolution_ID_rasters, midfolder)):
-        os.makedirs(os.path.join(path_glacier_evolution_ID_rasters, midfolder))
-    array2raster(path_DEM_raster_year, r_origin, r_pixelwidth, r_pixelheight, masked_DEM_current_glacier_u)
-    array2raster(path_ID_raster_year, r_origin, r_pixelwidth, r_pixelheight, masked_ID_current_glacier_u)
+    # Bypass only if static geometry mode is activated
+    if(not settings.static_geometry):
+        path_DEM_raster_year = os.path.join(path_glacier_evolution_DEM_rasters, midfolder, "DEM_Glacier_0" + str(glacierID) + "_" + str(year) + ".tif")
+        if not os.path.exists(os.path.join(path_glacier_evolution_DEM_rasters, midfolder)):
+            os.makedirs(os.path.join(path_glacier_evolution_DEM_rasters, midfolder))
+        path_ID_raster_year = os.path.join(path_glacier_evolution_ID_rasters, midfolder, "IceDepth_Glacier_0" + str(glacierID) + "_" + str(year) + ".tif")
+        if not os.path.exists(os.path.join(path_glacier_evolution_ID_rasters, midfolder)):
+            os.makedirs(os.path.join(path_glacier_evolution_ID_rasters, midfolder))
+        array2raster(path_DEM_raster_year, r_origin, r_pixelwidth, r_pixelheight, masked_DEM_current_glacier_u)
+        array2raster(path_ID_raster_year, r_origin, r_pixelwidth, r_pixelheight, masked_ID_current_glacier_u)
+    else:
+        path_DEM_raster_year = ''
     
     return path_DEM_raster_year
 
@@ -1144,15 +1113,16 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
         mean_w_CPDD, mean_w_snow, mean_w_rain = [],[],[]
         
         for year in year_range:
-#        for CPDD_Anomaly, winter_snow_Anomaly, summer_snow_Anomaly in zip(raw_CPDD_LocalAnomaly, raw_winter_snow_LocalAnomaly, raw_summer_snow_LocalAnomaly):
             masked_ID_previous_glacier_u = copy.deepcopy(masked_ID_current_glacier_u)
             print("\n--- Hydrological year: " + str(year-1) + "-" + str(year) + " ---\n")
             print("Glacier front: " + str(DEM_sorted_current_glacier_u[0]) + " meters")
             
-            ####  RECALCULATION OF TOPOGRAPHICAL PARAMETERS  ####
-            mean_glacier_alt = masked_DEM_current_glacier_u.mean()
-            max_glacier_alt = masked_DEM_current_glacier_u.max()
-            slope20 = get_slope20(masked_DEM_current_glacier_u, DEM_sorted_current_glacier_u, glacierName, flowline, path_raster_current_DEM, yearly_glacier_slope20)
+            # Bypass only if static geometry mode is activated
+            if(year == year_range[0] or not settings.static_geometry):          
+                ####  RECALCULATION OF TOPOGRAPHICAL PARAMETERS  ####
+                mean_glacier_alt = masked_DEM_current_glacier_u.mean()
+                max_glacier_alt = masked_DEM_current_glacier_u.max()
+                slope20 = get_slope20(masked_DEM_current_glacier_u, DEM_sorted_current_glacier_u, glacierName, flowline, path_raster_current_DEM, yearly_glacier_slope20)
             
             # Skip glacier if slope cannot be computed
             if(slope20 == -9):
@@ -1188,32 +1158,35 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
             yearly_simulated_SMB.append(SMB_y)
             print("Simulated SMB: " + str(SMB_y))
             
-            ####  Fs PARAMETER GENERATION  ####
-            # If the glacier is smaller than 0.5 km2 we no longer apply the customized delta h function
-            if(current_glacierArea < 0.5):
-                delta_h_DEM_current_glacier = np.ones(50)
-                delta_h_dh_current_glacier = np.ones(50)
-            # We generate each year's fs constant relying on the updated glacier area
-            year_fs, delta_h_dh_current_glacier = generate_fs(SMB_y, year_start, DEM_sorted_current_glacier_u, DEM_sorted_CG_n_u, delta_h_DEM_current_glacier,
-                                  masked_DEM_current_glacier_u, delta_h_dh_current_glacier, masked_ID_current_glacier_u, pixel_area, current_glacierArea)
-            
-            ####  ANNUAL ICE THICKNESS UPDATE  ####
-            for alt_band, alt_band_n in zip(DEM_sorted_current_glacier_u, DEM_sorted_CG_n_u):
-                band_full_idx = np.where(masked_DEM_current_glacier_u == alt_band)
-                # We choose the delta h function depending on the SMB (positive or negative)
-                delta_h_idx, dh_diff = find_nearest(delta_h_DEM_current_glacier, alt_band_n)
-                delta_h_i = delta_h_dh_current_glacier[delta_h_idx]
+            # Bypass only if static geometry mode is activated
+            if(not settings.static_geometry):
+                ####  Fs PARAMETER GENERATION  ####
+                # If the glacier is smaller than 0.5 km2 we no longer apply the customized delta h function
+                if(current_glacierArea < 0.5):
+                    delta_h_DEM_current_glacier = np.ones(50)
+                    delta_h_dh_current_glacier = np.ones(50)
+                # We generate each year's fs constant relying on the updated glacier area
+                year_fs, delta_h_dh_current_glacier = generate_fs(SMB_y, year_start, DEM_sorted_current_glacier_u, DEM_sorted_CG_n_u, delta_h_DEM_current_glacier,
+                                      masked_DEM_current_glacier_u, delta_h_dh_current_glacier, masked_ID_current_glacier_u, pixel_area, current_glacierArea)
                 
-                # We update the glacier's DEM and Ice Depth rasters
-                ID_alt_band_i = masked_ID_current_glacier_u[band_full_idx]
-                ID_alt_band_i = ID_alt_band_i + year_fs*delta_h_i
-                ID_alt_band_i[ID_alt_band_i < 0] = 0
-                masked_ID_current_glacier_u[band_full_idx] = copy.deepcopy(ID_alt_band_i)
-                np.ma.set_fill_value(masked_ID_current_glacier_u, 0.0)
-                masked_ID_current_glacier_u[masked_ID_current_glacier_u <= 0] = np.ma.masked
+                ####  ANNUAL ICE THICKNESS UPDATE  ####
+                for alt_band, alt_band_n in zip(DEM_sorted_current_glacier_u, DEM_sorted_CG_n_u):
+                    band_full_idx = np.where(masked_DEM_current_glacier_u == alt_band)
+                    # We choose the delta h function depending on the SMB (positive or negative)
+                    delta_h_idx, dh_diff = find_nearest(delta_h_DEM_current_glacier, alt_band_n)
+                    delta_h_i = delta_h_dh_current_glacier[delta_h_idx]
+                    
+                    # We update the glacier's DEM and Ice Depth rasters
+                    ID_alt_band_i = masked_ID_current_glacier_u[band_full_idx]
+                    ID_alt_band_i = ID_alt_band_i + year_fs*delta_h_i
+                    ID_alt_band_i[ID_alt_band_i < 0] = 0
+                    masked_ID_current_glacier_u[band_full_idx] = copy.deepcopy(ID_alt_band_i)
+                    np.ma.set_fill_value(masked_ID_current_glacier_u, 0.0)
+                    masked_ID_current_glacier_u[masked_ID_current_glacier_u <= 0] = np.ma.masked
             
             ice_idx = np.where(masked_ID_current_glacier_u > 0)
             current_glacierArea = pixel_area*(masked_ID_current_glacier_u[ice_idx]).size
+            
             # Gather topographical data evolution
             yearly_glacier_area.append(copy.deepcopy(current_glacierArea))
             yearly_glacier_volume.append(pixel_area*(np.sum(masked_ID_current_glacier_u[ice_idx])))
@@ -1278,16 +1251,21 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
         # We store the glacier evolution data projections
 #        years = range(year_start, year)
         print("\nStoring data...")
+        
+        # Bypass only if static geometry mode is activated
+        if(not settings.static_geometry):
+            # Area
+            store_file(yearly_glacier_area, path_glacier_area, midfolder, "area", glimsID, year_start, year)
+            # Volume
+            store_file(yearly_glacier_volume, path_glacier_volume, midfolder, "volume", glimsID, year_start, year)
+            # Z mean
+            store_file(yearly_glacier_zmean, path_glacier_zmean, midfolder, "zmean", glimsID, year_start, year)
+            # Slope 20%
+            store_file(yearly_glacier_slope20, path_glacier_slope20, midfolder, "slope20", glimsID, year_start, year)
+        
         # SMB
         store_file(yearly_simulated_SMB, path_smb_simulations, midfolder, "simu_SMB", glimsID, year_start, year)
-        # Area
-        store_file(yearly_glacier_area, path_glacier_area, midfolder, "area", glimsID, year_start, year)
-        # Volume
-        store_file(yearly_glacier_volume, path_glacier_volume, midfolder, "volume", glimsID, year_start, year)
-        # Z mean
-        store_file(yearly_glacier_zmean, path_glacier_zmean, midfolder, "zmean", glimsID, year_start, year)
-        # Slope 20%
-        store_file(yearly_glacier_slope20, path_glacier_slope20, midfolder, "slope20", glimsID, year_start, year)
+        
         # Melt year (if available)
         if(glacier_melted_flag):
             if not os.path.exists(os.path.join(path_glacier_melt_years, midfolder)):
@@ -1296,6 +1274,7 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
             file_name_t = '_melt_year.csv'
             glacier_melt_year = np.asarray(glacier_melt_year)
             automatic_file_name_save(file_name_h, file_name_t, glacier_melt_year, 'txt')
+            
         # CPDD
         store_file(mean_w_CPDD, path_glacier_w_CPDDs, midfolder, "winter_CPDD", glimsID, year_start, year)
         store_file(mean_s_CPDD, path_glacier_s_CPDDs, midfolder, "summer_CPDD", glimsID, year_start, year)
@@ -1315,7 +1294,7 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
 
 
 
-def main(compute, ensemble_SMB_models, overwrite_flag, use_cluster, counter_threshold, thickness_idx):
+def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickness_idx):
 
     ##################################################################################
     ##################		                MAIN                #####################
@@ -1329,9 +1308,83 @@ def main(compute, ensemble_SMB_models, overwrite_flag, use_cluster, counter_thre
         # We close all previous plots
         plt.close('all')
         
+        global path_smb
         path_smb = os.path.join(workspace, 'glacier_data', 'smb')
+        global path_glacier_evolution
+        path_glacier_evolution = os.path.join(workspace, 'glacier_data', 'glacier_evolution')
+        # SMB simulation files
+        global path_smb_simulations
+        path_smb_simulations = os.path.join(path_smb, 'smb_simulations')
+        global path_smb_function
         path_smb_function = os.path.join(path_smb, 'smb_function')
+        
+        global path_smb_function_safran 
+        path_smb_function_safran = os.path.join(path_smb, 'smb_function', 'SAFRAN')
+        global path_smb_function_adamont
+        path_smb_function_adamont = os.path.join(path_smb, 'smb_function', 'ADAMONT')
+        
+        # Adapt glacier projections path for static geometry mode
+        if(settings.static_geometry):
+            path_glacier_evolution = os.path.join(path_glacier_evolution, 'static_geometry')
+            path_smb_simulations = os.path.join(path_smb_simulations, 'static_geometry')
+            path_smb_function_adamont = os.path.join(path_smb_function_adamont, 'static_geometry')
+
+        # Delta h parameterization functions
+        global path_delta_h_param
+        path_delta_h_param = os.path.join(workspace, "glacier_data", "delta_h_param")
+        # Shapefiles
+        global path_glacier_2003_shapefiles
+        path_glacier_2003_shapefiles = os.path.join(workspace, 'glacier_data', 'glacier_shapefiles', '2003')
+        global path_glacier_2015_shapefiles
+        path_glacier_2015_shapefiles = os.path.join(workspace, 'glacier_data', 'glacier_shapefiles', '2015')
+        global path_glacier_flowlines_shapefile
+        path_glacier_flowlines_shapefile = os.path.join(path_glacier_2003_shapefiles, 'GLIMS_flowlines_2003' + '.shp')
+        # Rasters
+        global path_glacier_ID_rasters
+        path_glacier_ID_rasters = os.path.join(workspace, 'glacier_data', 'glacier_rasters', 'glacier_thickness', 'thickness_tif')
+        global path_glacier_DEM_rasters
+        path_glacier_DEM_rasters =os.path.join( workspace, 'glacier_data', 'glacier_rasters', 'glacier_thickness', 'dem_tif')
+        global path_glacier_evolution_DEM_rasters
+        path_glacier_evolution_DEM_rasters = os.path.join(path_glacier_DEM_rasters, 'glacier_evolution') 
+        global path_glacier_evolution_ID_rasters
+        path_glacier_evolution_ID_rasters = os.path.join(path_glacier_ID_rasters, 'glacier_evolution')
+        # Glacier evolution files
+        global path_glacier_evolution_plots
+        path_glacier_evolution_plots = os.path.join(path_glacier_evolution, 'plots')
+        global path_glacier_area
+        path_glacier_area = os.path.join(path_glacier_evolution, 'glacier_area')
+        global path_glacier_volume
+        path_glacier_volume = os.path.join(path_glacier_evolution, 'glacier_volume')
+        global path_glacier_zmean
+        path_glacier_zmean = os.path.join(path_glacier_evolution, 'glacier_zmean')
+        global path_glacier_slope20
+        path_glacier_slope20 = os.path.join(path_glacier_evolution, 'glacier_slope20')
+        global path_glacier_melt_years
+        path_glacier_melt_years = os.path.join(path_glacier_evolution, 'glacier_melt_years')
+        global path_glacier_w_errors
+        path_glacier_w_errors = os.path.join(path_glacier_evolution, 'glacier_w_errors')
+        global path_glacier_CPDDs
+        path_glacier_CPDDs = os.path.join(path_glacier_evolution, 'glacier_CPDDs')
+        global path_glacier_s_CPDDs
+        path_glacier_s_CPDDs = os.path.join(path_glacier_evolution, 'glacier_summer_CPDDs')
+        global path_glacier_w_CPDDs
+        path_glacier_w_CPDDs = os.path.join(path_glacier_evolution, 'glacier_winter_CPDDs')
+        global path_glacier_snowfall
+        path_glacier_snowfall = os.path.join(path_glacier_evolution, 'glacier_snowfall')
+        global path_glacier_s_snowfall
+        path_glacier_s_snowfall = os.path.join(path_glacier_evolution, 'glacier_summer_snowfall')
+        global path_glacier_w_snowfall
+        path_glacier_w_snowfall = os.path.join(path_glacier_evolution, 'glacier_winter_snowfall')
+        global path_glacier_s_rain
+        path_glacier_s_rain = os.path.join(path_glacier_evolution, 'glacier_summer_rain')
+        global path_glacier_w_rain
+        path_glacier_w_rain = os.path.join(path_glacier_evolution, 'glacier_winter_rain')
+        
+        # GLIMS data
+        path_glims = os.path.join(workspace, 'glacier_data', 'GLIMS') 
+        
         path_glacier_outlines_shapefile = os.path.join(path_glacier_2003_shapefiles, 'GLIMS_glaciers_2003_ID_massif' + '.shp') 
+        
         # SAFRAN climate forcings
         path_ann = settings.path_ann
         path_safran_forcings = os.path.join(path_smb_function, 'SAFRAN')

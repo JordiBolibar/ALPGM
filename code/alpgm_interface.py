@@ -47,7 +47,8 @@ settings.init(historical_forcing,
               projection_forcing, 
               simulation_type, 
               smb_model = 'ann_no_weights',
-              cluster = False)
+              cluster = False,              # Update file paths for computing in Luke cluster
+              static_geometry_mode = False)       # Keep glacier geometry static to analyse effects of climate
 
 ##########    WORKFLOW     ################################################################################
 

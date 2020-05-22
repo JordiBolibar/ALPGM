@@ -17,6 +17,7 @@ from pathlib import Path
 ###### FLAGS  #########
 with_26 = False
 filter_glacier = False
+static_geometry = True
 #filter_member = False
 # mer de glace
 #glacier_ID_filter = "G006934E45883N"
@@ -37,11 +38,11 @@ year_start = 2015
 # Folders     
 workspace = str(Path(os.getcwd()).parent) 
 path_glims = os.path.join(workspace, 'glacier_data', 'GLIMS') 
-#path_obs = 'C:\\Jordi\\PhD\\Data\\Obs\\'
 path_smb = os.path.join(workspace, 'glacier_data', 'smb')
 path_glacier_evolution = os.path.join(workspace, 'glacier_data', 'glacier_evolution')
-#path_glacier_evolution = 'C:\\Jordi\\PhD\\Simulations\\AGU 2018\\'
 path_smb_simulations = os.path.join(path_smb, 'smb_simulations')
+
+####################  Full glacier evolution simulations   ###########################
 path_glacier_evolution_plots = os.path.join(path_glacier_evolution, 'plots')
 path_glacier_area = os.path.join(path_glacier_evolution, 'glacier_area')
 path_glacier_volume = os.path.join(path_glacier_evolution, 'glacier_volume')
@@ -59,7 +60,7 @@ path_glacier_s_rain = os.path.join(path_glacier_evolution, 'glacier_summer_rain'
 path_glacier_w_rain = os.path.join(path_glacier_evolution, 'glacier_winter_rain')
 path_glacier_discharge = os.path.join(path_glacier_evolution, 'glacier_meltwater_discharge')
 
-#### We fetch all the data from the simulations
+# Listing all subfolders
 path_area_root = np.asarray(os.listdir(os.path.join(path_glacier_area, "projections")))
 path_melt_years_root = np.asarray(os.listdir(os.path.join(path_glacier_melt_years, "projections")))
 path_slope20_root = np.asarray(os.listdir(os.path.join(path_glacier_slope20, "projections")))
@@ -74,6 +75,27 @@ path_s_rain_root = np.asarray(os.listdir(os.path.join(path_glacier_s_rain, "proj
 path_w_rain_root = np.asarray(os.listdir(os.path.join(path_glacier_w_rain, "projections")))
 path_SMB_root = np.asarray(os.listdir(os.path.join(path_smb_simulations, "projections")))
 
+##################### Static geometry glacier evolution simulations  ######################
+path_static_evolution = os.path.join(workspace, 'glacier_data', 'glacier_evolution', 'static_geometry')
+path_static_smb = os.path.join(path_smb, 'smb_simulations', 'static_geometry')
+
+path_static_s_CPDDs = os.path.join(path_static_evolution, 'glacier_summer_CPDDs')
+path_static_w_CPDDs = os.path.join(path_static_evolution, 'glacier_winter_CPDDs')
+path_static_s_snowfall = os.path.join(path_static_evolution, 'glacier_summer_snowfall')
+path_static_w_snowfall = os.path.join(path_static_evolution, 'glacier_winter_snowfall')
+path_static_s_rain = os.path.join(path_static_evolution, 'glacier_summer_rain')
+path_static_w_rain = os.path.join(path_static_evolution, 'glacier_winter_rain')
+path_static_discharge = os.path.join(path_static_evolution, 'glacier_meltwater_discharge')
+
+# Listing all subfolders
+path_static_s_CPDDs_root = np.asarray(os.listdir(os.path.join(path_static_s_CPDDs, "projections")))
+path_static_w_CPDDs_root = np.asarray(os.listdir(os.path.join(path_static_w_CPDDs, "projections")))
+path_static_s_snowfall_root = np.asarray(os.listdir(os.path.join(path_static_s_snowfall, "projections")))
+path_static_w_snowfall_root = np.asarray(os.listdir(os.path.join(path_static_w_snowfall, "projections")))
+path_static_s_rain_root = np.asarray(os.listdir(os.path.join(path_static_s_rain, "projections")))
+path_static_w_rain_root = np.asarray(os.listdir(os.path.join(path_static_w_rain, "projections")))
+path_static_SMB_root = np.asarray(os.listdir(os.path.join(path_static_smb, "projections")))
+
 glims_2003 = genfromtxt(os.path.join(path_glims, 'GLIMS_2003.csv'), delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), 
                         ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), 
                         ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('GLIMS_ID', '<a50'), ('Massif_SAFRAN', '<i8'), ('Aspect_num', '<i8')])
@@ -87,7 +109,12 @@ annual_mean = {'SMB':copy.deepcopy(proj_blob), 'area':copy.deepcopy(proj_blob), 
                'CPDD':copy.deepcopy(proj_blob), 'summer_CPDD':copy.deepcopy(proj_blob), 'winter_CPDD':copy.deepcopy(proj_blob), 
                'snowfall':copy.deepcopy(proj_blob), 'summer_snowfall':copy.deepcopy(proj_blob), 'winter_snowfall':copy.deepcopy(proj_blob),
                'rain':copy.deepcopy(proj_blob), 'summer_rain':copy.deepcopy(proj_blob), 'winter_rain':copy.deepcopy(proj_blob),
-               'discharge':copy.deepcopy(proj_blob)}
+               'discharge':copy.deepcopy(proj_blob), 
+               'static_SMB':copy.deepcopy(proj_blob),
+               'static_CPDD':copy.deepcopy(proj_blob), 'static_summer_CPDD':copy.deepcopy(proj_blob), 'static_winter_CPDD':copy.deepcopy(proj_blob), 
+               'static_snowfall':copy.deepcopy(proj_blob), 'static_summer_snowfall':copy.deepcopy(proj_blob), 'static_winter_snowfall':copy.deepcopy(proj_blob),
+               'static_rain':copy.deepcopy(proj_blob), 'static_summer_rain':copy.deepcopy(proj_blob), 'static_winter_rain':copy.deepcopy(proj_blob),
+               'static_discharge':copy.deepcopy(proj_blob)}
 
 # Data structure composed by annual values clusters
 RCP_data = {'26':copy.deepcopy(annual_mean), '45':copy.deepcopy(annual_mean), '85':copy.deepcopy(annual_mean)}
@@ -98,7 +125,14 @@ RCP_members = copy.deepcopy(multiple_RCP_data)
 RCP_member_means = copy.deepcopy(multiple_RCP_data)
 
 # Array of indexes of the data structure to iterate
-data_idxs = ['SMB','area','volume','zmean','slope20', 'CPDD', 'summer_CPDD', 'winter_CPDD', 'snowfall', 'summer_snowfall', 'winter_snowfall', 'rain', 'summer_rain', 'winter_rain', 'discharge']
+data_idxs = ['SMB','area','volume','zmean','slope20', 
+             'CPDD', 'summer_CPDD', 'winter_CPDD', 
+             'snowfall', 'summer_snowfall', 'winter_snowfall', 
+             'rain', 'summer_rain', 'winter_rain', 'discharge',
+             'static_SMB',
+             'static_CPDD', 'static_summer_CPDD', 'static_winter_CPDD', 
+             'static_snowfall', 'static_summer_snowfall', 'static_winter_snowfall', 
+             'static_rain', 'static_summer_rain', 'static_winter_rain', 'static_discharge']
 
 members_with_26 = np.array(['KNMI-RACMO22E_MOHC-HadGEM2-ES', 'MPI-CSC-REMO2009_MPI-M-MPI-ESM-LR', 'SMHI-RCA4_ICHEC-EC-EARTH'])
 
@@ -163,15 +197,28 @@ def plot_individual_members(ax, RCP_member_means, RCP_means, variable, filtered_
                 ax.plot(RCP_means['85'][variable]['year'], data_85, linewidth=0.1, alpha=alpha, c='darkred')
         member_idx=member_idx+1
         
-def plot_RCP_means(ax, RCP_means, variable, with_26, legend=True, linewidth=2):
+def plot_RCP_means(ax, RCP_means, variable, with_26, legend=True, linewidth=2, linestyle='-'):
     if(legend):
         legend_pos='ur'
     else:
         legend_pos=''
     if(with_26):
-        ax.plot(RCP_means['26'][variable]['year'][:-1], np.asarray(RCP_means['26'][variable]['data'][:-1]), linewidth=linewidth, label='RCP 2.6', c='steelblue', legend=legend_pos)
-    ax.plot(RCP_means['45'][variable]['year'][:-1], np.asarray(RCP_means['45'][variable]['data'][:-1]), linewidth=linewidth, label='RCP 4.5', c='brown orange', legend=legend_pos)
-    ax.plot(RCP_means['85'][variable]['year'][:-1], np.asarray(RCP_means['85'][variable]['data'][:-1]), linewidth=linewidth, label='RCP 8.5', c='darkred', legend=legend_pos)
+        ax.plot(RCP_means['26'][variable]['year'][:-1], np.asarray(RCP_means['26'][variable]['data'][:-1]), linewidth=linewidth, linestyle=linestyle, label='RCP 2.6', c='steelblue', legend=legend_pos)
+    ax.plot(RCP_means['45'][variable]['year'][:-1], np.asarray(RCP_means['45'][variable]['data'][:-1]), linewidth=linewidth, linestyle=linestyle, label='RCP 4.5', c='brown orange', legend=legend_pos)
+    ax.plot(RCP_means['85'][variable]['year'][:-1], np.asarray(RCP_means['85'][variable]['data'][:-1]), linewidth=linewidth, linestyle=linestyle, label='RCP 8.5', c='darkred', legend=legend_pos)
+    
+def plot_RCP_means_diff(ax, RCP_means, variable, static_variable, with_26, legend=True, linewidth=2, linestyle='-'):
+    if(legend):
+        if(variable == 'winter_CPDD' or variable == 'winter_rain'):
+            legend_pos = 'lr'
+        else:
+            legend_pos='ur'
+    else:
+        legend_pos=''
+    if(with_26):
+        ax.plot(RCP_means['26'][variable]['year'][:-1], np.asarray(RCP_means['26'][variable]['data'][:-1]) - np.asarray(RCP_means['26'][static_variable]['data'][:-1]), linewidth=linewidth, linestyle=linestyle, label='RCP 2.6', c='steelblue', legend=legend_pos)
+    ax.plot(RCP_means['45'][variable]['year'][:-1], np.asarray(RCP_means['45'][variable]['data'][:-1]) - np.asarray(RCP_means['45'][static_variable]['data'][:-1]), linewidth=linewidth, linestyle=linestyle, label='RCP 4.5', c='brown orange', legend=legend_pos)
+    ax.plot(RCP_means['85'][variable]['year'][:-1], np.asarray(RCP_means['85'][variable]['data'][:-1]) - np.asarray(RCP_means['85'][static_variable]['data'][:-1]), linewidth=linewidth, linestyle=linestyle, label='RCP 8.5', c='darkred', legend=legend_pos)
     
 ##################################################################################################
         
@@ -188,8 +235,12 @@ member_26_idx, member_45_idx, member_85_idx = 0, 0, 0
 root_paths = zip(path_SMB_root, path_area_root, path_melt_years_root, path_slope20_root, path_volume_root, path_zmean_root, 
                  path_s_CPDDs_root, path_w_CPDDs_root,
                  path_s_snowfall_root, path_w_snowfall_root,
-                 path_s_rain_root, path_w_rain_root)
-for path_forcing_SMB, path_forcing_area, path_forcing_melt_years, path_forcing_slope20, path_forcing_volume, path_forcing_zmean, path_forcing_s_CPDDs, path_forcing_w_CPDDs, path_forcing_s_snowfall, path_forcing_w_snowfall, path_forcing_s_rain, path_forcing_w_rain in root_paths:
+                 path_s_rain_root, path_w_rain_root,
+                 path_static_SMB_root,
+                 path_static_s_CPDDs_root, path_static_w_CPDDs_root,
+                 path_static_s_snowfall_root, path_static_w_snowfall_root,
+                 path_static_s_rain_root, path_static_w_rain_root)
+for path_forcing_SMB, path_forcing_area, path_forcing_melt_years, path_forcing_slope20, path_forcing_volume, path_forcing_zmean, path_forcing_s_CPDDs, path_forcing_w_CPDDs, path_forcing_s_snowfall, path_forcing_w_snowfall, path_forcing_s_rain, path_forcing_w_rain, path_static_forcing_SMB, path_static_forcing_s_CPDDs, path_static_forcing_w_CPDDs, path_static_forcing_s_snowfall, path_static_forcing_w_snowfall, path_static_forcing_s_rain, path_static_forcing_w_rain in root_paths:
     
     current_RCP = path_forcing_area[-28:-26]
     current_member = path_forcing_area[8:-32]
@@ -208,7 +259,8 @@ for path_forcing_SMB, path_forcing_area, path_forcing_melt_years, path_forcing_s
             member_idx = copy.deepcopy(member_85_idx)
             
 #        print("member_idx: " + str(member_idx))
-            
+        
+        ### Full glacier evolution projections  ####
         path_area_glaciers = np.asarray(os.listdir(os.path.join(path_glacier_area, "projections", path_forcing_area)))
         path_melt_years_glaciers = np.asarray(os.listdir(os.path.join(path_glacier_melt_years, "projections", path_forcing_melt_years)))
         path_slope20_glaciers = np.asarray(os.listdir(os.path.join(path_glacier_slope20, "projections", path_forcing_slope20)))
@@ -221,6 +273,15 @@ for path_forcing_SMB, path_forcing_area, path_forcing_melt_years, path_forcing_s
         path_s_rain_glaciers = np.asarray(os.listdir(os.path.join(path_glacier_s_rain, "projections", path_forcing_s_rain)))
         path_w_rain_glaciers = np.asarray(os.listdir(os.path.join(path_glacier_w_rain, "projections", path_forcing_w_rain)))
         path_SMB_glaciers = np.asarray(os.listdir(os.path.join(path_smb_simulations, "projections", path_forcing_SMB)))
+        
+        ### Static glacier geometry projections  ###
+        path_static_s_CPDDs_glaciers = np.asarray(os.listdir(os.path.join(path_static_s_CPDDs, "projections", path_static_forcing_s_CPDDs)))
+        path_static_w_CPDDs_glaciers = np.asarray(os.listdir(os.path.join(path_static_w_CPDDs, "projections", path_static_forcing_w_CPDDs)))
+        path_static_s_snowfall_glaciers = np.asarray(os.listdir(os.path.join(path_static_s_snowfall, "projections", path_static_forcing_s_snowfall)))
+        path_static_w_snowfall_glaciers = np.asarray(os.listdir(os.path.join(path_static_w_snowfall, "projections", path_static_forcing_w_snowfall)))
+        path_static_s_rain_glaciers = np.asarray(os.listdir(os.path.join(path_static_s_rain, "projections", path_static_forcing_s_rain)))
+        path_static_w_rain_glaciers = np.asarray(os.listdir(os.path.join(path_static_w_rain, "projections", path_static_forcing_w_rain)))
+        path_static_SMB_glaciers = np.asarray(os.listdir(os.path.join(path_static_smb, "projections", path_static_forcing_SMB)))
         
         # Initialize data structures
         # We add a new member to the RCP group
@@ -238,9 +299,14 @@ for path_forcing_SMB, path_forcing_area, path_forcing_melt_years, path_forcing_s
         volume_scale_paths = zip(path_SMB_glaciers, path_area_glaciers, path_volume_glaciers, path_zmean_glaciers, path_slope20_glaciers, 
                                  path_s_CPDDs_glaciers, path_w_CPDDs_glaciers,
                                  path_s_snowfall_glaciers, path_w_snowfall_glaciers,
-                                 path_s_rain_glaciers, path_w_rain_glaciers)
-        for path_SMB_scaled, path_area_scaled, path_volume_scaled, path_zmean_scaled, path_slope20_scaled, path_s_CPDDs_scaled, path_w_CPDDs_scaled, path_s_snowfall_scaled, path_w_snowfall_scaled, path_s_rain_scaled, path_w_rain_scaled in volume_scale_paths:
+                                 path_s_rain_glaciers, path_w_rain_glaciers,
+                                 path_static_SMB_glaciers,
+                                 path_static_s_CPDDs_glaciers, path_static_w_CPDDs_glaciers,
+                                 path_static_s_snowfall_glaciers, path_static_w_snowfall_glaciers,
+                                 path_static_s_rain_glaciers, path_static_w_rain_glaciers)
+        for path_SMB_scaled, path_area_scaled, path_volume_scaled, path_zmean_scaled, path_slope20_scaled, path_s_CPDDs_scaled, path_w_CPDDs_scaled, path_s_snowfall_scaled, path_w_snowfall_scaled, path_s_rain_scaled, path_w_rain_scaled, path_static_SMB_scaled, path_static_s_CPDDs_scaled, path_static_w_CPDDs_scaled, path_static_s_snowfall_scaled, path_static_w_snowfall_scaled, path_static_s_rain_scaled, path_static_w_rain_scaled in volume_scale_paths:
             
+            ### Full glacier evolution projections  ###
             path_area_glaciers_scaled = np.asarray(os.listdir(os.path.join(path_glacier_area, "projections", path_forcing_area, path_area_scaled)))
             path_volume_glaciers_scaled = np.asarray(os.listdir(os.path.join(path_glacier_volume, "projections", path_forcing_volume, path_volume_scaled)))
             path_zmean_glaciers_scaled = np.asarray(os.listdir(os.path.join(path_glacier_zmean, "projections", path_forcing_zmean, path_zmean_scaled)))
@@ -253,15 +319,28 @@ for path_forcing_SMB, path_forcing_area, path_forcing_melt_years, path_forcing_s
             path_w_rain_glaciers_scaled = np.asarray(os.listdir(os.path.join(path_glacier_w_rain, "projections", path_forcing_w_rain, path_w_rain_scaled)))
             path_SMB_glaciers_scaled = np.asarray(os.listdir(os.path.join(path_smb_simulations, "projections", path_forcing_SMB, path_SMB_scaled)))
             
+            ### Static glacier geometry projections ###
+            path_static_s_CPDDs_glaciers_scaled = np.asarray(os.listdir(os.path.join(path_static_s_CPDDs, "projections", path_static_forcing_s_CPDDs, path_static_s_CPDDs_scaled)))
+            path_static_w_CPDDs_glaciers_scaled = np.asarray(os.listdir(os.path.join(path_static_w_CPDDs, "projections", path_static_forcing_w_CPDDs, path_static_w_CPDDs_scaled)))
+            path_static_s_snowfall_glaciers_scaled = np.asarray(os.listdir(os.path.join(path_static_s_snowfall, "projections", path_static_forcing_s_snowfall, path_static_s_snowfall_scaled)))
+            path_static_w_snowfall_glaciers_scaled = np.asarray(os.listdir(os.path.join(path_static_w_snowfall, "projections", path_static_forcing_w_snowfall, path_static_w_snowfall_scaled)))
+            path_static_s_rain_glaciers_scaled = np.asarray(os.listdir(os.path.join(path_static_s_rain, "projections", path_static_forcing_s_rain, path_static_s_rain_scaled)))
+            path_static_w_rain_glaciers_scaled = np.asarray(os.listdir(os.path.join(path_static_w_rain, "projections", path_static_forcing_w_rain, path_static_w_rain_scaled)))
+            path_static_SMB_glaciers_scaled = np.asarray(os.listdir(os.path.join(path_static_smb, "projections", path_static_forcing_SMB, path_static_SMB_scaled)))
+            
             glacier_count = 0
 #            if(path_area_scaled == '1'):
-            if(path_area_scaled == '1' and path_s_CPDDs_glaciers_scaled.size > 369):
+            if(path_area_scaled == '1' and path_s_CPDDs_glaciers_scaled.size > 369 and (path_static_SMB_glaciers_scaled.size > 369 or not static_geometry)):
                 bump_member = True
                 glacier_paths = zip(path_SMB_glaciers_scaled, path_area_glaciers_scaled, path_volume_glaciers_scaled, path_zmean_glaciers_scaled, path_slope20_glaciers_scaled, 
                                     path_s_CPDDs_glaciers_scaled, path_w_CPDDs_glaciers_scaled,
                                     path_s_snowfall_glaciers_scaled, path_w_snowfall_glaciers_scaled,
-                                    path_s_rain_glaciers_scaled, path_w_rain_glaciers_scaled)
-                for path_SMB, path_area, path_volume, path_zmean, path_slope20, path_s_CPDD, path_w_CPDD, path_s_snowfall, path_w_snowfall, path_s_rain, path_w_rain in glacier_paths:
+                                    path_s_rain_glaciers_scaled, path_w_rain_glaciers_scaled,
+                                    path_static_SMB_glaciers_scaled,
+                                    path_static_s_CPDDs_glaciers_scaled, path_static_w_CPDDs_glaciers_scaled,
+                                    path_static_s_snowfall_glaciers_scaled, path_static_w_snowfall_glaciers_scaled,
+                                    path_static_s_rain_glaciers_scaled, path_static_w_rain_glaciers_scaled)
+                for path_SMB, path_area, path_volume, path_zmean, path_slope20, path_s_CPDD, path_w_CPDD, path_s_snowfall, path_w_snowfall, path_s_rain, path_w_rain, path_stat_SMB, path_stat_s_CPDD, path_stat_w_CPDD, path_stat_s_snowfall, path_stat_w_snowfall, path_stat_s_rain, path_stat_w_rain in glacier_paths:
                     
                     
     #                print("path_SMB[:13]: " + str(path_SMB[:13]))
@@ -269,6 +348,7 @@ for path_forcing_SMB, path_forcing_area, path_forcing_melt_years, path_forcing_s
     #                if(path_SMB[:14] == glacier_ID_filter):
                     if((filter_glacier and glacier_ID_filter == path_SMB[:14]) or not filter_glacier):
                         
+                        ### Full glacier evolution projections  ###
                         area_glacier = genfromtxt(os.path.join(path_glacier_area, "projections", path_forcing_area, path_area_scaled, path_area), delimiter=';')
                         volume_glacier = genfromtxt(os.path.join(path_glacier_volume, "projections", path_forcing_volume, path_volume_scaled, path_volume), delimiter=';')
                         zmean_glacier = genfromtxt(os.path.join(path_glacier_zmean, "projections", path_forcing_zmean, path_zmean_scaled, path_zmean), delimiter=';')
@@ -280,6 +360,15 @@ for path_forcing_SMB, path_forcing_area, path_forcing_melt_years, path_forcing_s
                         s_rain_glacier = genfromtxt(os.path.join(path_glacier_s_rain, "projections", path_forcing_s_rain, path_s_rain_scaled, path_s_rain), delimiter=';')
                         w_rain_glacier = genfromtxt(os.path.join(path_glacier_w_rain, "projections", path_forcing_w_rain, path_w_rain_scaled, path_w_rain), delimiter=';')
                         SMB_glacier = genfromtxt(os.path.join(path_smb_simulations, "projections", path_forcing_SMB, path_SMB_scaled, path_SMB), delimiter=';')
+                        
+                        ### Static glacier geometry projections ###
+                        static_s_CPDD_glacier = genfromtxt(os.path.join(path_static_s_CPDDs, "projections", path_static_forcing_s_CPDDs, path_static_s_CPDDs_scaled, path_stat_s_CPDD), delimiter=';')
+                        static_w_CPDD_glacier = genfromtxt(os.path.join(path_static_w_CPDDs, "projections", path_static_forcing_w_CPDDs, path_static_w_CPDDs_scaled, path_stat_w_CPDD), delimiter=';')
+                        static_s_snowfall_glacier = genfromtxt(os.path.join(path_static_s_snowfall, "projections", path_static_forcing_s_snowfall, path_static_s_snowfall_scaled, path_stat_s_snowfall), delimiter=';')
+                        static_w_snowfall_glacier = genfromtxt(os.path.join(path_static_w_snowfall, "projections", path_static_forcing_w_snowfall, path_static_w_snowfall_scaled, path_stat_w_snowfall), delimiter=';')
+                        static_s_rain_glacier = genfromtxt(os.path.join(path_static_s_rain, "projections", path_static_forcing_s_rain, path_static_s_rain_scaled, path_stat_s_rain), delimiter=';')
+                        static_w_rain_glacier = genfromtxt(os.path.join(path_static_w_rain, "projections", path_static_forcing_w_rain, path_static_w_rain_scaled, path_stat_w_rain), delimiter=';')
+                        static_SMB_glacier = genfromtxt(os.path.join(path_static_smb, "projections", path_static_forcing_SMB, path_static_SMB_scaled, path_stat_SMB), delimiter=';')
                         
                         if(len(SMB_glacier.shape) > 1):
                             for year in range(year_start, 2100):
@@ -295,8 +384,14 @@ for path_forcing_SMB, path_forcing_area, path_forcing_melt_years, path_forcing_s
                             years_path = zip(SMB_glacier, area_glacier, volume_glacier, zmean_glacier, slope20_glacier, 
                                              s_CPDD_glacier, w_CPDD_glacier,
                                              s_snowfall_glacier, w_snowfall_glacier,
-                                             s_rain_glacier, w_rain_glacier)
-                            for SMB_y, area_y, volume_y, zmean_y, slope20_y, s_CPDD_y, w_CPDD_y, s_snowfall_y, w_snowfall_y, s_rain_y, w_rain_y in years_path:
+                                             s_rain_glacier, w_rain_glacier,
+                                             static_SMB_glacier,
+                                             static_s_CPDD_glacier, static_w_CPDD_glacier,
+                                             static_s_snowfall_glacier, static_w_snowfall_glacier,
+                                             static_s_rain_glacier, static_w_rain_glacier)
+                            for SMB_y, area_y, volume_y, zmean_y, slope20_y, s_CPDD_y, w_CPDD_y, s_snowfall_y, w_snowfall_y, s_rain_y, w_rain_y, static_SMB_y, static_s_CPDD_y, static_w_CPDD_y, static_s_snowfall_y, static_w_snowfall_y, static_s_rain_y, static_w_rain_y in years_path:
+                                
+                                ### Full glacier evolution projections  ###
                                 RCP_data[current_RCP]['SMB']['data'][year_idx].append(SMB_y[1])
                                 RCP_data[current_RCP]['area']['data'][year_idx].append(area_y[1])
                                 RCP_data[current_RCP]['volume']['data'][year_idx].append(volume_y[1])
@@ -312,12 +407,29 @@ for path_forcing_SMB, path_forcing_area, path_forcing_melt_years, path_forcing_s
                                 RCP_data[current_RCP]['rain']['data'][year_idx].append(s_rain_y[1] + w_rain_y[1])
                                 RCP_data[current_RCP]['summer_rain']['data'][year_idx].append(s_rain_y[1])
                                 RCP_data[current_RCP]['winter_rain']['data'][year_idx].append(w_rain_y[1])
-                                annual_discharge = -1*area_y[1]*SMB_y[1]
+                                annual_discharge = -1*area_glacier[0][1]*SMB_y[1]
                                 if(annual_discharge < 0):
                                     annual_discharge = 0
                                 RCP_data[current_RCP]['discharge']['data'][year_idx].append(annual_discharge)
+                                
+                                ### Static glacier geometry projections ###
+                                RCP_data[current_RCP]['static_SMB']['data'][year_idx].append(static_SMB_y[1])
+                                RCP_data[current_RCP]['static_CPDD']['data'][year_idx].append(static_s_CPDD_y[1] + static_w_CPDD_y[1])
+                                RCP_data[current_RCP]['static_summer_CPDD']['data'][year_idx].append(static_s_CPDD_y[1])
+                                RCP_data[current_RCP]['static_winter_CPDD']['data'][year_idx].append(static_w_CPDD_y[1])
+                                RCP_data[current_RCP]['static_snowfall']['data'][year_idx].append(static_s_snowfall_y[1] + static_w_snowfall_y[1])
+                                RCP_data[current_RCP]['static_summer_snowfall']['data'][year_idx].append(static_s_snowfall_y[1])
+                                RCP_data[current_RCP]['static_winter_snowfall']['data'][year_idx].append(static_w_snowfall_y[1])
+                                RCP_data[current_RCP]['static_rain']['data'][year_idx].append(static_s_rain_y[1] + static_w_rain_y[1])
+                                RCP_data[current_RCP]['static_summer_rain']['data'][year_idx].append(static_s_rain_y[1])
+                                RCP_data[current_RCP]['static_winter_rain']['data'][year_idx].append(static_w_rain_y[1])
+                                static_annual_discharge = -1*area_y[1]*static_SMB_y[1]
+                                if(static_annual_discharge < 0):
+                                    static_annual_discharge = 0
+                                RCP_data[current_RCP]['static_discharge']['data'][year_idx].append(static_annual_discharge)
                             
-                                # Add data to blob separated by RCP-GCM-RCM members
+                                ################### Add data to blob separated by RCP-GCM-RCM members  #######################
+                                ### Full glacier evolution projections  ###
                                 RCP_members[current_RCP][member_idx]['SMB']['data'][year_idx].append(SMB_y[1])
                                 RCP_members[current_RCP][member_idx]['area']['data'][year_idx].append(area_y[1])
                                 RCP_members[current_RCP][member_idx]['volume']['data'][year_idx].append(volume_y[1])
@@ -334,6 +446,19 @@ for path_forcing_SMB, path_forcing_area, path_forcing_melt_years, path_forcing_s
                                 RCP_members[current_RCP][member_idx]['summer_rain']['data'][year_idx].append(s_rain_y[1])
                                 RCP_members[current_RCP][member_idx]['winter_rain']['data'][year_idx].append(w_rain_y[1])
                                 RCP_members[current_RCP][member_idx]['discharge']['data'][year_idx].append(annual_discharge)
+                                
+                                ### Static glacier geometry projections ###
+                                RCP_members[current_RCP][member_idx]['static_SMB']['data'][year_idx].append(static_SMB_y[1])
+                                RCP_members[current_RCP][member_idx]['static_CPDD']['data'][year_idx].append(static_s_CPDD_y[1] + static_w_CPDD_y[1])
+                                RCP_members[current_RCP][member_idx]['static_summer_CPDD']['data'][year_idx].append(static_s_CPDD_y[1])
+                                RCP_members[current_RCP][member_idx]['static_winter_CPDD']['data'][year_idx].append(static_w_CPDD_y[1])
+                                RCP_members[current_RCP][member_idx]['static_snowfall']['data'][year_idx].append(static_s_snowfall_y[1] + static_w_snowfall_y[1])
+                                RCP_members[current_RCP][member_idx]['static_summer_snowfall']['data'][year_idx].append(static_s_snowfall_y[1])
+                                RCP_members[current_RCP][member_idx]['static_winter_snowfall']['data'][year_idx].append(static_w_snowfall_y[1])
+                                RCP_members[current_RCP][member_idx]['static_rain']['data'][year_idx].append(static_s_rain_y[1] + static_w_rain_y[1])
+                                RCP_members[current_RCP][member_idx]['static_summer_rain']['data'][year_idx].append(static_s_rain_y[1])
+                                RCP_members[current_RCP][member_idx]['static_winter_rain']['data'][year_idx].append(static_w_rain_y[1])
+                                RCP_members[current_RCP][member_idx]['static_discharge']['data'][year_idx].append(static_annual_discharge)
                                 
                                 year_idx = year_idx+1
                             
@@ -381,6 +506,7 @@ for RCP in RCP_array:
     for year_idx in range(0, year_range.size):
         
         # RCP_means
+        ### Full glacier evolution projections  ###
         RCP_means[RCP]['SMB']['data'].append(np.nanmean(RCP_data[RCP]['SMB']['data'][year_idx]))
         RCP_means[RCP]['SMB']['year'] = np.array(RCP_data[RCP]['SMB']['year'], dtype=int)
         RCP_means[RCP]['zmean']['data'].append(np.nanmean(RCP_data[RCP]['zmean']['data'][year_idx]))
@@ -411,7 +537,34 @@ for RCP in RCP_array:
         annual_discharge = np.where(annual_discharge < 0, 0, annual_discharge)
         RCP_means[RCP]['discharge']['data'].append(annual_discharge)
         RCP_means[RCP]['discharge']['year'] = np.array(RCP_data[RCP]['snowfall']['year'], dtype=int)
-#        
+        
+        ### Static glacier geometry projections ###
+        RCP_means[RCP]['static_SMB']['data'].append(np.nanmean(RCP_data[RCP]['static_SMB']['data'][year_idx]))
+        RCP_means[RCP]['static_SMB']['year'] = np.array(RCP_data[RCP]['static_SMB']['year'], dtype=int)
+        RCP_means[RCP]['static_CPDD']['data'].append(np.nanmean(RCP_data[RCP]['static_CPDD']['data'][year_idx]))
+        RCP_means[RCP]['static_CPDD']['year'] = np.array(RCP_data[RCP]['static_CPDD']['year'], dtype=int)
+        RCP_means[RCP]['static_summer_CPDD']['data'].append(np.nanmean(RCP_data[RCP]['static_summer_CPDD']['data'][year_idx]))
+        RCP_means[RCP]['static_summer_CPDD']['year'] = np.array(RCP_data[RCP]['static_summer_CPDD']['year'], dtype=int)
+        RCP_means[RCP]['static_winter_CPDD']['data'].append(np.nanmean(RCP_data[RCP]['static_winter_CPDD']['data'][year_idx]))
+        RCP_means[RCP]['static_winter_CPDD']['year'] = np.array(RCP_data[RCP]['static_winter_CPDD']['year'], dtype=int)
+        RCP_means[RCP]['static_snowfall']['data'].append(np.nanmean(RCP_data[RCP]['static_snowfall']['data'][year_idx]))
+        RCP_means[RCP]['static_snowfall']['year'] = np.array(RCP_data[RCP]['static_snowfall']['year'], dtype=int)
+        RCP_means[RCP]['static_summer_snowfall']['data'].append(np.nanmean(RCP_data[RCP]['static_summer_snowfall']['data'][year_idx]))
+        RCP_means[RCP]['static_summer_snowfall']['year'] = np.array(RCP_data[RCP]['static_summer_snowfall']['year'], dtype=int)
+        RCP_means[RCP]['static_winter_snowfall']['data'].append(np.nanmean(RCP_data[RCP]['static_winter_snowfall']['data'][year_idx]))
+        RCP_means[RCP]['static_winter_snowfall']['year'] = np.array(RCP_data[RCP]['static_winter_snowfall']['year'], dtype=int)
+        RCP_means[RCP]['static_rain']['data'].append(np.nanmean(RCP_data[RCP]['static_rain']['data'][year_idx]))
+        RCP_means[RCP]['static_rain']['year'] = np.array(RCP_data[RCP]['static_rain']['year'], dtype=int)
+        RCP_means[RCP]['static_summer_rain']['data'].append(np.nanmean(RCP_data[RCP]['static_summer_rain']['data'][year_idx]))
+        RCP_means[RCP]['static_summer_rain']['year'] = np.array(RCP_data[RCP]['static_summer_rain']['year'], dtype=int)
+        RCP_means[RCP]['static_winter_rain']['data'].append(np.nanmean(RCP_data[RCP]['static_winter_rain']['data'][year_idx]))
+        RCP_means[RCP]['static_winter_rain']['year'] = np.array(RCP_data[RCP]['static_winter_rain']['year'], dtype=int)
+        
+#        static_annual_discharge = -1*np.nansum(np.asarray(RCP_data[RCP]['static_SMB']['data'][year_idx])*np.asarray(RCP_data[RCP]['area']['data'][0]))/member_idx
+#        static_annual_discharge = np.where(static_annual_discharge < 0, 0, static_annual_discharge)
+#        RCP_means[RCP]['static_discharge']['data'].append(static_annual_discharge)
+#        RCP_means[RCP]['static_discharge']['year'] = np.array(RCP_data[RCP]['static_snowfall']['year'], dtype=int)
+##        
         # RCP_member_means
         if(filter_glacier):
             member_idx = len(RCP_members[RCP])
@@ -425,6 +578,7 @@ for RCP in RCP_array:
 #            if(member == 12):
 #                import pdb; pdb.set_trace()
             
+            ### Full glacier evolution projections  ###
             RCP_member_means[RCP][member]['SMB']['year'] = np.array(RCP_members[RCP][member]['SMB']['year'], dtype=int)
             RCP_member_means[RCP][member]['area']['year'] = np.array(RCP_members[RCP][member]['area']['year'], dtype=int)
             RCP_member_means[RCP][member]['volume']['year'] = np.array(RCP_members[RCP][member]['volume']['year'], dtype=int)
@@ -440,10 +594,23 @@ for RCP in RCP_array:
             RCP_member_means[RCP][member]['rain']['year'] = np.array(RCP_members[RCP][member]['rain']['year'], dtype=int)
             RCP_member_means[RCP][member]['summer_rain']['year'] = np.array(RCP_members[RCP][member]['summer_rain']['year'], dtype=int)
             RCP_member_means[RCP][member]['winter_rain']['year'] = np.array(RCP_members[RCP][member]['winter_rain']['year'], dtype=int)
-            
             RCP_member_means[RCP][member]['discharge']['year'] = np.array(RCP_members[RCP][member]['snowfall']['year'], dtype=int)
             
+            ### Static glacier geometry projections ###
+            RCP_member_means[RCP][member]['static_SMB']['year'] = np.array(RCP_members[RCP][member]['static_SMB']['year'], dtype=int)
+            RCP_member_means[RCP][member]['static_CPDD']['year'] = np.array(RCP_members[RCP][member]['static_CPDD']['year'], dtype=int)
+            RCP_member_means[RCP][member]['static_summer_CPDD']['year'] = np.array(RCP_members[RCP][member]['static_summer_CPDD']['year'], dtype=int)
+            RCP_member_means[RCP][member]['static_winter_CPDD']['year'] = np.array(RCP_members[RCP][member]['static_winter_CPDD']['year'], dtype=int)
+            RCP_member_means[RCP][member]['static_snowfall']['year'] = np.array(RCP_members[RCP][member]['static_snowfall']['year'], dtype=int)
+            RCP_member_means[RCP][member]['static_summer_snowfall']['year'] = np.array(RCP_members[RCP][member]['static_summer_snowfall']['year'], dtype=int)
+            RCP_member_means[RCP][member]['static_winter_snowfall']['year'] = np.array(RCP_members[RCP][member]['static_winter_snowfall']['year'], dtype=int)
+            RCP_member_means[RCP][member]['static_rain']['year'] = np.array(RCP_members[RCP][member]['static_rain']['year'], dtype=int)
+            RCP_member_means[RCP][member]['static_summer_rain']['year'] = np.array(RCP_members[RCP][member]['static_summer_rain']['year'], dtype=int)
+            RCP_member_means[RCP][member]['static_winter_rain']['year'] = np.array(RCP_members[RCP][member]['static_winter_rain']['year'], dtype=int)
+#            RCP_member_means[RCP][member]['static_discharge']['year'] = np.array(RCP_members[RCP][member]['static_snowfall']['year'], dtype=int)
+            
             if(len(RCP_members[RCP][member]['SMB']['data'][year_idx]) > 0):
+                ### Full glacier evolution projections  ###
                 RCP_member_means[RCP][member]['SMB']['data'].append(np.nanmean(RCP_members[RCP][member]['SMB']['data'][year_idx]))
                 RCP_member_means[RCP][member]['area']['data'].append(np.nansum(RCP_members[RCP][member]['area']['data'][year_idx]))
                 RCP_member_means[RCP][member]['volume']['data'].append(np.nansum(RCP_members[RCP][member]['volume']['data'][year_idx]))
@@ -463,7 +630,23 @@ for RCP in RCP_array:
                 member_annual_discharge = np.where(member_annual_discharge < 0, 0, member_annual_discharge)
                 RCP_member_means[RCP][member]['discharge']['data'].append(member_annual_discharge)
                 
+                ### Static glacier geometry projections ###
+                RCP_member_means[RCP][member]['static_SMB']['data'].append(np.nanmean(RCP_members[RCP][member]['static_SMB']['data'][year_idx]))
+                RCP_member_means[RCP][member]['static_CPDD']['data'].append(np.nanmean(RCP_members[RCP][member]['static_CPDD']['data'][year_idx]))
+                RCP_member_means[RCP][member]['static_summer_CPDD']['data'].append(np.nanmean(RCP_members[RCP][member]['static_summer_CPDD']['data'][year_idx]))
+                RCP_member_means[RCP][member]['static_winter_CPDD']['data'].append(np.nanmean(RCP_members[RCP][member]['static_winter_CPDD']['data'][year_idx]))
+                RCP_member_means[RCP][member]['static_snowfall']['data'].append(np.nanmean(RCP_members[RCP][member]['static_snowfall']['data'][year_idx]))
+                RCP_member_means[RCP][member]['static_summer_snowfall']['data'].append(np.nanmean(RCP_members[RCP][member]['static_summer_snowfall']['data'][year_idx]))
+                RCP_member_means[RCP][member]['static_winter_snowfall']['data'].append(np.nanmean(RCP_members[RCP][member]['static_winter_snowfall']['data'][year_idx]))
+                RCP_member_means[RCP][member]['static_rain']['data'].append(np.nanmean(RCP_members[RCP][member]['static_rain']['data'][year_idx]))
+                RCP_member_means[RCP][member]['static_summer_rain']['data'].append(np.nanmean(RCP_members[RCP][member]['static_summer_rain']['data'][year_idx]))
+                RCP_member_means[RCP][member]['static_winter_rain']['data'].append(np.nanmean(RCP_members[RCP][member]['static_winter_rain']['data'][year_idx]))
+#                static_member_annual_discharge = -1*np.nansum(np.asarray(RCP_members[RCP][member]['static_SMB']['data'][year_idx])*np.asarray(RCP_members[RCP][member]['area']['data'][0]))
+#                static_member_annual_discharge = np.where(static_member_annual_discharge < 0, 0, static_member_annual_discharge)
+#                RCP_member_means[RCP][member]['static_discharge']['data'].append(static_member_annual_discharge)
+                
             else:
+                ### Full glacier evolution projections  ###
                 RCP_member_means[RCP][member]['SMB']['data'].append(np.nan)
                 RCP_member_means[RCP][member]['area']['data'].append(np.nan)
                 RCP_member_means[RCP][member]['volume']['data'].append(np.nan)
@@ -480,6 +663,19 @@ for RCP in RCP_array:
                 RCP_member_means[RCP][member]['summer_rain']['data'].append(np.nan)
                 RCP_member_means[RCP][member]['winter_rain']['data'].append(np.nan)
                 RCP_member_means[RCP][member]['discharge']['data'].append(np.nan)
+                
+                ### Static glacier geometry projections ###
+                RCP_member_means[RCP][member]['static_SMB']['data'].append(np.nan)
+                RCP_member_means[RCP][member]['static_CPDD']['data'].append(np.nan)
+                RCP_member_means[RCP][member]['static_summer_CPDD']['data'].append(np.nan)
+                RCP_member_means[RCP][member]['static_winter_CPDD']['data'].append(np.nan)
+                RCP_member_means[RCP][member]['static_snowfall']['data'].append(np.nan)
+                RCP_member_means[RCP][member]['static_summer_snowfall']['data'].append(np.nan)
+                RCP_member_means[RCP][member]['static_winter_snowfall']['data'].append(np.nan)
+                RCP_member_means[RCP][member]['static_rain']['data'].append(np.nan)
+                RCP_member_means[RCP][member]['static_summer_rain']['data'].append(np.nan)
+                RCP_member_means[RCP][member]['static_winter_rain']['data'].append(np.nan)
+#                RCP_member_means[RCP][member]['static_discharge']['data'].append(np.nan)
                 
 #            if(year_idx == 83):
 #                print("\nFinal volume: " + str(np.nansum(RCP_members[RCP][member]['volume']['data'][year_idx])))
@@ -689,5 +885,95 @@ save_plot_as_pdf(fig5, header + 'meltwater_discharge', with_26)
 # Store RCP means in CSV file
 store_RCP_mean(path_glacier_discharge, 'discharge', RCP_means)
 
+
+
+#######################################################################################################
+#############   Full glacier evolution vs static glacier geometry projections  #########################
+
+###############     Plot the evolution of temperature and snowfall    ####################################
+###############     Winter and summer snowfall, rain and temperature  ####################################
+
+fig6, axs6 = plot.subplots(ncols=3, nrows=3, aspect=2, axwidth=2, spany=0)
+if(filter_glacier):
+    fig6.suptitle("Glacier " + glacier_name_filter + " climate projections")
+else:
+    fig6.suptitle("Glacier retreat topographical feedback on climate projections")
+
+axs6.format(
+        abc=True, abcloc='ul',
+        ygridminor=True,
+        ytickloc='both', yticklabelloc='left',
+        xlabel='Year'
+)
+
+titles = ['Annual CPDD', 'Summer CPDD', 'Winter CPDD', 'Annual snowfall', 'Summer snowfall', 'Winter snowfall', 'Annual rainfall', 'Summer rainfall', 'Winter rainfall']
+ylabels = ['ΔPDD', 'ΔPDD', 'ΔPDD', 'Δmm', 'Δmm', 'Δmm', 'Δmm', 'Δmm', 'Δmm']
+for i, s_title, s_ylabel in zip(range(0, 9), titles, ylabels):
+    if(s_title[0:6] == 'Winter'):
+        season_color = 'midnightblue'
+    elif(s_title[0:6] == 'Summer'):
+       season_color = 'darkred'
+    else:
+        season_color = 'k'
+    
+    axs6[i].set_title(s_title, color=season_color)  
+    axs6[i].format(ylabel=s_ylabel)
+
+# CPDD
+#plot_individual_members(axs3[0], RCP_member_means, RCP_means, 'CPDD', filtered_member, alpha=0.2)
+plot_RCP_means_diff(axs6[0], RCP_means, 'CPDD', 'static_CPDD', with_26, legend=False, linewidth=2)
+
+# Summer CPDD
+#plot_individual_members(axs3[1], RCP_member_means, RCP_means, 'summer_CPDD', filtered_member, alpha=0.2)
+plot_RCP_means_diff(axs6[1], RCP_means, 'summer_CPDD', 'static_summer_CPDD', with_26, legend=False, linewidth=2)
+
+# Winter CPDD
+#plot_individual_members(axs3[2], RCP_member_means, RCP_means, 'winter_CPDD', filtered_member, alpha=0.2)
+plot_RCP_means_diff(axs6[2], RCP_means, 'winter_CPDD', 'static_winter_CPDD', with_26, legend=True, linewidth=2)
+
+# Snowfall
+#plot_individual_members(axs3[3], RCP_member_means, RCP_means, 'snowfall', filtered_member, alpha=0.2)
+plot_RCP_means_diff(axs6[3], RCP_means, 'snowfall', 'static_snowfall', with_26, legend=False, linewidth=2)
+
+# Summer Snowfall
+#plot_individual_members(axs3[4], RCP_member_means, RCP_means, 'summer_snowfall', filtered_member, alpha=0.2)
+plot_RCP_means_diff(axs6[4], RCP_means, 'summer_snowfall', 'static_summer_snowfall', with_26, legend=False, linewidth=2)
+
+# Winter Snowfall
+#plot_individual_members(axs3[5], RCP_member_means, RCP_means, 'winter_snowfall', filtered_member, alpha=0.2)
+plot_RCP_means_diff(axs6[5], RCP_means, 'winter_snowfall', 'static_winter_snowfall', with_26, legend=True, linewidth=2)
+
+# Rainfall
+#plot_individual_members(axs3[6], RCP_member_means, RCP_means, 'rain', filtered_member, alpha=0.2)
+plot_RCP_means_diff(axs6[6], RCP_means, 'rain', 'static_rain', with_26, legend=False, linewidth=2)
+
+# Summer rainfall
+#plot_individual_members(axs3[7], RCP_member_means, RCP_means, 'summer_rain', filtered_member, alpha=0.2)
+plot_RCP_means_diff(axs6[7], RCP_means, 'summer_rain', 'static_summer_rain', with_26, legend=False, linewidth=2)
+
+# Winter rainfall
+#plot_individual_members(axs3[8], RCP_member_means, RCP_means, 'winter_rain', filtered_member, alpha=0.2)
+plot_RCP_means_diff(axs6[8], RCP_means, 'winter_rain', 'static_winter_rain', with_26, legend=True, linewidth=2)
+
+# Save as PDF
+save_plot_as_pdf(fig6, header + 'static_vs_dynamical_CPDD_snowfall_rain', with_26)
+
+
+###############     Plot the glacier-wide SMB   ####################################
+fig7, (ax7) = plot.subplots(ncols=1, nrows=1, axwidth=5, aspect=2)
+ax41.axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+if(filter_glacier):
+    fig7.suptitle("Glacier " + glacier_name_filter + " glacier-wide SMB evolution under climate change")
+else:
+    fig7.suptitle("Glacier retreat topographical feedback on glacier-wide SMB projections")
+ax7.set_ylabel('Δ Glacier-wide SMB (m.w.e. a$^-1$)')
+ax7.set_xlabel('Year')
+
+# Glacier-wide SMB
+#plot_individual_members(ax7, RCP_member_means, RCP_means, 'SMB', filtered_member)
+plot_RCP_means_diff(ax7, RCP_means, 'SMB', 'static_SMB', with_26)
+
+# Save as PDF
+save_plot_as_pdf(fig7, header + 'static_SMB', with_26)
 
 #plt.show()
