@@ -105,7 +105,7 @@ glacier_name_filter = glacier_name_filter[0].decode('UTF-8')
 
 proj_blob = {'year':[], 'data':[]}
 annual_mean = {'SMB':copy.deepcopy(proj_blob), 'area':copy.deepcopy(proj_blob), 'volume':copy.deepcopy(proj_blob), 
-               'zmean':copy.deepcopy(proj_blob), 'slope20':copy.deepcopy(proj_blob), 
+               'zmean':copy.deepcopy(proj_blob), 'slope20':copy.deepcopy(proj_blob), 'avg_area':copy.deepcopy(proj_blob),
                'CPDD':copy.deepcopy(proj_blob), 'summer_CPDD':copy.deepcopy(proj_blob), 'winter_CPDD':copy.deepcopy(proj_blob), 
                'snowfall':copy.deepcopy(proj_blob), 'summer_snowfall':copy.deepcopy(proj_blob), 'winter_snowfall':copy.deepcopy(proj_blob),
                'rain':copy.deepcopy(proj_blob), 'summer_rain':copy.deepcopy(proj_blob), 'winter_rain':copy.deepcopy(proj_blob),
@@ -125,7 +125,7 @@ RCP_members = copy.deepcopy(multiple_RCP_data)
 RCP_member_means = copy.deepcopy(multiple_RCP_data)
 
 # Array of indexes of the data structure to iterate
-data_idxs = ['SMB','area','volume','zmean','slope20', 
+data_idxs = ['SMB','area','volume','zmean','slope20', 'avg_area',
              'CPDD', 'summer_CPDD', 'winter_CPDD', 
              'snowfall', 'summer_snowfall', 'winter_snowfall', 
              'rain', 'summer_rain', 'winter_rain', 'discharge',
@@ -397,6 +397,7 @@ for path_forcing_SMB, path_forcing_area, path_forcing_melt_years, path_forcing_s
                                 RCP_data[current_RCP]['volume']['data'][year_idx].append(volume_y[1])
                                 RCP_data[current_RCP]['zmean']['data'][year_idx].append(zmean_y[1])
                                 RCP_data[current_RCP]['slope20']['data'][year_idx].append(slope20_y[1])
+                                RCP_data[current_RCP]['avg_area']['data'][year_idx].append(area_y[1])
                                 
                                 RCP_data[current_RCP]['CPDD']['data'][year_idx].append(s_CPDD_y[1] + w_CPDD_y[1])
                                 RCP_data[current_RCP]['summer_CPDD']['data'][year_idx].append(s_CPDD_y[1])
@@ -435,6 +436,7 @@ for path_forcing_SMB, path_forcing_area, path_forcing_melt_years, path_forcing_s
                                 RCP_members[current_RCP][member_idx]['volume']['data'][year_idx].append(volume_y[1])
                                 RCP_members[current_RCP][member_idx]['zmean']['data'][year_idx].append(zmean_y[1])
                                 RCP_members[current_RCP][member_idx]['slope20']['data'][year_idx].append(slope20_y[1])
+                                RCP_members[current_RCP][member_idx]['avg_area']['data'][year_idx].append(area_y[1])
                                 
                                 RCP_members[current_RCP][member_idx]['CPDD']['data'][year_idx].append(s_CPDD_y[1] + w_CPDD_y[1])
                                 RCP_members[current_RCP][member_idx]['summer_CPDD']['data'][year_idx].append(s_CPDD_y[1])
@@ -513,6 +515,8 @@ for RCP in RCP_array:
         RCP_means[RCP]['zmean']['year'] = np.array(RCP_data[RCP]['zmean']['year'], dtype=int)
         RCP_means[RCP]['slope20']['data'].append(np.nanmean(RCP_data[RCP]['slope20']['data'][year_idx]))
         RCP_means[RCP]['slope20']['year'] = np.array(RCP_data[RCP]['slope20']['year'], dtype=int)
+        RCP_means[RCP]['avg_area']['data'].append(np.nanmean(RCP_data[RCP]['avg_area']['data'][year_idx]))
+        RCP_means[RCP]['avg_area']['year'] = np.array(RCP_data[RCP]['avg_area']['year'], dtype=int)
         
         RCP_means[RCP]['CPDD']['data'].append(np.nanmean(RCP_data[RCP]['CPDD']['data'][year_idx]))
         RCP_means[RCP]['CPDD']['year'] = np.array(RCP_data[RCP]['CPDD']['year'], dtype=int)
@@ -584,6 +588,7 @@ for RCP in RCP_array:
             RCP_member_means[RCP][member]['volume']['year'] = np.array(RCP_members[RCP][member]['volume']['year'], dtype=int)
             RCP_member_means[RCP][member]['zmean']['year'] = np.array(RCP_members[RCP][member]['zmean']['year'], dtype=int)
             RCP_member_means[RCP][member]['slope20']['year'] = np.array(RCP_members[RCP][member]['slope20']['year'], dtype=int)
+            RCP_member_means[RCP][member]['avg_area']['year'] = np.array(RCP_members[RCP][member]['avg_area']['year'], dtype=int)
             
             RCP_member_means[RCP][member]['CPDD']['year'] = np.array(RCP_members[RCP][member]['CPDD']['year'], dtype=int)
             RCP_member_means[RCP][member]['summer_CPDD']['year'] = np.array(RCP_members[RCP][member]['summer_CPDD']['year'], dtype=int)
@@ -616,6 +621,7 @@ for RCP in RCP_array:
                 RCP_member_means[RCP][member]['volume']['data'].append(np.nansum(RCP_members[RCP][member]['volume']['data'][year_idx]))
                 RCP_member_means[RCP][member]['zmean']['data'].append(np.nanmean(RCP_members[RCP][member]['zmean']['data'][year_idx]))
                 RCP_member_means[RCP][member]['slope20']['data'].append(np.nanmean(RCP_members[RCP][member]['slope20']['data'][year_idx]))
+                RCP_member_means[RCP][member]['avg_area']['data'].append(np.nanmean(RCP_members[RCP][member]['avg_area']['data'][year_idx]))
                 
                 RCP_member_means[RCP][member]['CPDD']['data'].append(np.nanmean(RCP_members[RCP][member]['CPDD']['data'][year_idx]))
                 RCP_member_means[RCP][member]['summer_CPDD']['data'].append(np.nanmean(RCP_members[RCP][member]['summer_CPDD']['data'][year_idx]))
@@ -652,6 +658,7 @@ for RCP in RCP_array:
                 RCP_member_means[RCP][member]['volume']['data'].append(np.nan)
                 RCP_member_means[RCP][member]['zmean']['data'].append(np.nan)
                 RCP_member_means[RCP][member]['slope20']['data'].append(np.nan)
+                RCP_member_means[RCP][member]['avg_area']['data'].append(np.nan)
                 
                 RCP_member_means[RCP][member]['CPDD']['data'].append(np.nan)
                 RCP_member_means[RCP][member]['summer_CPDD']['data'].append(np.nan)
@@ -746,7 +753,7 @@ store_RCP_mean(path_glacier_volume, 'volume', RCP_means)
 ###############     Plot the evolution of topographical parameters    ####################################
 ###############     Zmean and slope      #################################################################
 
-fig2, (ax21, ax22) = plot.subplots(ncols=2, nrows=1, axwidth=4, share=0)
+fig2, (ax21, ax22, ax23) = plot.subplots(ncols=1, nrows=3, axwidth=4, share=0)
 if(filter_glacier):
     fig2.suptitle("Glacier " + glacier_name_filter + " glacier projections under climate change")
 else:
@@ -757,6 +764,9 @@ ax21.set_xlabel('Year')
 ax22.set_ylabel('Mean glacier slope of the lowermost 20% altitudinal range (°)')
 ax22.set_xlabel('Year')
 
+ax23.set_ylabel('Mean glacier area (km$^2$)')
+ax23.set_xlabel('Year')
+
 # Mean altitude
 plot_individual_members(ax21, RCP_member_means, RCP_means, 'zmean', filtered_member)
 plot_RCP_means(ax21, RCP_means, 'zmean', with_26)
@@ -765,8 +775,12 @@ plot_RCP_means(ax21, RCP_means, 'zmean', with_26)
 plot_individual_members(ax22, RCP_member_means, RCP_means, 'slope20', filtered_member)
 plot_RCP_means(ax22, RCP_means, 'slope20', with_26)
 
+# Mean glacier area
+plot_individual_members(ax23, RCP_member_means, RCP_means, 'avg_area', filtered_member)
+plot_RCP_means(ax23, RCP_means, 'avg_area', with_26)
+
 # Save as PDF
-save_plot_as_pdf(fig2, header + 'zmean_slope', with_26)
+save_plot_as_pdf(fig2, header + 'zmean_slope_avgArea', with_26)
 
 # Store RCP means in CSV file
 store_RCP_mean(path_glacier_zmean, 'zmean', RCP_means)
