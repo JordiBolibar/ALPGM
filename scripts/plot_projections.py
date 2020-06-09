@@ -15,7 +15,7 @@ import copy
 from pathlib import Path
 
 ###### FLAGS  #########
-with_26 = False
+with_26 = True
 filter_glacier = False
 static_geometry = True
 #filter_member = False
@@ -76,8 +76,14 @@ path_w_rain_root = np.asarray(os.listdir(os.path.join(path_glacier_w_rain, "proj
 path_SMB_root = np.asarray(os.listdir(os.path.join(path_smb_simulations, "projections")))
 
 ##################### Static geometry glacier evolution simulations  ######################
-path_static_evolution = os.path.join(workspace, 'glacier_data', 'glacier_evolution', 'static_geometry')
-path_static_smb = os.path.join(path_smb, 'smb_simulations', 'static_geometry')
+if(static_geometry):
+    path_static_evolution = os.path.join(workspace, 'glacier_data', 'glacier_evolution', 'static_geometry')
+    path_static_smb = os.path.join(path_smb, 'smb_simulations', 'static_geometry')
+    path_static_evolution = os.path.join(workspace, 'glacier_data', 'glacier_evolution', 'static_geometry')
+else:
+    path_static_evolution = os.path.join(workspace, 'glacier_data', 'glacier_evolution')
+    path_static_smb = os.path.join(path_smb, 'smb_simulations')
+    path_static_evolution = os.path.join(workspace, 'glacier_data', 'glacier_evolution')
 
 path_static_s_CPDDs = os.path.join(path_static_evolution, 'glacier_summer_CPDDs')
 path_static_w_CPDDs = os.path.join(path_static_evolution, 'glacier_winter_CPDDs')
@@ -686,7 +692,7 @@ for RCP in RCP_array:
                 
 #            if(year_idx == 83):
 #                print("\nFinal volume: " + str(np.nansum(RCP_members[RCP][member]['volume']['data'][year_idx])))
-
+    print("member_idx: " + str(member_idx))
     for year_idx in range(0, year_range.size):
         area_year, volume_year = [],[]
         if(filter_glacier):
@@ -907,87 +913,89 @@ store_RCP_mean(path_glacier_discharge, 'discharge', RCP_means)
 ###############     Plot the evolution of temperature and snowfall    ####################################
 ###############     Winter and summer snowfall, rain and temperature  ####################################
 
-fig6, axs6 = plot.subplots(ncols=3, nrows=3, aspect=2, axwidth=2, spany=0)
-if(filter_glacier):
-    fig6.suptitle("Glacier " + glacier_name_filter + " climate projections")
-else:
-    fig6.suptitle("Glacier retreat topographical feedback on climate projections")
+if(static_geometry):
 
-axs6.format(
-        abc=True, abcloc='ul',
-        ygridminor=True,
-        ytickloc='both', yticklabelloc='left',
-        xlabel='Year'
-)
-
-titles = ['Annual CPDD', 'Summer CPDD', 'Winter CPDD', 'Annual snowfall', 'Summer snowfall', 'Winter snowfall', 'Annual rainfall', 'Summer rainfall', 'Winter rainfall']
-ylabels = ['ΔPDD', 'ΔPDD', 'ΔPDD', 'Δmm', 'Δmm', 'Δmm', 'Δmm', 'Δmm', 'Δmm']
-for i, s_title, s_ylabel in zip(range(0, 9), titles, ylabels):
-    if(s_title[0:6] == 'Winter'):
-        season_color = 'midnightblue'
-    elif(s_title[0:6] == 'Summer'):
-       season_color = 'darkred'
+    fig6, axs6 = plot.subplots(ncols=3, nrows=3, aspect=2, axwidth=2, spany=0)
+    if(filter_glacier):
+        fig6.suptitle("Glacier " + glacier_name_filter + " climate projections")
     else:
-        season_color = 'k'
+        fig6.suptitle("Glacier retreat topographical feedback on climate projections")
     
-    axs6[i].set_title(s_title, color=season_color)  
-    axs6[i].format(ylabel=s_ylabel)
-
-# CPDD
-#plot_individual_members(axs3[0], RCP_member_means, RCP_means, 'CPDD', filtered_member, alpha=0.2)
-plot_RCP_means_diff(axs6[0], RCP_means, 'CPDD', 'static_CPDD', with_26, legend=False, linewidth=2)
-
-# Summer CPDD
-#plot_individual_members(axs3[1], RCP_member_means, RCP_means, 'summer_CPDD', filtered_member, alpha=0.2)
-plot_RCP_means_diff(axs6[1], RCP_means, 'summer_CPDD', 'static_summer_CPDD', with_26, legend=False, linewidth=2)
-
-# Winter CPDD
-#plot_individual_members(axs3[2], RCP_member_means, RCP_means, 'winter_CPDD', filtered_member, alpha=0.2)
-plot_RCP_means_diff(axs6[2], RCP_means, 'winter_CPDD', 'static_winter_CPDD', with_26, legend=True, linewidth=2)
-
-# Snowfall
-#plot_individual_members(axs3[3], RCP_member_means, RCP_means, 'snowfall', filtered_member, alpha=0.2)
-plot_RCP_means_diff(axs6[3], RCP_means, 'snowfall', 'static_snowfall', with_26, legend=False, linewidth=2)
-
-# Summer Snowfall
-#plot_individual_members(axs3[4], RCP_member_means, RCP_means, 'summer_snowfall', filtered_member, alpha=0.2)
-plot_RCP_means_diff(axs6[4], RCP_means, 'summer_snowfall', 'static_summer_snowfall', with_26, legend=False, linewidth=2)
-
-# Winter Snowfall
-#plot_individual_members(axs3[5], RCP_member_means, RCP_means, 'winter_snowfall', filtered_member, alpha=0.2)
-plot_RCP_means_diff(axs6[5], RCP_means, 'winter_snowfall', 'static_winter_snowfall', with_26, legend=True, linewidth=2)
-
-# Rainfall
-#plot_individual_members(axs3[6], RCP_member_means, RCP_means, 'rain', filtered_member, alpha=0.2)
-plot_RCP_means_diff(axs6[6], RCP_means, 'rain', 'static_rain', with_26, legend=False, linewidth=2)
-
-# Summer rainfall
-#plot_individual_members(axs3[7], RCP_member_means, RCP_means, 'summer_rain', filtered_member, alpha=0.2)
-plot_RCP_means_diff(axs6[7], RCP_means, 'summer_rain', 'static_summer_rain', with_26, legend=False, linewidth=2)
-
-# Winter rainfall
-#plot_individual_members(axs3[8], RCP_member_means, RCP_means, 'winter_rain', filtered_member, alpha=0.2)
-plot_RCP_means_diff(axs6[8], RCP_means, 'winter_rain', 'static_winter_rain', with_26, legend=True, linewidth=2)
-
-# Save as PDF
-save_plot_as_pdf(fig6, header + 'static_vs_dynamical_CPDD_snowfall_rain', with_26)
-
-
-###############     Plot the glacier-wide SMB   ####################################
-fig7, (ax7) = plot.subplots(ncols=1, nrows=1, axwidth=5, aspect=2)
-ax41.axhline(y=0, color='black', linewidth=0.7, linestyle='-')
-if(filter_glacier):
-    fig7.suptitle("Glacier " + glacier_name_filter + " glacier-wide SMB evolution under climate change")
-else:
-    fig7.suptitle("Glacier retreat topographical feedback on glacier-wide SMB projections")
-ax7.set_ylabel('Δ Glacier-wide SMB (m.w.e. a$^-1$)')
-ax7.set_xlabel('Year')
-
-# Glacier-wide SMB
-#plot_individual_members(ax7, RCP_member_means, RCP_means, 'SMB', filtered_member)
-plot_RCP_means_diff(ax7, RCP_means, 'SMB', 'static_SMB', with_26)
-
-# Save as PDF
-save_plot_as_pdf(fig7, header + 'static_SMB', with_26)
-
-#plt.show()
+    axs6.format(
+            abc=True, abcloc='ul',
+            ygridminor=True,
+            ytickloc='both', yticklabelloc='left',
+            xlabel='Year'
+    )
+    
+    titles = ['Annual CPDD', 'Summer CPDD', 'Winter CPDD', 'Annual snowfall', 'Summer snowfall', 'Winter snowfall', 'Annual rainfall', 'Summer rainfall', 'Winter rainfall']
+    ylabels = ['ΔPDD', 'ΔPDD', 'ΔPDD', 'Δmm', 'Δmm', 'Δmm', 'Δmm', 'Δmm', 'Δmm']
+    for i, s_title, s_ylabel in zip(range(0, 9), titles, ylabels):
+        if(s_title[0:6] == 'Winter'):
+            season_color = 'midnightblue'
+        elif(s_title[0:6] == 'Summer'):
+           season_color = 'darkred'
+        else:
+            season_color = 'k'
+        
+        axs6[i].set_title(s_title, color=season_color)  
+        axs6[i].format(ylabel=s_ylabel)
+    
+    # CPDD
+    #plot_individual_members(axs3[0], RCP_member_means, RCP_means, 'CPDD', filtered_member, alpha=0.2)
+    plot_RCP_means_diff(axs6[0], RCP_means, 'CPDD', 'static_CPDD', with_26, legend=False, linewidth=2)
+    
+    # Summer CPDD
+    #plot_individual_members(axs3[1], RCP_member_means, RCP_means, 'summer_CPDD', filtered_member, alpha=0.2)
+    plot_RCP_means_diff(axs6[1], RCP_means, 'summer_CPDD', 'static_summer_CPDD', with_26, legend=False, linewidth=2)
+    
+    # Winter CPDD
+    #plot_individual_members(axs3[2], RCP_member_means, RCP_means, 'winter_CPDD', filtered_member, alpha=0.2)
+    plot_RCP_means_diff(axs6[2], RCP_means, 'winter_CPDD', 'static_winter_CPDD', with_26, legend=True, linewidth=2)
+    
+    # Snowfall
+    #plot_individual_members(axs3[3], RCP_member_means, RCP_means, 'snowfall', filtered_member, alpha=0.2)
+    plot_RCP_means_diff(axs6[3], RCP_means, 'snowfall', 'static_snowfall', with_26, legend=False, linewidth=2)
+    
+    # Summer Snowfall
+    #plot_individual_members(axs3[4], RCP_member_means, RCP_means, 'summer_snowfall', filtered_member, alpha=0.2)
+    plot_RCP_means_diff(axs6[4], RCP_means, 'summer_snowfall', 'static_summer_snowfall', with_26, legend=False, linewidth=2)
+    
+    # Winter Snowfall
+    #plot_individual_members(axs3[5], RCP_member_means, RCP_means, 'winter_snowfall', filtered_member, alpha=0.2)
+    plot_RCP_means_diff(axs6[5], RCP_means, 'winter_snowfall', 'static_winter_snowfall', with_26, legend=True, linewidth=2)
+    
+    # Rainfall
+    #plot_individual_members(axs3[6], RCP_member_means, RCP_means, 'rain', filtered_member, alpha=0.2)
+    plot_RCP_means_diff(axs6[6], RCP_means, 'rain', 'static_rain', with_26, legend=False, linewidth=2)
+    
+    # Summer rainfall
+    #plot_individual_members(axs3[7], RCP_member_means, RCP_means, 'summer_rain', filtered_member, alpha=0.2)
+    plot_RCP_means_diff(axs6[7], RCP_means, 'summer_rain', 'static_summer_rain', with_26, legend=False, linewidth=2)
+    
+    # Winter rainfall
+    #plot_individual_members(axs3[8], RCP_member_means, RCP_means, 'winter_rain', filtered_member, alpha=0.2)
+    plot_RCP_means_diff(axs6[8], RCP_means, 'winter_rain', 'static_winter_rain', with_26, legend=True, linewidth=2)
+    
+    # Save as PDF
+    save_plot_as_pdf(fig6, header + 'static_vs_dynamical_CPDD_snowfall_rain', with_26)
+    
+    
+    ###############     Plot the glacier-wide SMB   ####################################
+    fig7, (ax7) = plot.subplots(ncols=1, nrows=1, axwidth=5, aspect=2)
+    ax41.axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+    if(filter_glacier):
+        fig7.suptitle("Glacier " + glacier_name_filter + " glacier-wide SMB evolution under climate change")
+    else:
+        fig7.suptitle("Glacier retreat topographical feedback on glacier-wide SMB projections")
+    ax7.set_ylabel('Δ Glacier-wide SMB (m.w.e. a$^-1$)')
+    ax7.set_xlabel('Year')
+    
+    # Glacier-wide SMB
+    #plot_individual_members(ax7, RCP_member_means, RCP_means, 'SMB', filtered_member)
+    plot_RCP_means_diff(ax7, RCP_means, 'SMB', 'static_SMB', with_26)
+    
+    # Save as PDF
+    save_plot_as_pdf(fig7, header + 'static_SMB', with_26)
+    
+    #plt.show()

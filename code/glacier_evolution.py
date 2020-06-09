@@ -880,9 +880,9 @@ def get_adjusted_glacier_ADAMONT_forcings(year, year_start, glacier_mean_altitud
     adamont_snow_d_g.data = np.where((adamont_tmean_d_g.data < t_lim), adamont_snow_d_g.data + adamont_rain_d_g.data, 
                                      adamont_snow_d_g.data)
     
-    adamont_rain_d_g.data = np.where(adamont_rain_d_g.data < t_lim, 0.0, 
+    adamont_rain_d_g.data = np.where(adamont_tmean_d_g.data < t_lim, 0.0, 
                                      adamont_rain_d_g.data)
-    adamont_rain_d_g.data = np.where((adamont_rain_d_g.data > t_lim), adamont_snow_d_g.data + adamont_rain_d_g.data, 
+    adamont_rain_d_g.data = np.where((adamont_tmean_d_g.data > t_lim), adamont_snow_d_g.data + adamont_rain_d_g.data, 
                                      adamont_rain_d_g.data)
     
     # Monthly data during the current hydrological year

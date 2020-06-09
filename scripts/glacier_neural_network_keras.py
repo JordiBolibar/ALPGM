@@ -418,7 +418,18 @@ for i in range(0, y_o.shape[0]):
             
 # Set the weights for different time periods        
 #y_weights = np.where(random_years > 44, 1/2, 1)
-y_weights = np.ones(random_years.shape)
+            
+# Balance years with less negative/positive SMB  
+y_weights = []
+for year in random_years:
+    if(np.nanmean(y_o[:, year]) > -0.5):
+        y_weights.append(1.5)
+    else:
+        y_weights.append(1)
+y_weights = np.asarray(y_weights)
+
+# No weights
+#y_weights = np.ones(random_years.shape)
 
 avg_sampled_smb = []    
 #############################
