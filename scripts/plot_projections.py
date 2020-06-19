@@ -13,9 +13,12 @@ from numpy import genfromtxt
 import os
 import copy
 from pathlib import Path
+import pickle
+import pandas as pd
+import xarray as xr
 
 ###### FLAGS  #########
-with_26 = True
+with_26 = False
 filter_glacier = False
 static_geometry = True
 #filter_member = False
@@ -130,6 +133,39 @@ first_26, first_45, first_85 = True, True, True
 RCP_members = copy.deepcopy(multiple_RCP_data)
 RCP_member_means = copy.deepcopy(multiple_RCP_data)
 
+# Dictionary of glacier evolution data
+
+raw_members = os.listdir(os.path.join(path_glacier_area, "projections"))
+raw_IDs = os.listdir(os.path.join(path_glacier_area, "projections", "FORCING_CLMcom-CCLM4-8-17_CNRM-CERFACS-CNRM-CM5_RCP45_alp_2005080106_2100080106", "1"))
+members, glims_IDs = np.array([]), np.array([])
+
+# Fetch unique model members
+for member in raw_members:
+    if(not np.any(members == member[8:-32])):
+        members = np.append(members, member[8:-32])
+        
+for ID in raw_IDs:
+    if(not np.any(glims_IDs == ID[:-9])):
+        glims_IDs = np.append(glims_IDs, ID[:-9])
+        
+massif_IDs = np.array([1,3,6,8,9,10,11,12,13,15,16,19,21])       
+        
+index_list = {'GLIMS_ID':glims_IDs,
+              'massif_ID': massif_IDs,
+              'RCP': np.array(['26', '45', '85']),
+              'member': np.asarray(members),
+              'year': np.asarray(range(year_start, 2100))}
+
+dummy_coords = np.empty((index_list['GLIMS_ID'].size, index_list['massif_ID'].size, index_list['RCP'].size, index_list['member'].size, index_list['year'].size))
+dummy_coords[:] = np.nan
+
+glacier_projections_dict = {'SMB':copy.deepcopy(dummy_coords), 'area':copy.deepcopy(dummy_coords), 'volume':copy.deepcopy(dummy_coords), 
+                            'zmean':copy.deepcopy(dummy_coords), 'slope20':copy.deepcopy(dummy_coords), 
+                            'CPDD':copy.deepcopy(dummy_coords), 's_CPDD':copy.deepcopy(dummy_coords), 'w_CPDD':copy.deepcopy(dummy_coords), 
+                            'snowfall':copy.deepcopy(dummy_coords), 'w_snowfall':copy.deepcopy(dummy_coords), 's_snowfall':copy.deepcopy(dummy_coords),
+                            'rain':copy.deepcopy(dummy_coords), 's_rain':copy.deepcopy(dummy_coords), 'w_rain':copy.deepcopy(dummy_coords), 
+                            'discharge':copy.deepcopy(dummy_coords)}
+
 # Array of indexes of the data structure to iterate
 data_idxs = ['SMB','area','volume','zmean','slope20', 'avg_area',
              'CPDD', 'summer_CPDD', 'winter_CPDD', 
@@ -170,9 +206,17 @@ def store_RCP_mean(path_variable, variable, RCP_means):
             if(with_26):
                 np.savetxt(os.path.join(path_RCP_means, "RCP" + str(RCP) + "_glacier_with_26_" + str(variable) + "_" + str(years[0])+ "_" + str(years[-1]) + '.csv'), 
                            data_years, delimiter=";", fmt="%s")
+                
+                config_dictionary_file = os.path.join(path_RCP_means, "RCP" + str(RCP) + "_glacier_with_26_" + str(variable) + "_" + str(years[0])+ "_" + str(years[-1]))
+                with open('config.dictionary', 'wb') as config_dictionary_file:
+                    pickle.dump(RCP_means, config_dictionary_file)
             else:
                 np.savetxt(os.path.join(path_RCP_means, "RCP" + str(RCP) + "_glacier_" + str(variable) + "_" + str(years[0])+ "_" + str(years[-1]) + '.csv'), 
                            data_years, delimiter=";", fmt="%s")
+                
+                config_dictionary_file = os.path.join(path_RCP_means, "RCP" + str(RCP) + "_glacier_" + str(variable) + "_" + str(years[0])+ "_" + str(years[-1]))
+                with open('config.dictionary', 'wb') as config_dictionary_file:
+                    pickle.dump(RCP_means, config_dictionary_file)
                 
 def plot_individual_members(ax, RCP_member_means, RCP_means, variable, filtered_member, alpha=0.2):
     member_idx = 0
@@ -225,6 +269,17 @@ def plot_RCP_means_diff(ax, RCP_means, variable, static_variable, with_26, legen
         ax.plot(RCP_means['26'][variable]['year'][:-1], np.asarray(RCP_means['26'][variable]['data'][:-1]) - np.asarray(RCP_means['26'][static_variable]['data'][:-1]), linewidth=linewidth, linestyle=linestyle, label='RCP 2.6', c='steelblue', legend=legend_pos)
     ax.plot(RCP_means['45'][variable]['year'][:-1], np.asarray(RCP_means['45'][variable]['data'][:-1]) - np.asarray(RCP_means['45'][static_variable]['data'][:-1]), linewidth=linewidth, linestyle=linestyle, label='RCP 4.5', c='brown orange', legend=legend_pos)
     ax.plot(RCP_means['85'][variable]['year'][:-1], np.asarray(RCP_means['85'][variable]['data'][:-1]) - np.asarray(RCP_means['85'][static_variable]['data'][:-1]), linewidth=linewidth, linestyle=linestyle, label='RCP 8.5', c='darkred', legend=legend_pos)
+
+def return_indexes(index_list, glims_ID, massif_ID, RCP, current_member, year):
+    
+    glims_idx = np.where(index_list['GLIMS_ID'] == glims_ID)
+    massif_idx = np.where(index_list['massif_ID'] == massif_ID)
+    RCP_idx = np.where(index_list['RCP'] == RCP)
+    member_idx = np.where(index_list['member'] == current_member)
+    year_idx = np.where(index_list['year'] == year)
+    
+    return ((glims_idx, massif_idx, RCP_idx, member_idx, year_idx))
+
     
 ##################################################################################################
         
@@ -238,6 +293,7 @@ print("\nReading files and creating data structures...")
 
 # Iterate different RCP-GCM-RCM combinations
 member_26_idx, member_45_idx, member_85_idx = 0, 0, 0
+first = True
 root_paths = zip(path_SMB_root, path_area_root, path_melt_years_root, path_slope20_root, path_volume_root, path_zmean_root, 
                  path_s_CPDDs_root, path_w_CPDDs_root,
                  path_s_snowfall_root, path_w_snowfall_root,
@@ -352,7 +408,22 @@ for path_forcing_SMB, path_forcing_area, path_forcing_melt_years, path_forcing_s
     #                print("path_SMB[:13]: " + str(path_SMB[:13]))
     #                print("glacier_ID_filter: " + str(glacier_ID_filter))
     #                if(path_SMB[:14] == glacier_ID_filter):
-                    if((filter_glacier and glacier_ID_filter == path_SMB[:14]) or not filter_glacier):
+                    
+                    # We extract the GLIMS ID for the glacier
+                    if(path_SMB[16] == '2' or path_SMB[16] == '3' or path_SMB[16] == '4'):
+                        glims_ID = path_SMB[:17]
+                    else:
+                        glims_ID = path_SMB[:14]
+                        
+                     # We retrieve its SAFRAN massif ID
+                    glims_2003_idx = np.where(glims_2003['GLIMS_ID'] == glims_ID.encode('UTF-8'))
+                    
+                    if(len(glims_2003_idx) > 1):
+                        glims_2003_idx = glims_2003_idx[0]
+                    massif_ID = glims_2003['Massif_SAFRAN'][glims_2003_idx]
+                    massif_ID = massif_ID[0]
+                    
+                    if((filter_glacier and glacier_ID_filter == glims_ID) or not filter_glacier):
                         
                         ### Full glacier evolution projections  ###
                         area_glacier = genfromtxt(os.path.join(path_glacier_area, "projections", path_forcing_area, path_area_scaled, path_area), delimiter=';')
@@ -395,8 +466,34 @@ for path_forcing_SMB, path_forcing_area, path_forcing_melt_years, path_forcing_s
                                              static_s_CPDD_glacier, static_w_CPDD_glacier,
                                              static_s_snowfall_glacier, static_w_snowfall_glacier,
                                              static_s_rain_glacier, static_w_rain_glacier)
+                            
+                            year=year_start
                             for SMB_y, area_y, volume_y, zmean_y, slope20_y, s_CPDD_y, w_CPDD_y, s_snowfall_y, w_snowfall_y, s_rain_y, w_rain_y, static_SMB_y, static_s_CPDD_y, static_w_CPDD_y, static_s_snowfall_y, static_w_snowfall_y, static_s_rain_y, static_w_rain_y in years_path:
                                 
+                                annual_discharge = -1*area_glacier[0][1]*SMB_y[1]
+                                if(annual_discharge < 0):
+                                    annual_discharge = 0
+                                
+                                # Fill the individual glacier projections dictionary
+                                # We get the coordinates of the N-dimensional space for the current iteration
+                                current_idxs = return_indexes(index_list, glims_ID, massif_ID, current_RCP, current_member, year)
+                                
+                                glacier_projections_dict['SMB'][current_idxs] = SMB_y[1]
+                                glacier_projections_dict['area'][current_idxs] = area_y[1]
+                                glacier_projections_dict['volume'][current_idxs] = volume_y[1]
+                                glacier_projections_dict['zmean'][current_idxs] = zmean_y[1]
+                                glacier_projections_dict['slope20'][current_idxs] = slope20_y[1]
+                                glacier_projections_dict['CPDD'][current_idxs] = s_CPDD_y[1] + w_CPDD_y[1]
+                                glacier_projections_dict['s_CPDD'][current_idxs] = s_CPDD_y[1]
+                                glacier_projections_dict['w_CPDD'][current_idxs] = w_CPDD_y[1]
+                                glacier_projections_dict['snowfall'][current_idxs] = s_snowfall_y[1] + w_snowfall_y[1]
+                                glacier_projections_dict['s_snowfall'][current_idxs] = s_snowfall_y[1]
+                                glacier_projections_dict['w_snowfall'][current_idxs] = w_snowfall_y[1]
+                                glacier_projections_dict['rain'][current_idxs] = s_rain_y[1] + w_rain_y[1]
+                                glacier_projections_dict['s_rain'][current_idxs] = s_rain_y[1]
+                                glacier_projections_dict['w_rain'][current_idxs] = w_rain_y[1]
+                                glacier_projections_dict['discharge'][current_idxs] = annual_discharge
+                                    
                                 ### Full glacier evolution projections  ###
                                 RCP_data[current_RCP]['SMB']['data'][year_idx].append(SMB_y[1])
                                 RCP_data[current_RCP]['area']['data'][year_idx].append(area_y[1])
@@ -414,9 +511,6 @@ for path_forcing_SMB, path_forcing_area, path_forcing_melt_years, path_forcing_s
                                 RCP_data[current_RCP]['rain']['data'][year_idx].append(s_rain_y[1] + w_rain_y[1])
                                 RCP_data[current_RCP]['summer_rain']['data'][year_idx].append(s_rain_y[1])
                                 RCP_data[current_RCP]['winter_rain']['data'][year_idx].append(w_rain_y[1])
-                                annual_discharge = -1*area_glacier[0][1]*SMB_y[1]
-                                if(annual_discharge < 0):
-                                    annual_discharge = 0
                                 RCP_data[current_RCP]['discharge']['data'][year_idx].append(annual_discharge)
                                 
                                 ### Static glacier geometry projections ###
@@ -469,6 +563,7 @@ for path_forcing_SMB, path_forcing_area, path_forcing_melt_years, path_forcing_s
                                 RCP_members[current_RCP][member_idx]['static_discharge']['data'][year_idx].append(static_annual_discharge)
                                 
                                 year_idx = year_idx+1
+                                year = year+1
                             
                             if(current_RCP == '26'):
                                 first_26 = False
@@ -711,6 +806,36 @@ for RCP in RCP_array:
         RCP_means[RCP]['volume']['year'] = np.array(RCP_data[RCP]['volume']['year'], dtype=int)
  
 #print(overall_annual_mean)
+
+# Transfer dictionary to xarray dataset       
+ds_glacier_projections = xr.Dataset(data_vars={'SMB': (('GLIMS_ID', 'massif_ID', 'RCP', 'member', 'year'), glacier_projections_dict['SMB']),
+                                               'area': (('GLIMS_ID', 'massif_ID', 'RCP', 'member', 'year'), glacier_projections_dict['area']),
+                                               'volume': (('GLIMS_ID', 'massif_ID', 'RCP', 'member', 'year'), glacier_projections_dict['volume']),
+                                               'zmean': (('GLIMS_ID', 'massif_ID', 'RCP', 'member', 'year'), glacier_projections_dict['zmean']),
+                                               'slope20': (('GLIMS_ID', 'massif_ID', 'RCP', 'member', 'year'), glacier_projections_dict['slope20']),
+                                               'CPDD': (('GLIMS_ID', 'massif_ID', 'RCP', 'member', 'year'), glacier_projections_dict['CPDD']),
+                                               's_CPDD': (('GLIMS_ID', 'massif_ID', 'RCP', 'member', 'year'), glacier_projections_dict['s_CPDD']),
+                                               'w_CPDD': (('GLIMS_ID', 'massif_ID', 'RCP', 'member', 'year'), glacier_projections_dict['w_CPDD']),
+                                               'snowfall': (('GLIMS_ID', 'massif_ID', 'RCP', 'member', 'year'), glacier_projections_dict['snowfall']),
+                                               'w_snowfall': (('GLIMS_ID', 'massif_ID', 'RCP', 'member', 'year'), glacier_projections_dict['w_snowfall']),
+                                               's_snowfall': (('GLIMS_ID', 'massif_ID', 'RCP', 'member', 'year'), glacier_projections_dict['s_snowfall']),
+                                               'rain': (('GLIMS_ID', 'massif_ID', 'RCP', 'member', 'year'), glacier_projections_dict['rain']),
+                                               'w_rain': (('GLIMS_ID', 'massif_ID', 'RCP', 'member', 'year'), glacier_projections_dict['w_rain']),
+                                               's_rain': (('GLIMS_ID', 'massif_ID', 'RCP', 'member', 'year'), glacier_projections_dict['s_rain']),
+                                               'discharge': (('GLIMS_ID', 'massif_ID', 'RCP', 'member', 'year'), glacier_projections_dict['discharge'])},
+                                            coords={'GLIMS_ID': index_list['GLIMS_ID'], 
+                                                    'massif_ID': index_list['massif_ID'], 
+                                                    'RCP': index_list['RCP'], 
+                                                    'member': index_list['member'],
+                                                    'year': index_list['year']})
+
+# We save the whole dataset in a single netCDF file
+ds_glacier_projections.to_netcdf(os.path.join(path_glacier_evolution, 'glacier_evolution_' + str(year_start) + '_2100.nc'))
+
+# We transform the dataset to dataframe without data gaps
+df_glacier_projections = ds_glacier_projections.to_dataframe().dropna(how='any')
+df_glacier_projections.to_csv(os.path.join(path_glacier_evolution, 'glacier_evolution_' + str(year_start) + '_2100.csv'), sep=";")
+    
 
 ##########    PLOTS    #######################
 if(filter_glacier):
