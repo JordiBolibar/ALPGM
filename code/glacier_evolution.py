@@ -319,6 +319,21 @@ def make_ensemble_simulation(ensemble_SMB_models, x_ann, batch_size, glimsID, gl
         else:
             # Unweighted ensemble average
             ensemble_simulation = np.average(SMB_ensemble)
+            
+        # Bias correction for Mont-Blanc and Écrins steep glaciers
+        MB_names = np.array(['Taconnaz','Bossons','Nant Blanc','Tour', 'Tré-la-Tête', 'Bionnassay', 'de la Meije', 'Rateau'])
+#        MB_IDs = np.array([3647,3646,3263,3698,3651,3648])
+        MB_IDs = np.array(['G006844E45863N','G006865E45868N','G006951E45939N','G006988E45987N','G006784E45784N','G006811E45849N', 'G006296E45008N', 'G006284E45012N'])
+        bias_correction = np.array([0.31, 0.21, 0.52, 0.45, 0.9, 0.91, 0.9, 0.71])
+        
+#        if(np.any(glimsID == MB_IDs)):
+#            import pdb; pdb.set_trace()
+        
+        # We apply the empirical bias correction
+        bias_idx = np.where(glimsID == MB_IDs)[0]
+        if(bias_idx.size > 0 and ensemble_simulation < 0):
+            ensemble_simulation = ensemble_simulation*bias_correction[bias_idx[0]]
+        
     else:
     # SMB reconstruction
         # We initialize the empty struture to fill with annual data
@@ -664,7 +679,7 @@ def get_default_SAFRAN_forcings(safran_start, safran_end):
     path_temps = os.path.join(path_smb_function_safran, 'daily_temps_years_' + str(safran_start) + '-' + str(safran_end) + '.txt')
     path_snow = os.path.join(path_smb_function_safran, 'daily_snow_years_' + str(safran_start) + '-' + str(safran_end) + '.txt')
     path_rain = os.path.join(path_smb_function_safran, 'daily_rain_years_' + str(safran_start) + '-' + str(safran_end) + '.txt')
-    path_dates = os.path.join(path_smb_function_safran, 'daily_dates_years_' + str(year_start) + '-' + str(year_end) + '.txt')
+    path_dates = os.path.join(path_smb_function_safran, 'daily_dates_years_' + str(safran_start) + '-' + str(safran_end) + '.txt')
     path_zs = os.path.join(path_smb_function_safran, 'zs_years' + str(safran_start) + '-' + str(safran_end) + '.txt')
     
     if(os.path.exists(path_temps) & os.path.exists(path_snow) & os.path.exists(path_rain) & os.path.exists(path_dates) & os.path.exists(path_zs)):
@@ -700,7 +715,7 @@ def get_adjusted_glacier_SAFRAN_forcings(year, year_start, glacier_mean_altitude
 #    import pdb; pdb.set_trace()
     
     # Retrieve raw meteo data for the current year
-    zs = daily_meteo_data['zs'][idx][0]
+    zs = daily_meteo_data['zs'][idx]
     dates = daily_meteo_data['dates'][idx]
     
     safran_tmean_d = xr.DataArray(daily_meteo_data['temps'][idx], coords=[dates, zs], dims=['time', 'zs'])
@@ -1192,13 +1207,14 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
             yearly_glacier_volume.append(pixel_area*(np.sum(masked_ID_current_glacier_u[ice_idx])))
             yearly_glacier_slope20.append(slope20)
             
-            # Gather climate data evolution
-            mean_s_CPDD.append(raw_data_y['summer_CPDD'])
-            mean_s_snow.append(raw_data_y['summer_snow'])
-            mean_s_rain.append(raw_data_y['summer_rain'])
-            mean_w_CPDD.append(raw_data_y['winter_CPDD'])
-            mean_w_snow.append(raw_data_y['winter_snow'])
-            mean_w_rain.append(raw_data_y['winter_rain'])
+            if(settings.projection_forcing == "ADAMONT"):
+                # Gather climate data evolution
+                mean_s_CPDD.append(raw_data_y['summer_CPDD'])
+                mean_s_snow.append(raw_data_y['summer_snow'])
+                mean_s_rain.append(raw_data_y['summer_rain'])
+                mean_w_CPDD.append(raw_data_y['winter_CPDD'])
+                mean_w_snow.append(raw_data_y['winter_snow'])
+                mean_w_rain.append(raw_data_y['winter_rain'])
             
             ID_difference_current_glacier = masked_ID_current_glacier_u - masked_ID_previous_glacier_u
             masked_DEM_current_glacier_u = masked_DEM_current_glacier_u + ID_difference_current_glacier
@@ -1274,16 +1290,17 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
             file_name_t = '_melt_year.csv'
             glacier_melt_year = np.asarray(glacier_melt_year)
             automatic_file_name_save(file_name_h, file_name_t, glacier_melt_year, 'txt')
-            
-        # CPDD
-        store_file(mean_w_CPDD, path_glacier_w_CPDDs, midfolder, "winter_CPDD", glimsID, year_start, year)
-        store_file(mean_s_CPDD, path_glacier_s_CPDDs, midfolder, "summer_CPDD", glimsID, year_start, year)
-        # Snowfall
-        store_file(mean_w_snow, path_glacier_w_snowfall, midfolder, "winter_snowfall", glimsID, year_start, year)
-        store_file(mean_s_snow, path_glacier_s_snowfall, midfolder, "summer_snowfall", glimsID, year_start, year)
-        # Rain
-        store_file(mean_w_rain, path_glacier_w_rain, midfolder, "winter_rain", glimsID, year_start, year)
-        store_file(mean_s_rain, path_glacier_s_rain, midfolder, "summer_rain", glimsID, year_start, year)
+        
+        if(settings.projection_forcing == "ADAMONT"):
+            # CPDD
+            store_file(mean_w_CPDD, path_glacier_w_CPDDs, midfolder, "winter_CPDD", glimsID, year_start, year)
+            store_file(mean_s_CPDD, path_glacier_s_CPDDs, midfolder, "summer_CPDD", glimsID, year_start, year)
+            # Snowfall
+            store_file(mean_w_snow, path_glacier_w_snowfall, midfolder, "winter_snowfall", glimsID, year_start, year)
+            store_file(mean_s_snow, path_glacier_s_snowfall, midfolder, "summer_snowfall", glimsID, year_start, year)
+            # Rain
+            store_file(mean_w_rain, path_glacier_w_rain, midfolder, "winter_rain", glimsID, year_start, year)
+            store_file(mean_s_rain, path_glacier_s_rain, midfolder, "summer_rain", glimsID, year_start, year)
         
     else:
         print("Glacier previously processed. Skipping...")
@@ -1511,8 +1528,10 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
         empty_folder(os.path.join(path_glacier_w_snowfall, midfolder))
         empty_folder(os.path.join(path_glacier_s_rain, midfolder))
         empty_folder(os.path.join(path_glacier_w_rain, midfolder))
-        empty_folder(os.path.join(path_glacier_evolution_ID_rasters, midfolder))
-        empty_folder(os.path.join(path_glacier_evolution_DEM_rasters, midfolder))
+        
+        if(not settings.static_geometry):
+            empty_folder(os.path.join(path_glacier_evolution_ID_rasters, midfolder))
+            empty_folder(os.path.join(path_glacier_evolution_DEM_rasters, midfolder))
         
         # We calculate the year range once we know if the ADAMONT forcings end in 2098 or 2099
         year_range = range(year_start, year_end+1)

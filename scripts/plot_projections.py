@@ -19,7 +19,7 @@ import xarray as xr
 
 ###### FLAGS  #########
 with_26 = False
-filter_glacier = False
+filter_glacier = True
 static_geometry = True
 #filter_member = False
 # mer de glace
@@ -827,16 +827,27 @@ ds_glacier_projections = xr.Dataset(data_vars={'SMB': (('GLIMS_ID', 'massif_ID',
                                                     'massif_ID': index_list['massif_ID'], 
                                                     'RCP': index_list['RCP'], 
                                                     'member': index_list['member'],
-                                                    'year': index_list['year']})
+                                                    'year': index_list['year']},
+                                            attrs={'README': "This dataset contains highly sparse data among NaN values. massif_IDs do not contain all GLIMS_IDs. Luckily, xarray filters all NaN values for data processing.",
+                                                   'Content': "French Alpine glacier evolution projections (2015-2100) from the ALpine Parametrized Glacier Model",
+                                                   'Author': "Jordi Bolibar",
+                                                   'Affiliation': "Institute of Environmental Geosciences (University Grenoble Alpes / INRAE)"})
 
-# We save the whole dataset in a single netCDF file
-ds_glacier_projections.to_netcdf(os.path.join(path_glacier_evolution, 'glacier_evolution_' + str(year_start) + '_2100.nc'))
 
-# We transform the dataset to dataframe without data gaps
-df_glacier_projections = ds_glacier_projections.to_dataframe().dropna(how='any')
-df_glacier_projections.to_csv(os.path.join(path_glacier_evolution, 'glacier_evolution_' + str(year_start) + '_2100.csv'), sep=";")
+if(not (filter_glacier and with_26)):
+
+    # We save the whole dataset in a single netCDF file
+    # We compress the files due to its sparsity
+    comp = dict(zlib=True, complevel=5)
+    encoding = {var: comp for var in ds_glacier_projections.data_vars}
+    ds_glacier_projections.to_netcdf(os.path.join(path_glacier_evolution, 'glacier_evolution_' + str(year_start) + '_2100.nc'), encoding=encoding)
     
-
+    # We transform the dataset to dataframe without data gaps
+    df_glacier_projections = ds_glacier_projections.to_dataframe().dropna(how='any')
+    df_glacier_projections.to_csv(os.path.join(path_glacier_evolution, 'glacier_evolution_' + str(year_start) + '_2100.csv'), sep=";")
+    
+    import pdb; pdb.set_trace()
+    
 ##########    PLOTS    #######################
 if(filter_glacier):
     header = glacier_ID_filter + "_"
