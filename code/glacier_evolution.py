@@ -321,10 +321,10 @@ def make_ensemble_simulation(ensemble_SMB_models, x_ann, batch_size, glimsID, gl
             ensemble_simulation = np.average(SMB_ensemble)
             
         # Bias correction for Mont-Blanc and Écrins steep glaciers
-        MB_names = np.array(['Taconnaz','Bossons','Nant Blanc','Tour', 'Tré-la-Tête', 'Bionnassay', 'de la Meije', 'Rateau'])
+        MB_names = np.array(['Taconnaz','Bossons','Nant Blanc','Tour', 'Tré-la-Tête', 'Bionnassay', 'de la Meije', 'Rateau', 'Blanc'])
 #        MB_IDs = np.array([3647,3646,3263,3698,3651,3648])
-        MB_IDs = np.array(['G006844E45863N','G006865E45868N','G006951E45939N','G006988E45987N','G006784E45784N','G006811E45849N', 'G006296E45008N', 'G006284E45012N'])
-        bias_correction = np.array([0.31, 0.21, 0.52, 0.45, 0.9, 0.91, 0.9, 0.71])
+        MB_IDs = np.array(['G006844E45863N','G006865E45868N','G006951E45939N','G006988E45987N','G006784E45784N','G006811E45849N', 'G006296E45008N', 'G006284E45012N', 'G006382E44944N'])
+        bias_correction = np.array([0.31, 0.31, 0.52, 0.9, 0.9, 0.83, 0.9, 0.71, 0.7])
         
 #        if(np.any(glimsID == MB_IDs)):
 #            import pdb; pdb.set_trace()
@@ -1311,7 +1311,7 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
 
 
 
-def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickness_idx):
+def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickness_idx, filter_glacier):
 
     ##################################################################################
     ##################		                MAIN                #####################
@@ -1432,7 +1432,7 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
         global ice_density
         ice_density = 850
         global overwrite
-        overwrite = overwrite_flag
+        overwrite = True
         global glacier_melted_flag
         glacier_melted_flag = False
         global glacier_melt_year
@@ -1513,25 +1513,26 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
             print("\nOriginal Ice thickness simulation \n")
         midfolder = os.path.join(midfolder_base, thickness_folder_tail)
         
-        # We remove all the previous SMB and topo simulations
-        empty_folder(os.path.join(path_smb_simulations, midfolder))
-        empty_folder(os.path.join(path_glacier_area, midfolder))
-        empty_folder(os.path.join(path_glacier_volume, midfolder))
-        empty_folder(os.path.join(path_glacier_zmean, midfolder))
-        empty_folder(os.path.join(path_glacier_slope20, midfolder))
-        empty_folder(os.path.join(path_glacier_melt_years, midfolder))
-#        empty_folder(os.path.join(path_glacier_CPDDs, midfolder))
-        empty_folder(os.path.join(path_glacier_s_CPDDs, midfolder))
-        empty_folder(os.path.join(path_glacier_w_CPDDs, midfolder))
-#        empty_folder(os.path.join(path_glacier_snowfall, midfolder))
-        empty_folder(os.path.join(path_glacier_s_snowfall, midfolder))
-        empty_folder(os.path.join(path_glacier_w_snowfall, midfolder))
-        empty_folder(os.path.join(path_glacier_s_rain, midfolder))
-        empty_folder(os.path.join(path_glacier_w_rain, midfolder))
-        
-        if(not settings.static_geometry):
-            empty_folder(os.path.join(path_glacier_evolution_ID_rasters, midfolder))
-            empty_folder(os.path.join(path_glacier_evolution_DEM_rasters, midfolder))
+        if(overwrite_flag):
+            # We remove all the previous SMB and topo simulations
+            empty_folder(os.path.join(path_smb_simulations, midfolder))
+            empty_folder(os.path.join(path_glacier_area, midfolder))
+            empty_folder(os.path.join(path_glacier_volume, midfolder))
+            empty_folder(os.path.join(path_glacier_zmean, midfolder))
+            empty_folder(os.path.join(path_glacier_slope20, midfolder))
+            empty_folder(os.path.join(path_glacier_melt_years, midfolder))
+    #        empty_folder(os.path.join(path_glacier_CPDDs, midfolder))
+            empty_folder(os.path.join(path_glacier_s_CPDDs, midfolder))
+            empty_folder(os.path.join(path_glacier_w_CPDDs, midfolder))
+    #        empty_folder(os.path.join(path_glacier_snowfall, midfolder))
+            empty_folder(os.path.join(path_glacier_s_snowfall, midfolder))
+            empty_folder(os.path.join(path_glacier_w_snowfall, midfolder))
+            empty_folder(os.path.join(path_glacier_s_rain, midfolder))
+            empty_folder(os.path.join(path_glacier_w_rain, midfolder))
+            
+            if(not settings.static_geometry):
+                empty_folder(os.path.join(path_glacier_evolution_ID_rasters, midfolder))
+                empty_folder(os.path.join(path_glacier_evolution_DEM_rasters, midfolder))
         
         # We calculate the year range once we know if the ADAMONT forcings end in 2098 or 2099
         year_range = range(year_start, year_end+1)
@@ -1574,8 +1575,9 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
                 glacier_delta_h = np.any(glimsID == delta_h_processed_glaciers)
                 glacier_length = glacier.GetField("Length")
                 print("GLIMS ID: " + str(glimsID))
+                
                 # We process only the non-discarded glaciers with a delta h function and those greater than 0.5 km2
-                if(True):
+                if(not filter_glacier['flag'] or (filter_glacier['flag'] and filter_glacier['ID'] == glacierID)):
 #                print('glacierID: ' + str(glacierID))
 #                print("glacierArea: " + str(glacierArea))
 #                if(glacierID == 3651 and glacier_counter == 35): # Tré la Tête

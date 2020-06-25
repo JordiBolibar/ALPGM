@@ -92,7 +92,7 @@ def glacier_parameterized_functions(compute, overwrite):
     imp.reload(delta_h_alps)
     delta_h_alps.main(compute, overwrite)
         
-def adamont_simulation(simulation_type, compute_projection_forcings, compute_evolution, counter_threshold, overwrite):
+def adamont_simulation(simulation_type, compute_projection_forcings, compute_evolution, counter_threshold, overwrite, filter_glacier):
     ###   ADAMONT PROJECTIONS   ###
     global current_ADAMONT_forcing_mean
     global current_ADAMONT_forcing_sum
@@ -113,16 +113,16 @@ def adamont_simulation(simulation_type, compute_projection_forcings, compute_evo
                 current_ADAMONT_forcing_mean = os.path.join('projections', ADAMONT_proj_filepaths[i])
                 current_ADAMONT_forcing_sum =  os.path.join('projections', ADAMONT_proj_filepaths[i+1])
                 adamont_forcings.main(compute_projection_forcings)
-                glacier_evolution.main(compute_evolution, ensemble_SMB_models, overwrite, counter_threshold, thickness_idx)
+                glacier_evolution.main(compute_evolution, ensemble_SMB_models, overwrite, counter_threshold, thickness_idx, filter_glacier)
             counter = counter+1
 
-def glacier_simulation(simulation_type, counter_threshold, validate_SMB, compute_projection_forcings, compute_evolution, reconstruct, overwrite):
+def glacier_simulation(simulation_type, counter_threshold, validate_SMB, compute_projection_forcings, compute_evolution, reconstruct, overwrite, filter_glacier):
     imp.reload(adamont_forcings)
     imp.reload(smb_validation)
     imp.reload(glacier_evolution)
     
     if(simulation_type == "future"):
-        adamont_simulation(simulation_type, compute_projection_forcings, compute_evolution, counter_threshold, overwrite)
+        adamont_simulation(simulation_type, compute_projection_forcings, compute_evolution, counter_threshold, overwrite, filter_glacier)
     elif(simulation_type == "historical"):
         smb_validation.main(validate_SMB, reconstruct)
         ensemble_SMB_models = []
@@ -131,7 +131,7 @@ def glacier_simulation(simulation_type, counter_threshold, validate_SMB, compute
             ensemble_SMB_models = glacier_evolution.preload_ensemble_SMB_models()
 #        for thickness_idx in range(0,3):
         # 0 = original ice thickness / 1 = 1.3*ice thickness /  2 =  0.7*ice thickness 
-        glacier_evolution.main(compute_evolution, ensemble_SMB_models, overwrite, counter_threshold, 0) # thickness idx = 0 by default
+        glacier_evolution.main(compute_evolution, ensemble_SMB_models, overwrite, counter_threshold, 0, filter_glacier) # thickness idx = 0 by default
     else:
         print("\n[ERROR] Wrong type of projection!")
         
