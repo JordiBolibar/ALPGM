@@ -17,7 +17,7 @@ import proplot as plot
 import subprocess
 
 ######   FLAGS    #######
-only_final = False
+only_final = True
 
 ######   FILE PATHS    #######
 
@@ -25,7 +25,9 @@ only_final = False
 workspace = Path(os.getcwd()).parent
 path_glims = os.path.join(workspace, 'glacier_data', 'GLIMS') 
 path_obs = 'C:\\Jordi\\PhD\\Data\\SMB\\'
-path_smb = os.path.join(workspace, 'glacier_data', 'smb', 'smb_simulations', 'SAFRAN', '1', 'all_glaciers_1967_2015', 'smb')
+#path_smb = os.path.join(workspace, 'glacier_data', 'smb', 'smb_simulations', 'SAFRAN', '1', 'all_glaciers_1967_2015', 'smb')
+
+path_smb = 'C:\\Jordi\\PhD\\Publications\\Second article\\Dataset\\Updated dataset\\'
 path_smb_validation = os.path.join(workspace, 'glacier_data', 'smb', 'smb_validation')
 path_smb_plots = os.path.join(workspace, 'glacier_data', 'smb', 'smb_simulations', 'reconstruction_plots')
 
@@ -183,13 +185,13 @@ if(not only_final):
     
 ##### FINAL WHISKERS PLOTS   ###############
     
-raw_SMB_2000_2015 = genfromtxt(os.path.join(path_smb_validation, 'SMB_2000_2015.csv'), delimiter=';', skip_header=1,  usecols=range(1,4))
+raw_SMB_2000_2015 = genfromtxt(os.path.join(path_smb_validation, 'SMB_2000_2015.csv'), delimiter=';', skip_header=1,  usecols=range(1,5))
 raw_SMB_2003_2012 = genfromtxt(os.path.join(path_smb_validation, 'SMB_2003_2012.csv'), delimiter=';', skip_header=1,  usecols=range(1,5))
 
 SMB_2000_2015 = genfromtxt(os.path.join(path_smb_validation, 'SMB_2000_2015.csv'), delimiter=';', dtype=None)
 SMB_2003_2012 = genfromtxt(os.path.join(path_smb_validation, 'SMB_2003_2012.csv'), delimiter=';', dtype=None)
 
-uncertainties_2000_2015 = np.array([0.27, 0.16, 0.55])
+uncertainties_2000_2015 = np.array([0.27, 0.16, 0.55, 0.55])
 uncertainties_2003_2012 = np.array([0.27, 0.55, 0.55, 0.2])
 
 
@@ -203,19 +205,20 @@ for label in SMB_2000_2015[0,1:]:
     labels.append(label.decode('latin-1'))
     
 # Override labels
-labels = ['GC', 'D20', 'B20']
+labels = ['GC', 'D20', 'B20', 'B20\'']
     
 # Decode glacier names
 glaciers = []
 for glacier in SMB_2000_2015[1:,0]:
     glaciers.append(glacier.decode('latin-1'))
     
-m_colors = np.array(['golden brown', 'sienna', 'slate blue'])
+m_colors = np.array(['golden brown', 'sienna', 'slate blue', 'wine'])
 #e_colors = np.array(['palegreen', 'steelblue', 'wheat'])
 
-f1, axs1 = plot.subplots(ncols=4, nrows=4, share=2, tight=True, axwidth=1)
+f1, axs1 = plot.subplots(ncols=4, nrows=4, sharey=2, sharex=3, tight=True, axwidth=1, hspace=0.3, wspace=0.5, bottom=0.5, top=0.4)
 for idx in range(0, raw_SMB_2000_2015.shape[0]):
     if(raw_SMB_2000_2015[idx,:].size > 0):
+#        import pdb; pdb.set_trace()
         axs1[idx].axhline(y=0, color='black', linewidth=0.5, linestyle='-', zorder=0)
         axs1[idx].errorbar(labels, raw_SMB_2000_2015[idx,:], yerr=uncertainties_2000_2015, fmt='none', marker='none', markersize=5, zorder=2, elinewidth=3, capsize=0, ecolor='darksalmon', alpha=0.7)
         axs1[idx].scatter(labels, raw_SMB_2000_2015[idx,:], c=m_colors, s=30, zorder=3, marker='s')
@@ -226,9 +229,9 @@ for idx in range(0, raw_SMB_2000_2015.shape[0]):
 #import pdb; pdb.set_trace()
     
 axs1.format(
-    suptitle='2000-2015 annual glacier-wide SMB',
+#    suptitle='2000-2015 annual glacier-wide SMB',
     abc=True, abcstyle='a', abcloc='ul', abcborder=True,
-    ylabel='Glacier-wide SMB (m w.e. $a^{-1}$)',
+    ylabel='2000-2015 glacier-wide MB (m w.e. $a^{-1}$)',
 #    xlim=(1, 10), xticks=1,
     ylim=(-2.5, 0.25), yticks=plot.arange(-2.5, 0.25), 
 #    xtickdir='inout', xtickminor=False,
@@ -257,7 +260,7 @@ for glacier in SMB_2003_2012[1:,0]:
     
 m_colors = np.array(['golden brown', 'sienna', 'slate blue', 'royal purple'])
 
-f2, axs2 = plot.subplots(ncols=4, nrows=2, share=2, tight=True, axwidth=1)
+f2, axs2 = plot.subplots(ncols=4, nrows=2, sharey=2, sharex=3, tight=True, axwidth=1, hspace=0.4, wspace=0.6)
 for idx in range(0, raw_SMB_2003_2012.shape[0]):
     if(raw_SMB_2003_2012[idx,:].size > 0):
         axs2[idx].axhline(y=0, color='black', linewidth=0.5, linestyle='-', zorder=0)
@@ -270,9 +273,9 @@ for idx in range(0, raw_SMB_2003_2012.shape[0]):
 #import pdb; pdb.set_trace()
     
 axs2.format(
-    suptitle='2003-2012 glacier-wide SMB',
+#    suptitle='2003-2012 glacier-wide SMB',
     abc=True, abcstyle='a', abcloc='ul', abcborder=True,
-    ylabel='Glacier-wide SMB (m w.e. $a^{-1}$)',
+    ylabel='2003-2012 glacier-wide MB (m w.e. $a^{-1}$)',
 #    xlim=(1, 10), xticks=1,
     ylim=(-2.75, 0.25), yticks=plot.arange(-2.75, 0.25), 
 #    xtickdir='inout', xtickminor=False,

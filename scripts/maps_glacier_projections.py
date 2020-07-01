@@ -2,6 +2,9 @@
 """
 
 @author: Jordi Bolibar
+
+PROCESSING DATA FOR MAPS OF FRENCH ALPINE GLACIERS EVOLUTION (2015-2100)
+
 """
 
 ## Dependencies: ##

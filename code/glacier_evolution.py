@@ -219,16 +219,17 @@ def preload_ensemble_SMB_models():
         print("|", end="", flush=True)
         member_idx = member_idx+1
     
-#    member_idx = 0
-#    print("\n\nPreloading ensemble full SMB models...")
-#    for path_member in path_ensemble_members:
-#        # We retrieve the ensemble member ANN model
-#        ann_member_model = load_model(os.path.join(path_ensemble, path_member, 'ann_glacier_model.h5'), custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error}, compile=False)
-##        ensemble_members.append(ann_member_model)
-#        ensemble_members[member_idx] = ann_member_model
-#        print("|", end="", flush=True)
-#        member_idx = member_idx+1
-#        
+    if(settings.simulation_type == 'historical'):
+        member_idx = 0
+        print("\n\nPreloading ensemble full SMB models...")
+        for path_member in path_ensemble_members:
+            # We retrieve the ensemble member ANN model
+            ann_member_model = load_model(os.path.join(path_ensemble, path_member, 'ann_glacier_model.h5'), custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error}, compile=False)
+    #        ensemble_members.append(ann_member_model)
+            ensemble_members[member_idx] = ann_member_model
+            print("|", end="", flush=True)
+            member_idx = member_idx+1
+        
     CV_ensemble_members = np.asarray(CV_ensemble_members)
     ensemble_members = np.asarray(ensemble_members)
     print("\n")
@@ -261,7 +262,7 @@ def preload_ensemble_SMB_models():
 
 # Makes an ANN glacier-wide SMB simulation using an ensemble approach
 # Evolution flag = True for glacier_evolution.py format and False for smb_validation.py format
-def make_ensemble_simulation(ensemble_SMB_models, x_ann, batch_size, glimsID, glims_rabatel, evolution):
+def make_ensemble_simulation(ensemble_SMB_models, smb_bias_correction, x_ann, batch_size, glacier_IDs, glims_rabatel, aster_calibration, evolution):
     SMB_ensemble = []
     training_slopes = glims_rabatel['slope20']
     if(len(x_ann.shape) == 2):
@@ -276,7 +277,7 @@ def make_ensemble_simulation(ensemble_SMB_models, x_ann, batch_size, glimsID, gl
 #    slope_dist = (training_slopes - ref_slope)**2
     
     # Depending if glacier is present in training dataset we use the CV or full model
-    if(not evolution and np.any(glims_rabatel['GLIMS_ID'] == glimsID.encode('utf-8'))):
+    if(not evolution and np.any(glims_rabatel['GLIMS_ID'] == glacier_IDs['GLIMS'].encode('utf-8'))):
         SMB_ensemble_members = ensemble_SMB_models['full']
         print("\nFull ensemble models")
     else:
@@ -297,10 +298,26 @@ def make_ensemble_simulation(ensemble_SMB_models, x_ann, batch_size, glimsID, gl
             print("Running ensemble SMB simulation", end="", flush=True)
         print(".", end="", flush=True)
         
+        if(aster_calibration):
+            correction = False
+            if(np.any(smb_bias_correction['ID'] == glacier_IDs['RGI'])):
+                bias_correction = smb_bias_correction['bias_correction'][smb_bias_correction['ID'] == glacier_IDs['RGI']].values[0]
+                correction = True
+                # Bias correction based on ASTER SMB (2000-2016)
+                # If glacier evolution mode (2003-2100) apply bias correction to all simulations
+                # Otherwise, apply only to the last 15 years (2000-2015)
+                if(evolution):
+                    SMB_member = SMB_member + bias_correction
+                else:
+                    SMB_member[-15:] = SMB_member[-15:] + bias_correction
+        
         # Add member simulation to ensemble
         SMB_ensemble.append(SMB_member)
         first = False
         member_idx = member_idx+1
+    
+    if(correction):
+        print("\nApplying SMB bias correction: " + str(bias_correction))
     
     # We compute the ensemble average value
     SMB_ensemble = np.asarray(SMB_ensemble)
@@ -319,23 +336,11 @@ def make_ensemble_simulation(ensemble_SMB_models, x_ann, batch_size, glimsID, gl
         else:
             # Unweighted ensemble average
             ensemble_simulation = np.average(SMB_ensemble)
-            
-        # Bias correction for Mont-Blanc and Écrins steep glaciers
-        MB_names = np.array(['Taconnaz','Bossons','Nant Blanc','Tour', 'Tré-la-Tête', 'Bionnassay', 'de la Meije', 'Rateau', 'Blanc'])
-#        MB_IDs = np.array([3647,3646,3263,3698,3651,3648])
-        MB_IDs = np.array(['G006844E45863N','G006865E45868N','G006951E45939N','G006988E45987N','G006784E45784N','G006811E45849N', 'G006296E45008N', 'G006284E45012N', 'G006382E44944N'])
-        bias_correction = np.array([0.31, 0.31, 0.52, 0.9, 0.9, 0.83, 0.9, 0.71, 0.7])
-        
-#        if(np.any(glimsID == MB_IDs)):
-#            import pdb; pdb.set_trace()
-        
-        # We apply the empirical bias correction
-        bias_idx = np.where(glimsID == MB_IDs)[0]
-        if(bias_idx.size > 0 and ensemble_simulation < 0):
-            ensemble_simulation = ensemble_simulation*bias_correction[bias_idx[0]]
-        
+         
     else:
     # SMB reconstruction
+        # Bias correction based on ASTER SMB (2000-2016)
+        
         # We initialize the empty struture to fill with annual data
         ensemble_data, ensemble_simulation = [],[]
         for year in SMB_ensemble[0]:
@@ -356,10 +361,16 @@ def make_ensemble_simulation(ensemble_SMB_models, x_ann, batch_size, glimsID, gl
 #                ensemble_simulation.append(np.average(year, weights=ge_weights))
                 # Inverse slope difference weighted ensemble
 #                ensemble_simulation.append(np.average(year, weights=1/slope_dist))
-                ensemble_simulation.append(np.average(year))
+                
+                year_ensemble = np.average(year)
+    
+                ensemble_simulation.append(year_ensemble)
             else:
                 # Unweighted ensemble average
-                ensemble_simulation.append(np.average(year))
+                                # We apply the empirical bias correction
+                year_ensemble = np.average(year)
+    
+                ensemble_simulation.append(year_ensemble)
                 
         
             
@@ -1083,7 +1094,7 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
                       flowline, _raster_current_DEM, current_glacier_DEM, store_plots, 
                       glacierName, glacierID, glimsID, massif, lat, lon, aspect,
                       midfolder, pixel_area, glaciers_with_errors, glims_rabatel,
-                      lasso_scaler, lasso_model, ensemble_SMB_models, 
+                      lasso_scaler, lasso_model, ensemble_SMB_models, smb_bias_correction,
                       year_range, ref_start, _ref_end, SAFRAN_idx, overwrite):
     
     print("Applying glacier evolution...")
@@ -1168,7 +1179,8 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
             elif(settings.smb_model_type == "ann_no_weights" or settings.smb_model_type == "ann_weights"):
                 # We use an ensemble approach to compute the glacier-wide SMB
                 batch_size = 34
-                SMB_y, SMB_ensemble = make_ensemble_simulation(ensemble_SMB_models, x_ann, batch_size, glimsID, glims_rabatel, evolution=True)
+                glacier_IDs = {'RGI': glacierID, 'GLIMS': glimsID}
+                SMB_y, SMB_ensemble = make_ensemble_simulation(ensemble_SMB_models, smb_bias_correction, x_ann, batch_size, glacier_IDs, glims_rabatel, evolution=True)
             
             yearly_simulated_SMB.append(SMB_y)
             print("Simulated SMB: " + str(SMB_y))
@@ -1397,6 +1409,8 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
         global path_glacier_w_rain
         path_glacier_w_rain = os.path.join(path_glacier_evolution, 'glacier_winter_rain')
         
+        path_smb_validation = os.path.join(workspace, 'glacier_data', 'smb', 'smb_validation')
+        
         # GLIMS data
         path_glims = os.path.join(workspace, 'glacier_data', 'GLIMS') 
         
@@ -1483,6 +1497,8 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
         
         # We recover the list of discarded glaciers by cloud cover
         delta_h_processed_glaciers = np.asarray(genfromtxt(os.path.join(path_delta_h_param, "delta_h_processed_glaciers.csv"), delimiter=';', dtype=np.dtype('str')))
+        
+        smb_bias_correction = pd.read_csv(os.path.join(path_smb_validation, 'SMB_bias_correction.csv'), sep=";")
         
         # We create the folders to store the glacier area and volume data
         if not os.path.exists(path_glacier_area):
@@ -1691,7 +1707,7 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
                                                                                                 store_plots, glacierName, 
                                                                                                 glacierID, glimsID, massif, lat, lon, aspect,
                                                                                                 midfolder, pixel_area, glaciers_with_errors, glims_rabatel,
-                                                                                                lasso_scaler, lasso_model, ensemble_SMB_models, 
+                                                                                                lasso_scaler, lasso_model, ensemble_SMB_models, smb_bias_correction,
                                                                                                 year_range, ref_start, ref_end, SAFRAN_idx, overwrite) 
                     else:
                         glacier_melted_flag = True

@@ -3,6 +3,9 @@
 Created on Mon Nov 19 16:06:19 2018
 
 @author: bolibarj
+
+PROCESSING AND PLOTTING ANNUAL GLACIER-WIDE SMB DATA FROM THE 1967-2015 RECONSTRUCTIONS
+
 """
 
 ## Dependencies: ##
@@ -29,7 +32,6 @@ n_cv_members = 60 # LSYGO
 #n_cv_members = 32 # LOGO
 ### Process Marzeion et al. SMB data ###
 process_marzeion = True
-
 
 #####  PROPLOT CONFIGURATION   #####
 #plot.rc.margin = 0.03
@@ -61,27 +63,31 @@ path_glacier_DEM_rasters = workspace + 'glacier_data\\glacier_rasters\\glacier_t
 path_glacier_evolution_DEM_rasters = path_glacier_DEM_rasters + 'glacier_evolution\\' 
 path_glacier_evolution_ID_rasters = path_glacier_ID_rasters + 'glacier_evolution\\'
 path_smb_simulations = path_smb + 'smb_simulations\\'
-path_glacier_evolution_plots = path_glacier_evolution + 'plots\\SAFRAN\\1\\'
-path_glacier_area = path_glacier_evolution + 'glacier_area\\SAFRAN\\1\\'
-path_glacier_volume = path_glacier_evolution + 'glacier_volume\\SAFRAN\\1\\'
-path_glacier_zmean = path_glacier_evolution + 'glacier_zmean\\SAFRAN\\1\\'
-path_glacier_slope20 = path_glacier_evolution + 'glacier_slope20\\SAFRAN\\1\\'
-path_glacier_melt_years = path_glacier_evolution + 'glacier_melt_years\\SAFRAN\\1\\'
-path_glacier_w_errors = path_glacier_evolution + 'glacier_w_errors\\SAFRAN\\1\\'
 path_glims = workspace + 'glacier_data\\GLIMS\\' 
 path_safran_forcings = 'C:\\Jordi\\PhD\\Data\\SAFRAN-Nivo-2017\\'
 path_smb_function = path_smb + 'smb_function\\'
 path_smb_plots = path_smb + 'smb_simulations\\reconstruction_plots\\'
 global path_smb_function_safran 
-path_smb_safran = path_smb + 'smb_simulations\\SAFRAN\\1\\all_glaciers_1967_2015\\smb\\'
-path_ensemble_smb_safran = path_smb + 'smb_simulations\\SAFRAN\\1\\all_glaciers_1967_2015\\ensemble_smb\\'
-path_area_safran = path_smb + 'smb_simulations\\SAFRAN\\1\\all_glaciers_1967_2015\\area\\'
-path_slope_safran = path_smb + 'smb_simulations\\SAFRAN\\1\\all_glaciers_1967_2015\\slope\\'
+
+path_smb_all_glaciers = path_smb + 'smb_simulations\\' + 'SAFRAN\\' + '1\\' + 'all_glaciers_1967_2015\\'
+
+# TODO: Change if simulations are re-run
+path_smb_safran = 'C:\\Jordi\\PhD\\Publications\\Second article\\Dataset\\ASTER dataset\\smb\\'
+#path_smb_safran = 'C:\\Jordi\\PhD\\Publications\\Second article\\Dataset\\Updated dataset\\'
+#path_smb_safran = path_smb_all_glaciers + 'smb\\'
+
+#path_ensemble_smb_safran = path_smb_all_glaciers + 'ensemble_smb\\'
+path_ensemble_smb_safran = 'C:\\Jordi\\PhD\\Publications\\Second article\\Dataset\\ASTER dataset\\ensemble_smb\\'
+
+path_area_safran = path_smb_all_glaciers + 'area\\'
+path_slope_safran = path_smb_all_glaciers + 'slope\\'
 
 path_smb_glaciers = np.asarray(os.listdir(path_smb_safran))
 path_ensemble_smb_glaciers = np.asarray(os.listdir(path_ensemble_smb_safran))
 path_area_glaciers = np.asarray(os.listdir(path_area_safran))
 path_slope_glaciers = np.asarray(os.listdir(path_slope_safran))
+
+#import pdb; pdb.set_trace()
 
 glims_2003 = genfromtxt(path_glims + 'GLIMS_2003.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('GLIMS_ID', '<a50'), ('Massif_SAFRAN', '<i8'), ('Aspect_num', '<i8'), ('ID', '<i8')])
 glims_rabatel = genfromtxt(path_glims + 'GLIMS_Rabatel_30_2003.csv', delimiter=';', skip_header=1,  dtype=[('Area', '<f8'), ('Perimeter', '<f8'), ('Glacier', '<a50'), ('Annee', '<i8'), ('Massif', '<a50'), ('MEAN_Pixel', '<f8'), ('MIN_Pixel', '<f8'), ('MAX_Pixel', '<f8'), ('MEDIAN_Pixel', '<f8'), ('Length', '<f8'), ('Aspect', '<a50'), ('x_coord', '<f8'), ('y_coord', '<f8'), ('slope20', '<f8'), ('GLIMS_ID', '<a50'), ('Massif_SAFRAN', '<f8'), ('Aspect_num', '<f8')])        
@@ -379,9 +385,14 @@ for path_smb, path_ensemble_smb, path_area, path_slope in zip(path_smb_glaciers,
             member_idx = 0
             annual_ensemble_avg_area[year_idx].append(area_glacier_i)
             for smb_member in ensemble_smb_glacier:
-    #            print("smb_member[" + str(year_idx) + "]: " + str(smb_member[year_idx]))
-    #            print("smb_member.shape: " + str(smb_member.shape))
-                ensemble_avg_annual_smb[member_idx][year_idx].append(smb_member[year_idx])
+#                print("smb_member.shape: " + str(smb_member.shape))
+#                print("smb_member[" + str(year_idx) + "]: " + str(smb_member[year_idx]))
+                
+                # TODO: remove for reconstructions with normal dataset
+                if(smb_member.size < 49 and year_idx > 36):
+                    ensemble_avg_annual_smb[member_idx][year_idx].append(np.nan)
+                else:
+                    ensemble_avg_annual_smb[member_idx][year_idx].append(smb_member[year_idx])
                 member_idx=member_idx+1
             
         if(not np.isnan(smb_glacier[year_idx])):
@@ -673,7 +684,7 @@ fig1.tight_layout()
 #plt.ylabel('Probability')
 ##plt.xlabel('Cumulative SMB (m w.e.)')
 ##plt.title("Histogram");
-
+#
 #import pdb; pdb.set_trace()
 
 print("\nNumber of glaciers disappeared between 2003 and 2015: " + str(glaciers_not_2015))
@@ -1062,6 +1073,7 @@ avg_smb_obs_10s = annual_avg_smb_obs[43:].mean()
 
 
 avg_decadal_smb = np.array([avg_smb_70s, avg_smb_80s, avg_smb_90s, avg_smb_00s, avg_smb_10s])
+avg_decadal_smb_aster = np.array([np.nan, np.nan, np.nan, -1.006, -1.025])
 avg_decadal_smb_marzeion = np.array([avg_smb_marzeion_70s, avg_smb_marzeion_80s, avg_smb_marzeion_90s, avg_smb_marzeion_00s, avg_smb_marzeion_10s])
 xmin = np.array([1970, 1980, 1990, 2000, 2010])
 xmax = np.array([1980, 1990, 2000, 2010, 2015])

@@ -6,7 +6,7 @@
 Institut des Géosciences de l'Environnement (Université Grenoble Alpes)
 jordi.bolibar@univ-grenoble-alpes.fr
 
-GLACIER SMB MODELLING AND PROJECTION BASED ON MULTIPLE REGRESSION FUNCTION
+GLACIER SMB MODELLING AND PROJECTION USING MACHINE LEARNING
 
 """
 
@@ -57,13 +57,9 @@ path_smb_simulations = os.path.join(path_smb, 'smb_simulations')
 path_glims = os.path.join(workspace, 'glacier_data', 'GLIMS') 
 path_glacier_coordinates = os.path.join(workspace, 'glacier_data', 'glacier_coordinates') 
 path_smb_function_safran = os.path.join(path_smb, 'smb_function', 'SAFRAN')
-path_smb_all_glaciers = os.path.join(path_smb, 'smb_simulations', 'SAFRAN', '1', 'all_glaciers_1967_2015')
-path_smb_all_glaciers_smb = os.path.join(path_smb, 'smb_simulations', 'SAFRAN', '1', 'all_glaciers_1967_2015', 'smb')
-path_smb_all_ensemble_smb = os.path.join(path_smb, 'smb_simulations', 'SAFRAN', '1', 'all_glaciers_1967_2015', 'ensemble_smb')
-path_smb_all_glaciers_area = os.path.join(path_smb, 'smb_simulations', 'SAFRAN', '1', 'all_glaciers_1967_2015', 'area')
-path_smb_all_glaciers_slope = os.path.join(path_smb, 'smb_simulations', 'SAFRAN', '1', 'all_glaciers_1967_2015', 'slope')
 path_training_data = os.path.join(workspace, 'glacier_data', 'glacier_evolution', 'training')
 path_training_glacier_info = os.path.join(path_training_data, 'glacier_info')
+path_smb_validation = os.path.join(workspace, 'glacier_data', 'smb', 'smb_validation')
 global path_slope20
 path_slope20 = os.path.join(workspace, 'glacier_data', 'glacier_evolution', 'glacier_slope20', 'SAFRAN', '1')
 
@@ -424,11 +420,13 @@ def main(compute, reconstruct):
     if(compute):
         global path_safran_forcings
         path_safran_forcings = settings.path_safran
+        path_smb_all_glaciers = os.path.join(path_smb, 'smb_simulations', 'SAFRAN', '1', 'all_glaciers_1967_2015')
         
         if(reconstruct):
             # TODO: this doesn't do anything
             path_ann = os.path.join(path_smb, 'ANN', 'LOGO')
             path_cv_ann = os.path.join(path_ann, 'CV')
+            
         else:
             # Set LOGO for model validation
             if(settings.smb_model_type == 'ann_no_weights'):
@@ -437,6 +435,11 @@ def main(compute, reconstruct):
             elif(settings.smb_model_type == 'ann_weights'):
                 path_ann = os.path.join(path_smb, 'ANN', 'LOGO', 'weights')
                 path_cv_ann = os.path.join(path_ann, 'CV')
+                
+        path_smb_all_glaciers_smb = os.path.join(path_smb_all_glaciers, 'smb')
+        path_smb_all_ensemble_smb = os.path.join(path_smb_all_glaciers, 'ensemble_smb')
+        path_smb_all_glaciers_area = os.path.join(path_smb_all_glaciers, 'area')
+        path_smb_all_glaciers_slope = os.path.join(path_smb_all_glaciers, 'slope')
         
         # Close all previous open plots in the workflow
         plt.close('all')
@@ -502,6 +505,8 @@ def main(compute, reconstruct):
         with open(os.path.join(settings.path_ann, 'RMSE_per_fold.txt'), 'rb') as rmse_f:
             CV_RMSE = np.load(rmse_f,  allow_pickle=True)
             
+        smb_bias_correction = pd.read_csv(os.path.join(path_smb_validation, 'SMB_bias_correction.csv'), sep=";")
+            
         # We extract the simulation interval in years
         # [()] needed to access the dictionary
         year_start = int(season_meteo_anomalies_SMB['CPDD'][0]['years'][0])
@@ -521,6 +526,8 @@ def main(compute, reconstruct):
         # We use only the 19 best models
         best_models = best_models[:19]
         
+        aster_calibration = settings.aster
+        
         if(forcing == "SAFRAN"):
             print("Getting all the SAFRAN forcing data....")
 #            all_glacier_coordinates = get_SAFRAN_glacier_coordinates(glims_rabatel)
@@ -534,13 +541,13 @@ def main(compute, reconstruct):
 #                ann_model = load_model(path_ann + 'ann_glacier_model.h5', custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error})
                 
                 daily_temps_years, daily_snow_years, daily_rain_years, daily_dates_years, zs_years = get_default_SAFRAN_forcings(year_start, year_end)
-                daily_meteo_data = {'temps': daily_temps_years, 'snow':daily_snow_years, 'rain':daily_rain_years, 'dates': daily_dates_years, 'zs':zs_years}
+                daily_meteo_data = {'temps': daily_temps_years, 'snow':daily_snow_years, 'rain':daily_rain_years, 'dates': daily_dates_years, 'zs':zs_years[0]}
                 
                 # We remove all previous simulations from the folder
                 if(os.path.exists(path_smb_all_glaciers)):
                     shutil.rmtree(path_smb_all_glaciers)
                     
-                cumulative_smb_glaciers = []
+                cumulative_smb_glaciers, list_smb_glaciers = [],[]
                 
                 # We preload the ensemble SMB models to speed up the simulations
                 ensemble_SMB_models = preload_ensemble_SMB_models()
@@ -573,7 +580,8 @@ def main(compute, reconstruct):
                         x_reg_array, x_reg_full, x_reg_nn = create_spatiotemporal_matrix(season_anomalies, mon_anomalies, glims_glacier, glacier_mean_altitude, glacier_area, best_models)
                         
                         #####  Machine learning SMB simulations   ###################
-                        SMB_nn, SMB_ensemble = make_ensemble_simulation(ensemble_SMB_models, x_reg_nn, 34, glimsID, glims_rabatel, evolution=False)
+                        glacier_IDs = {'RGI': rgiID, 'GLIMS': glimsID}
+                        SMB_nn, SMB_ensemble = make_ensemble_simulation(ensemble_SMB_models, smb_bias_correction, x_reg_nn, 34, glacier_IDs, glims_rabatel, aster_calibration, evolution=False)
 #                        SMB_nn = ann_model.predict(x_reg_nn, batch_size = 34)
 #                        SMB_nn = np.asarray(SMB_nn)[:,0].flatten()
                         
@@ -596,6 +604,18 @@ def main(compute, reconstruct):
                         # We store the cumulative SMB for all the glaciers with their RGI ID
 #                        cumulative_smb_glaciers = np.concatenate((cumulative_smb_glaciers, np.array([glims_glacier['ID'], np.sum(SMB_nn)])))
                         cumulative_smb_glaciers.append([rgiID, np.sum(SMB_nn)])
+                        
+                        # We keep all the glacier simulations together in order to store them together in a dataframe afterwards
+                        indexes = np.array([rgiID, glimsID, glacier_name])
+                        
+                        if(SMB_nn.size < 49):
+                            nan_tail = np.ones(12)
+                            nan_tail[:] = np.nan
+                            SMB_simulated = np.concatenate((SMB_nn, nan_tail))
+                        else:
+                            SMB_simulated = SMB_nn
+                            
+                        list_smb_glaciers.append(np.concatenate((indexes, SMB_simulated)))
                         
                         # We store the simulated SMB 
                         combined_ID = str(glimsID) + "_" + str(rgiID) 
@@ -620,7 +640,7 @@ def main(compute, reconstruct):
                 # We store the cumulative glacier-wide SMB of all the glaciers in the French Alps
                 cumulative_smb_glaciers = np.asarray(cumulative_smb_glaciers)
                 store_smb_data(os.path.join(path_smb_all_glaciers, 'cumulative_smb_all_glaciers.csv'), cumulative_smb_glaciers)
-                
+                    
             else:
                 #### SMB validation of the 32 glaciers with training data  ####
                 

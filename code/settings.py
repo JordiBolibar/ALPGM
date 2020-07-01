@@ -25,7 +25,7 @@ workspace = str(Path(os.getcwd()).parent)
 
 path_smb = os.path.join(workspace, 'glacier_data', 'smb')
 
-def init(hist_forcing, proj_forcing, simu_type, smb_model, cluster, static_geometry_mode):
+def init(hist_forcing, proj_forcing, simu_type, smb_model, cluster, static_geometry_mode, ASTER_calibration):
     print("Applying settings...")
     
     global ADAMONT_proj_filepaths
@@ -56,6 +56,10 @@ def init(hist_forcing, proj_forcing, simu_type, smb_model, cluster, static_geome
     global path_cv_ann
     global path_ensemble_ann
     global smb_model_type
+    
+    global aster
+    aster = ASTER_calibration
+    
     if(smb_model == 'ann_no_weights'):
         if(simulation_type == 'historical'):
             path_ann = os.path.join(path_smb, 'ANN', 'LSYGO_soft')
