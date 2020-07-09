@@ -301,14 +301,16 @@ def make_ensemble_simulation(ensemble_SMB_models, smb_bias_correction, x_ann, ba
         if(aster_calibration):
             correction = False
             if(np.any(smb_bias_correction['ID'] == glacier_IDs['RGI'])):
-                bias_correction = smb_bias_correction['bias_correction'][smb_bias_correction['ID'] == glacier_IDs['RGI']].values[0]
                 correction = True
                 # Bias correction based on ASTER SMB (2000-2016)
                 # If glacier evolution mode (2003-2100) apply bias correction to all simulations
                 # Otherwise, apply only to the last 15 years (2000-2015)
                 if(evolution):
-                    SMB_member = SMB_member + bias_correction
+                    bias_correction = smb_bias_correction['bias_correction_perc'][smb_bias_correction['ID'] == glacier_IDs['RGI']].values[0]
+                    if(SMB_member < 0):
+                        SMB_member = SMB_member*bias_correction
                 else:
+                    bias_correction = smb_bias_correction['bias_correction'][smb_bias_correction['ID'] == glacier_IDs['RGI']].values[0]
                     SMB_member[-15:] = SMB_member[-15:] + bias_correction
         
         # Add member simulation to ensemble
@@ -1143,6 +1145,8 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
             print("\n--- Hydrological year: " + str(year-1) + "-" + str(year) + " ---\n")
             print("Glacier front: " + str(DEM_sorted_current_glacier_u[0]) + " meters")
             
+            print("Glacier max ice thickness: " + str(masked_ID_current_glacier_u.max()))
+            
             # Bypass only if static geometry mode is activated
             if(year == year_range[0] or not settings.static_geometry):          
                 ####  RECALCULATION OF TOPOGRAPHICAL PARAMETERS  ####
@@ -1180,7 +1184,7 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
                 # We use an ensemble approach to compute the glacier-wide SMB
                 batch_size = 34
                 glacier_IDs = {'RGI': glacierID, 'GLIMS': glimsID}
-                SMB_y, SMB_ensemble = make_ensemble_simulation(ensemble_SMB_models, smb_bias_correction, x_ann, batch_size, glacier_IDs, glims_rabatel, evolution=True)
+                SMB_y, SMB_ensemble = make_ensemble_simulation(ensemble_SMB_models, smb_bias_correction, x_ann, batch_size, glacier_IDs, glims_rabatel, settings.aster, evolution=True)
             
             yearly_simulated_SMB.append(SMB_y)
             print("Simulated SMB: " + str(SMB_y))
@@ -1498,7 +1502,10 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
         # We recover the list of discarded glaciers by cloud cover
         delta_h_processed_glaciers = np.asarray(genfromtxt(os.path.join(path_delta_h_param, "delta_h_processed_glaciers.csv"), delimiter=';', dtype=np.dtype('str')))
         
-        smb_bias_correction = pd.read_csv(os.path.join(path_smb_validation, 'SMB_bias_correction.csv'), sep=";")
+        if(settings.simulation_type == "historical"):
+            smb_bias_correction = pd.read_csv(os.path.join(path_smb_validation, 'SMB_bias_correction.csv'), sep=";")
+        else:
+            smb_bias_correction = pd.read_csv(os.path.join(path_smb_validation, 'SMB_bias_correction_projections.csv'), sep=";")
         
         # We create the folders to store the glacier area and volume data
         if not os.path.exists(path_glacier_area):
@@ -1636,6 +1643,10 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
                     if os.path.exists(current_glacier_ice_depth):
                         raster_current_F19 = gdal.Open(current_glacier_ice_depth) 
                         ice_depth_current_glacier = raster_current_F19.ReadAsArray()
+                        
+                        raster_current_DEM = gdal.Open(current_glacier_DEM) 
+                        dem_current_glacier = raster_current_DEM.ReadAsArray()
+                        
                         if(np.all(ice_depth_current_glacier == 0) or np.all(np.isnan(ice_depth_current_glacier[ice_depth_current_glacier != 0]))):
                              print("/!\ Ice depth raster coordinates not aligned with GLIMS database for Glacier " + str(glacierName) + " with area = " + str(glacierArea) + " km2\n")
                              glaciers_with_errors.append(glacierName)
@@ -1655,6 +1666,10 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
                             
                         # Filter noise 
                         ice_depth_current_glacier = np.where(ice_depth_current_glacier > 550*thick_comp, 0, ice_depth_current_glacier)
+                        
+                        # We correct the ice thickness of the tongue for Mer de Glace
+                        if(glimsID == 'G006934E45883N'):
+                            ice_depth_current_glacier = ice_depth_current_glacier*1.25
                         
                     else:
                         print("\n/!\ Ice depth raster doesn't exist for Glacier " + str(glacierName) + " with area = " + str(glacierArea) + " km2\n")

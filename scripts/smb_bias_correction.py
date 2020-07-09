@@ -111,7 +111,7 @@ if(not only_final):
     glims_2015 = pd.read_csv(os.path.join(path_glims, 'GLIMS_2015.csv'), sep=';')
     glims_rabatel = pd.read_csv(os.path.join(path_glims, 'GLIMS_Rabatel_30_2003.csv'), sep=';')
     
-    bias_correction = {'ID':[], 'GLIMS_ID':[], 'Name':[], 'bias_correction':[]}
+    bias_correction = {'ID':[], 'GLIMS_ID':[], 'Name':[], 'bias_correction':[], 'bias_correction_perc':[]}
     
     # Iterate and compare glacier SMB observations in order to compute metrics
     plot_count = 1
@@ -178,6 +178,7 @@ if(not only_final):
                     alpgm_reconstructions = glacier_SMB_reconstruction[-15:,1].mean()
                     
                     correction = aster_obs - alpgm_reconstructions
+                    correction_perc = aster_obs/alpgm_reconstructions
                     
                     #                if((aster_obs/alpgm_reconstructions) > 2 or (aster_obs/alpgm_reconstructions) < 0):
     #                print("\naster_obs: " + str(aster_obs))
@@ -190,6 +191,7 @@ if(not only_final):
                     bias_correction['GLIMS_ID'].append(glacier_info['GLIMS_ID'])
                     bias_correction['Name'].append(glacier_info['name'])
                     bias_correction['bias_correction'].append(correction)
+                    bias_correction['bias_correction_perc'].append(correction_perc)
                 
 bias_correction_df = pd.DataFrame(bias_correction)
 bias_correction_df.to_csv(os.path.join(path_smb_validation, 'SMB_bias_correction.csv'), sep=";")
