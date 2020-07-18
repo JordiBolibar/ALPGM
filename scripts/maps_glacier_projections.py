@@ -10,6 +10,7 @@ PROCESSING DATA FOR MAPS OF FRENCH ALPINE GLACIERS EVOLUTION (2015-2100)
 ## Dependencies: ##
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+import matplotlib.ticker as ticker
 import proplot as plot
 import numpy as np
 from numpy import genfromtxt
@@ -51,7 +52,6 @@ glims_2003 = pd.read_csv(os.path.join(path_glims, 'GLIMS_2003_ID_massif.csv'), s
 ###                           MAIN                                          ###
 ###############################################################################
 
-
 # Open netCDF dataset with glacier evolution projections
 ds_glacier_projections = xr.open_dataset(os.path.join(path_glacier_evolution, 'glacier_evolution_2015_2100.nc'))
 
@@ -78,22 +78,37 @@ CPDD_2100_massif_groups = ds_glacier_projections.CPDD.sel(RCP='45', year=2099).g
 zmean_2015_massif_groups = ds_glacier_projections.zmean.sel(RCP='45', year=2015).groupby('massif_ID').mean(...)
 zmean_2100_massif_groups = ds_glacier_projections.zmean.sel(RCP='45', year=2099).groupby('massif_ID').mean(...)
 
+snowfall_45_massif_groups = ds_glacier_projections.snowfall.sel(RCP='45').groupby('massif_ID').mean(dim=['GLIMS_ID', 'member'])
+cpdd_45_massif_groups = ds_glacier_projections.CPDD.sel(RCP='45').groupby('massif_ID').mean(dim=['GLIMS_ID', 'member'])
+MB_45_massif_groups = ds_glacier_projections.MB.sel(RCP='45').groupby('massif_ID').mean(dim=['GLIMS_ID', 'member'])
+
 massif_order_S_N = {'Names': ['1. Ubaye','2. Champsaur','3. Pelvoux', '4. Oisans', '5. Grandes Rousses','6. Belledonne', '7. Haute Maurienne', '8. Vanoise', '9. Haute Tarentaise', '10. Mont Blanc', '11. Chablais'], 
                     'ID': [21,19,16,15,12,8,11,10,6,3, 1], 'ID_str':[]}
 
 subset_massifs = np.array([3, 19, 16, 15])
 
 zmean_2015_massifs_S_N, zmean_2100_massifs_S_N = [],[]
+snowfall_45_massif_S_N, cpdd_45_massif_S_N, MB_45_massif_S_N = [],[],[]
+
 for ID in massif_order_S_N['ID']:
     idx = np.where(zmean_2015_massif_groups.massif_ID == ID)[0][0]
     zmean_2015_massifs_S_N.append(zmean_2015_massif_groups.data[idx])
     zmean_2100_massifs_S_N.append(zmean_2100_massif_groups.data[idx])
+    snowfall_45_massif_S_N.append(snowfall_45_massif_groups.values[idx,:])
+    cpdd_45_massif_S_N.append(cpdd_45_massif_groups.values[idx,:])
+    MB_45_massif_S_N.append(MB_45_massif_groups.values[idx,:])
+    
     massif_order_S_N['ID_str'].append(str(ID))
     
 zmean_2015_massifs_S_N = np.asarray(zmean_2015_massifs_S_N)
 zmean_2100_massifs_S_N = np.asarray(zmean_2100_massifs_S_N)
+snowfall_45_massif_S_N = np.asarray(snowfall_45_massif_S_N)
+cpdd_45_massif_S_N = np.asarray(cpdd_45_massif_S_N)
+MB_45_massif_S_N = np.asarray(MB_45_massif_S_N)
 
 ###  PLOTS   ######
+
+#### Zmean massif for map   #######
 
 x = np.linspace(0, zmean_2015_massifs_S_N.size, num=11, endpoint=True)
 xnew = np.linspace(0, zmean_2015_massifs_S_N.size, num=101, endpoint=True)
@@ -128,6 +143,46 @@ axs1.legend(z2100, loc='r', ncols=1, frame=False)
 fig1.savefig("C:\\Jordi\\PhD\\Publications\\Third article\\maps\\" + "zmean_massif.pdf")
 
 #plt.show()
+
+#### Climate stripes per  massifs  ######
+
+#fig2, ax2 = plot.subplots(ncols=2, axwidth=3, share=3, aspect=0.75, wspace='7em')
+
+fig2, ax2 = plot.subplots([[1, 1], [2, 3]], ncols=2, nrows=2, axwidth=6.5, aspect=3, share=3)
+
+ax2.format(
+        abc=True, abcloc='lr',
+        ylocator=1,
+        ytickminor=False,
+        yticklabelloc='left'
+)
+
+mb_stripes = ax2[0].pcolormesh(MB_45_massif_groups.year.values, range(1,12), MB_45_massif_S_N, cmap='vikO_r', cmap_kw={'right': 0.7})
+fig2.colorbar(mb_stripes, ax=ax2[0])
+ax2[0].set_title('Annual glacier-wide MB')
+ax2[0].set_ylabel('Glacierized massif')
+ax2[0].set_xlabel('Year')
+
+snow_stripes = ax2[1].pcolormesh(snowfall_45_massif_groups.year.values, range(1,12), snowfall_45_massif_S_N, cmap='lapaz_r')
+fig2.colorbar(snow_stripes, ax=ax2[1])
+ax2[1].set_title('Annual snowfall')
+#ax2[1].set_ylabel('Glacierized massif')
+ax2[1].set_xlabel('Year')
+
+snow_stripes = ax2[2].pcolormesh(cpdd_45_massif_groups.year.values, range(1,12), cpdd_45_massif_S_N, cmap='Matter')
+fig2.colorbar(snow_stripes, ax=ax2[2])
+ax2[2].set_title('Annual CPDD')
+ax2[2].set_ylabel('Glacierized massif')
+ax2[2].set_xlabel('Year')
+
+plt.show()
+
+import pdb; pdb.set_trace()
+
+
+#### Raster processing for maps  #############################3
+
+#########################################################################3
 
 ### Process raster data
 thick_raster_files = np.asarray(os.listdir(path_individual_thickness))
