@@ -22,9 +22,9 @@ import pandas as pd
 import xarray as xr
 
 ###### FLAGS  #########
-with_26 = True
+with_26 = False
 filter_glacier = False
-static_geometry = False
+static_geometry = True
 load_dictionaries = True
 #filter_member = False
 # mer de glace
@@ -225,7 +225,7 @@ def store_RCP_mean(path_variable, variable, RCP_means):
                 with open('config.dictionary', 'wb') as config_dictionary_file:
                     pickle.dump(RCP_means, config_dictionary_file)
                 
-def plot_individual_members(ax, RCP_member_means, RCP_means, variable, filtered_member, alpha=0.2):
+def plot_individual_members(ax, RCP_member_means, RCP_means, variable, filtered_member, alpha=0.3):
     member_idx = 0
     for member_26 in RCP_member_means['26']:
         data_26 = member_26[variable]['data']
@@ -254,6 +254,38 @@ def plot_individual_members(ax, RCP_member_means, RCP_means, variable, filtered_
                 ax.plot(RCP_means['85'][variable]['year'], data_85, linewidth=0.1, alpha=alpha, c='darkred')
         member_idx=member_idx+1
         
+def plot_individual_members_diff(ax, RCP_member_means, RCP_means, variable, static_variable, filtered_member, alpha=0.15):
+    member_idx = 0
+    for member_85 in RCP_member_means['85']:
+        data_85 = np.asarray(member_85[variable]['data'])
+        static_data_85 = np.asarray(member_85[static_variable]['data'])
+        if(len(data_85) > 0 and (member_idx == filtered_member or filtered_member == -1)):
+            if(len(RCP_means['85'][variable]['year']) > len(data_85)):
+                ax.plot(RCP_means['85'][variable]['year'][:-1], data_85 - static_data_85, linewidth=0.1, alpha=alpha, c='dark slate blue')
+            else:
+                ax.plot(RCP_means['85'][variable]['year'], data_85 - static_data_85, linewidth=0.1, alpha=alpha, c='dark slate blue')
+    member_idx=member_idx+1
+    member_idx = 0
+    for member_26 in RCP_member_means['26']:
+        data_26 = np.asarray(member_26[variable]['data'])
+        static_data_26 = np.asarray(member_26[static_variable]['data'])
+        if(len(data_26) > 0 and (member_idx == filtered_member or filtered_member == -1)):
+            if(len(RCP_means['26'][variable]['year']) > len(data_26)):
+                ax.plot(RCP_means['26'][variable]['year'][:-1], data_26 - static_data_26, linewidth=0.1, alpha=alpha, c='steelblue')
+            else:
+                ax.plot(RCP_means['26'][variable]['year'], data_26 - static_data_26, linewidth=0.1, alpha=alpha, c='steelblue')
+        member_idx=member_idx+1
+    member_idx = 0
+    for member_45 in RCP_member_means['45']:
+        data_45 = np.asarray(member_45[variable]['data'])
+        static_data_45 = np.asarray(member_45[static_variable]['data'])
+        if(len(data_45) > 0 and (member_idx == filtered_member or filtered_member == -1)):
+            if(len(RCP_means['45'][variable]['year']) > len(data_45)):
+                ax.plot(RCP_means['45'][variable]['year'][:-1], data_45 - static_data_45, linewidth=0.1, alpha=alpha+0.1, c='cyan7')
+            else:
+                ax.plot(RCP_means['45'][variable]['year'], data_45 - static_data_45, linewidth=0.1, alpha=alpha+0.1, c='cyan7')
+        member_idx=member_idx+1
+        
 def plot_RCP_means(ax, RCP_means, variable, with_26, legend=False, linewidth=2, linestyle='-'):
     if(legend):
         legend_pos='ur'
@@ -278,11 +310,11 @@ def plot_RCP_means_diff(ax, RCP_means, variable, static_variable, with_26, legen
     else:
         legend_pos=''
     h1 = ''
+    h3 = ax.plot(RCP_means['85'][variable]['year'][:-1], np.asarray(RCP_means['85'][variable]['data'][:-1]) - np.asarray(RCP_means['85'][static_variable]['data'][:-1]), linewidth=linewidth, linestyle=linestyle, label='RCP 8.5', c='dark slate blue', legend=legend_pos)
+    h2 = ax.plot(RCP_means['45'][variable]['year'][:-1], np.asarray(RCP_means['45'][variable]['data'][:-1]) - np.asarray(RCP_means['45'][static_variable]['data'][:-1]), linewidth=linewidth, linestyle=linestyle, label='RCP 4.5', c='cyan7', legend=legend_pos)
     if(with_26):
         h1 = ax.plot(RCP_means['26'][variable]['year'][:-1], np.asarray(RCP_means['26'][variable]['data'][:-1]) - np.asarray(RCP_means['26'][static_variable]['data'][:-1]), linewidth=linewidth, linestyle=linestyle, label='RCP 2.6', c='steelblue', legend=legend_pos)
-    h3 = ax.plot(RCP_means['85'][variable]['year'][:-1], np.asarray(RCP_means['85'][variable]['data'][:-1]) - np.asarray(RCP_means['85'][static_variable]['data'][:-1]), linewidth=linewidth, linestyle=linestyle, label='RCP 8.5', c='darkred', legend=legend_pos)
-    h2 = ax.plot(RCP_means['45'][variable]['year'][:-1], np.asarray(RCP_means['45'][variable]['data'][:-1]) - np.asarray(RCP_means['45'][static_variable]['data'][:-1]), linewidth=linewidth, linestyle=linestyle, label='RCP 4.5', c='brown orange', legend=legend_pos)
-    
+           
     return ((h1, h2, h3))
     
 def return_indexes(index_list, glims_ID, massif_ID, RCP, current_member, year):
@@ -826,32 +858,60 @@ if(not load_dictionaries):
 
     ### We save the dictionaries in order to avoid reprocessing them every time
     
-    if(with_26):
-        with open(os.path.join(path_RCP_means_all, "RCP_means_w_26.txt"), 'wb') as rcpmeans_f:
-                                    np.save(rcpmeans_f, RCP_means)
-        with open(os.path.join(path_RCP_means_all, "RCP_member_means_w_26.txt"), 'wb') as rcpmmeans_f:
-                                    np.save(rcpmmeans_f, RCP_member_means)
+    if(not static_geometry):
+        if(with_26):
+            with open(os.path.join(path_RCP_means_all, "RCP_means_w_26.txt"), 'wb') as rcpmeans_f:
+                                        np.save(rcpmeans_f, RCP_means)
+            with open(os.path.join(path_RCP_means_all, "RCP_member_means_w_26.txt"), 'wb') as rcpmmeans_f:
+                                        np.save(rcpmmeans_f, RCP_member_means)
+        else:
+            with open(os.path.join(path_RCP_means_all, "RCP_means.txt"), 'wb') as rcpmeans_f:
+                                np.save(rcpmeans_f, RCP_means)
+            with open(os.path.join(path_RCP_means_all, "RCP_member_means.txt"), 'wb') as rcpmmeans_f:
+                                np.save(rcpmmeans_f, RCP_member_means)
     else:
-        with open(os.path.join(path_RCP_means_all, "RCP_means.txt"), 'wb') as rcpmeans_f:
-                            np.save(rcpmeans_f, RCP_means)
-        with open(os.path.join(path_RCP_means_all, "RCP_member_means.txt"), 'wb') as rcpmmeans_f:
-                            np.save(rcpmmeans_f, RCP_member_means)
+        if(with_26):
+            with open(os.path.join(path_RCP_means_all, "RCP_means_sg_w_26.txt"), 'wb') as rcpmeans_f:
+                                        np.save(rcpmeans_f, RCP_means)
+            with open(os.path.join(path_RCP_means_all, "RCP_member_means_sg_w_26.txt"), 'wb') as rcpmmeans_f:
+                                        np.save(rcpmmeans_f, RCP_member_means)
+        else:
+            with open(os.path.join(path_RCP_means_all, "RCP_means_sg.txt"), 'wb') as rcpmeans_f:
+                                np.save(rcpmeans_f, RCP_means)
+            with open(os.path.join(path_RCP_means_all, "RCP_member_means_sg.txt"), 'wb') as rcpmmeans_f:
+                                np.save(rcpmmeans_f, RCP_member_means)
                                 
 else:
-    if(with_26):
-        # We load the previously stored data dictionaries
-        with open(os.path.join(path_RCP_means_all, "RCP_means_w_26.txt"), 'rb') as rcpmeans_f:
-                RCP_means = np.load(rcpmeans_f,  allow_pickle=True)[()]
-                
-        with open(os.path.join(path_RCP_means_all, "RCP_member_means_w_26.txt"), 'rb') as rcpmmeans_f:
-                RCP_member_means = np.load(rcpmmeans_f,  allow_pickle=True)[()]
+    if(not static_geometry):
+        if(with_26):
+            # We load the previously stored data dictionaries
+            with open(os.path.join(path_RCP_means_all, "RCP_means_w_26.txt"), 'rb') as rcpmeans_f:
+                    RCP_means = np.load(rcpmeans_f,  allow_pickle=True)[()]
+                    
+            with open(os.path.join(path_RCP_means_all, "RCP_member_means_w_26.txt"), 'rb') as rcpmmeans_f:
+                    RCP_member_means = np.load(rcpmmeans_f,  allow_pickle=True)[()]
+        else:
+            # We load the previously stored data dictionaries
+            with open(os.path.join(path_RCP_means_all, "RCP_means.txt"), 'rb') as rcpmeans_f:
+                    RCP_means = np.load(rcpmeans_f,  allow_pickle=True)[()]
+                    
+            with open(os.path.join(path_RCP_means_all, "RCP_member_means.txt"), 'rb') as rcpmmeans_f:
+                    RCP_member_means = np.load(rcpmmeans_f,  allow_pickle=True)[()]
     else:
-        # We load the previously stored data dictionaries
-        with open(os.path.join(path_RCP_means_all, "RCP_means.txt"), 'rb') as rcpmeans_f:
-                RCP_means = np.load(rcpmeans_f,  allow_pickle=True)[()]
-                
-        with open(os.path.join(path_RCP_means_all, "RCP_member_means.txt"), 'rb') as rcpmmeans_f:
-                RCP_member_means = np.load(rcpmmeans_f,  allow_pickle=True)[()]
+        if(with_26):
+            # We load the previously stored data dictionaries
+            with open(os.path.join(path_RCP_means_all, "RCP_means_sg_w_26.txt"), 'rb') as rcpmeans_f:
+                    RCP_means = np.load(rcpmeans_f,  allow_pickle=True)[()]
+                    
+            with open(os.path.join(path_RCP_means_all, "RCP_member_means_sg_w_26.txt"), 'rb') as rcpmmeans_f:
+                    RCP_member_means = np.load(rcpmmeans_f,  allow_pickle=True)[()]
+        else:
+            # We load the previously stored data dictionaries
+            with open(os.path.join(path_RCP_means_all, "RCP_means_sg.txt"), 'rb') as rcpmeans_f:
+                    RCP_means = np.load(rcpmeans_f,  allow_pickle=True)[()]
+                    
+            with open(os.path.join(path_RCP_means_all, "RCP_member_means_sg.txt"), 'rb') as rcpmmeans_f:
+                    RCP_member_means = np.load(rcpmmeans_f,  allow_pickle=True)[()]
  
 #print(overall_annual_mean)
 
@@ -914,13 +974,13 @@ fig1, ax1 = plot.subplots([[1, 1], [2, 3]], ncols=2, nrows=2, axwidth=4, aspect=
 #    fig1.suptitle("Regional average French alpine glacier projections under climate change")
 
 ax1.format(
-        abc=True, abcloc='ur',
+        abc=True, abcloc='ur', abcstyle='A',
         ygridminor=True,
         ytickloc='both', yticklabelloc='left'
 )
 
 # Glacier-wide MB
-ax1[0].set_ylabel('Glacier-wide MB (m.w.e. a$^-1$)')
+ax1[0].set_ylabel('Glacier-wide MB (m.w.e. a$^{-1}$)')
 ax1[0].set_xlabel('Year')
 
 plot_individual_members(ax1[0], RCP_member_means, RCP_means, 'MB', filtered_member)
@@ -938,7 +998,7 @@ ax1b.set_ylabel('Remaining fraction (%)')
 plot_individual_members(ax1[1], RCP_member_means, RCP_means, 'volume', filtered_member)
 h = plot_RCP_means(ax1[1], RCP_means, 'volume', with_26)
 
-ax1[2].set_ylabel('Area (km$^2$)')
+ax1[2].set_ylabel('Area (km$^{2}$)')
 ax1[2].set_xlabel('Year')
 ax1[2].set_ylim(0, np.max(RCP_means['45']['area']['data']))
 ax1c = ax1[2].twinx()  # instantiate a second axes that shares the same x-axis
@@ -966,7 +1026,7 @@ fig2, (ax21, ax22, ax23) = plot.subplots([[1, 1], [2, 3]], ncols=2, nrows=2, axw
 
 for ax2 in (ax21, ax22, ax23):
     ax2.format(
-            abc=True, abcloc='ul',
+            abc=True, abcloc='ul', abcstyle='A',
             ygridminor=True,
             ytickloc='both', yticklabelloc='left'
     )
@@ -982,7 +1042,7 @@ ax21.set_xlabel('Year')
 ax22.set_ylabel('Mean glacier tongue slope (°)')
 ax22.set_xlabel('Year')
 
-ax23.set_ylabel('Mean glacier area (km$^2$)')
+ax23.set_ylabel('Mean glacier area (km$^{2}$)')
 ax23.set_xlabel('Year')
 
 # Mean altitude
@@ -1018,7 +1078,7 @@ fig3, axs3 = plot.subplots(ncols=3, nrows=3, aspect=2, axwidth=2, spany=0)
 #    fig3.suptitle("French Alpine glaciers average regional climate signal evolution")
 
 axs3.format(
-        abc=True, abcloc='ul',
+        abc=True, abcloc='ul', abcstyle='A',
         ygridminor=True,
         ytickloc='both', yticklabelloc='left',
         xlabel='Year'
@@ -1036,41 +1096,45 @@ for i, s_title, s_ylabel in zip(range(0, 9), titles, ylabels):
     
     axs3[i].set_title(s_title, color=season_color)  
     axs3[i].format(ylabel=s_ylabel)
+    
+alpha = 0.15
 
 # CPDD
-plot_individual_members(axs3[0], RCP_member_means, RCP_means, 'CPDD', filtered_member, alpha=0.1)
+plot_individual_members(axs3[0], RCP_member_means, RCP_means, 'CPDD', filtered_member, alpha=alpha)
 h = plot_RCP_means(axs3[0], RCP_means, 'CPDD', with_26, legend=False, linewidth=2)
+axs3[0].set_ylim([0,1500])
 
 # Summer CPDD
-plot_individual_members(axs3[1], RCP_member_means, RCP_means, 'summer_CPDD', filtered_member, alpha=0.1)
+plot_individual_members(axs3[1], RCP_member_means, RCP_means, 'summer_CPDD', filtered_member, alpha=alpha)
 h = plot_RCP_means(axs3[1], RCP_means, 'summer_CPDD', with_26, legend=False, linewidth=2)
 
 # Winter CPDD
-plot_individual_members(axs3[2], RCP_member_means, RCP_means, 'winter_CPDD', filtered_member, alpha=0.1)
+plot_individual_members(axs3[2], RCP_member_means, RCP_means, 'winter_CPDD', filtered_member, alpha=alpha)
 h = plot_RCP_means(axs3[2], RCP_means, 'winter_CPDD', with_26, legend=False, linewidth=2)
 
 # Snowfall
-plot_individual_members(axs3[3], RCP_member_means, RCP_means, 'snowfall', filtered_member, alpha=0.1)
+plot_individual_members(axs3[3], RCP_member_means, RCP_means, 'snowfall', filtered_member, alpha=alpha)
 h = plot_RCP_means(axs3[3], RCP_means, 'snowfall', with_26, legend=False, linewidth=2)
 
 # Summer Snowfall
-plot_individual_members(axs3[4], RCP_member_means, RCP_means, 'summer_snowfall', filtered_member, alpha=0.1)
+plot_individual_members(axs3[4], RCP_member_means, RCP_means, 'summer_snowfall', filtered_member, alpha=alpha)
 h = plot_RCP_means(axs3[4], RCP_means, 'summer_snowfall', with_26, legend=False, linewidth=2)
 
 # Winter Snowfall
-plot_individual_members(axs3[5], RCP_member_means, RCP_means, 'winter_snowfall', filtered_member, alpha=0.1)
+plot_individual_members(axs3[5], RCP_member_means, RCP_means, 'winter_snowfall', filtered_member, alpha=alpha)
 h = plot_RCP_means(axs3[5], RCP_means, 'winter_snowfall', with_26, legend=False, linewidth=2)
 
 # Rainfall
-plot_individual_members(axs3[6], RCP_member_means, RCP_means, 'rain', filtered_member, alpha=0.1)
+plot_individual_members(axs3[6], RCP_member_means, RCP_means, 'rain', filtered_member, alpha=alpha)
 h = plot_RCP_means(axs3[6], RCP_means, 'rain', with_26, legend=False, linewidth=2)
+axs3[6].set_ylim([0,1000])
 
 # Summer rainfall
-plot_individual_members(axs3[7], RCP_member_means, RCP_means, 'summer_rain', filtered_member, alpha=0.1)
+plot_individual_members(axs3[7], RCP_member_means, RCP_means, 'summer_rain', filtered_member, alpha=alpha)
 h = plot_RCP_means(axs3[7], RCP_means, 'summer_rain', with_26, legend=False, linewidth=2)
 
 # Winter rainfall
-plot_individual_members(axs3[8], RCP_member_means, RCP_means, 'winter_rain', filtered_member, alpha=0.1)
+plot_individual_members(axs3[8], RCP_member_means, RCP_means, 'winter_rain', filtered_member, alpha=alpha)
 h = plot_RCP_means(axs3[8], RCP_means, 'winter_rain', with_26, legend=False, linewidth=2)
 
 fig3.legend(h, loc='r', ncols=1, frame=True)
@@ -1092,7 +1156,7 @@ ax51.axhline(y=0, color='black', linewidth=0.7, linestyle='-')
 #else:
 #    fig5.suptitle("Average meltwater discharge projections of French alpine glacier under climate change")
     
-ax51.set_ylabel('Meltwater discharge (m$^3$ 10$^6$)')
+ax51.set_ylabel('Meltwater discharge (m$^3$ 10$^{6}$)')
 ax51.set_xlabel('Year')
 
 # Glacier meltwater discharge
@@ -1122,7 +1186,7 @@ if(static_geometry):
 #        fig6.suptitle("Glacier retreat topographical feedback on climate projections")
     
     axs6.format(
-            abc=True, abcloc='ul',
+            abc=True, abcloc='ul', abcstyle='A',
             ygridminor=True,
             ytickloc='both', yticklabelloc='left',
             xlabel='Year'
@@ -1142,39 +1206,41 @@ if(static_geometry):
         axs6[i].format(ylabel=s_ylabel)
     
     # CPDD
-    #plot_individual_members(axs3[0], RCP_member_means, RCP_means, 'CPDD', filtered_member, alpha=0.2)
+    plot_individual_members_diff(axs6[0], RCP_member_means, RCP_means, 'CPDD', 'static_CPDD', filtered_member)
     h = plot_RCP_means_diff(axs6[0], RCP_means, 'CPDD', 'static_CPDD', with_26, legend=False, linewidth=2)
     
     # Summer CPDD
-    #plot_individual_members(axs3[1], RCP_member_means, RCP_means, 'summer_CPDD', filtered_member, alpha=0.2)
+    plot_individual_members_diff(axs6[1], RCP_member_means, RCP_means, 'summer_CPDD', 'static_summer_CPDD', filtered_member)
     h = plot_RCP_means_diff(axs6[1], RCP_means, 'summer_CPDD', 'static_summer_CPDD', with_26, legend=False, linewidth=2)
     
     # Winter CPDD
-    #plot_individual_members(axs3[2], RCP_member_means, RCP_means, 'winter_CPDD', filtered_member, alpha=0.2)
+    plot_individual_members_diff(axs6[2], RCP_member_means, RCP_means, 'winter_CPDD', 'static_winter_CPDD', filtered_member)
     h = plot_RCP_means_diff(axs6[2], RCP_means, 'winter_CPDD', 'static_winter_CPDD', with_26, legend=False, linewidth=2)
     
     # Snowfall
-    #plot_individual_members(axs3[3], RCP_member_means, RCP_means, 'snowfall', filtered_member, alpha=0.2)
+    plot_individual_members_diff(axs6[3], RCP_member_means, RCP_means, 'snowfall', 'static_snowfall', filtered_member)
     h = plot_RCP_means_diff(axs6[3], RCP_means, 'snowfall', 'static_snowfall', with_26, legend=False, linewidth=2)
+    axs6[3].set_ylim([0,400])
     
     # Summer Snowfall
-    #plot_individual_members(axs3[4], RCP_member_means, RCP_means, 'summer_snowfall', filtered_member, alpha=0.2)
+    plot_individual_members_diff(axs6[4], RCP_member_means, RCP_means, 'summer_snowfall', 'static_summer_snowfall', filtered_member)
     h = plot_RCP_means_diff(axs6[4], RCP_means, 'summer_snowfall', 'static_summer_snowfall', with_26, legend=False, linewidth=2)
     
     # Winter Snowfall
-    #plot_individual_members(axs3[5], RCP_member_means, RCP_means, 'winter_snowfall', filtered_member, alpha=0.2)
+    plot_individual_members_diff(axs6[5], RCP_member_means, RCP_means, 'winter_snowfall', 'static_winter_snowfall', filtered_member)
     h = plot_RCP_means_diff(axs6[5], RCP_means, 'winter_snowfall', 'static_winter_snowfall', with_26, legend=False, linewidth=2)
     
     # Rainfall
-    #plot_individual_members(axs3[6], RCP_member_means, RCP_means, 'rain', filtered_member, alpha=0.2)
+    plot_individual_members_diff(axs6[6], RCP_member_means, RCP_means, 'rain', 'static_rain', filtered_member)
     h = plot_RCP_means_diff(axs6[6], RCP_means, 'rain', 'static_rain', with_26, legend=False, linewidth=2)
+    axs6[6].set_ylim([-250,0])
     
     # Summer rainfall
-    #plot_individual_members(axs3[7], RCP_member_means, RCP_means, 'summer_rain', filtered_member, alpha=0.2)
+    plot_individual_members_diff(axs6[7], RCP_member_means, RCP_means, 'summer_rain', 'static_summer_rain', filtered_member)
     h = plot_RCP_means_diff(axs6[7], RCP_means, 'summer_rain', 'static_summer_rain', with_26, legend=False, linewidth=2)
     
     # Winter rainfall
-    #plot_individual_members(axs3[8], RCP_member_means, RCP_means, 'winter_rain', filtered_member, alpha=0.2)
+    plot_individual_members_diff(axs6[8], RCP_member_means, RCP_means, 'winter_rain', 'static_winter_rain', filtered_member)
     h = plot_RCP_means_diff(axs6[8], RCP_means, 'winter_rain', 'static_winter_rain', with_26, legend=False, linewidth=2)
     
     fig6.legend(h, loc='r', ncols=1, frame=True)
@@ -1184,17 +1250,17 @@ if(static_geometry):
     
     
     ###############     Plot the glacier-wide MB   ####################################
-    fig7, (ax7) = plot.subplots(ncols=1, nrows=1, axwidth=5, aspect=2)
+    fig7, (ax7) = plot.subplots(ncols=1, nrows=1, axwidth=5, aspect=4)
     ax7.axhline(y=0, color='black', linewidth=0.7, linestyle='-')
 #    if(filter_glacier):
 #        fig7.suptitle("Glacier " + glacier_name_filter + " glacier-wide MB evolution under climate change")
 #    else:
 #        fig7.suptitle("Glacier retreat topographical feedback on glacier-wide MB projections")
-    ax7.set_ylabel('Δ Glacier-wide MB (m.w.e. a$^-1$)')
+    ax7.set_ylabel('Δ Glacier-wide MB (m.w.e. a$^{-1}$)')
     ax7.set_xlabel('Year')
     
     # Glacier-wide MB
-    #plot_individual_members(ax7, RCP_member_means, RCP_means, 'MB', filtered_member)
+    plot_individual_members_diff(ax7, RCP_member_means, RCP_means, 'MB', 'static_MB', filtered_member, alpha=0.3)
     h = plot_RCP_means_diff(ax7, RCP_means, 'MB', 'static_MB', with_26)
     
     # Save as PDF

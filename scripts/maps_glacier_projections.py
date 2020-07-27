@@ -22,10 +22,12 @@ import pandas as pd
 import xarray as xr
 from scipy.interpolate import interp1d
 from shutil import copyfile
+from sklearn.preprocessing import StandardScaler
+import statsmodels.api as sm
 
 mpl.rcParams['axes.xmargin'] = 0.02
 mpl.rcParams['axes.ymargin'] = 0.1
-mpl.rcParams['font.sans-serif'] = 'DejaVu'
+#mpl.rcParams['font.sans-serif'] = 'DejaVu'
 
 # Folders     
 workspace = str(Path(os.getcwd()).parent) 
@@ -106,6 +108,51 @@ snowfall_45_massif_S_N = np.asarray(snowfall_45_massif_S_N)
 cpdd_45_massif_S_N = np.asarray(cpdd_45_massif_S_N)
 MB_45_massif_S_N = np.asarray(MB_45_massif_S_N)
 
+######  Glacier survival factors statistical analysis   ########
+
+volume_2015_glaciers = ds_glacier_projections.volume.sel(RCP='45', year=2015).groupby('GLIMS_ID').mean(...)
+volume_2100_glaciers = ds_glacier_projections.volume.sel(RCP='45', year=2099).groupby('GLIMS_ID').mean(...)
+
+slope_2015_glaciers = ds_glacier_projections.slope20.sel(RCP='45', year=2015).groupby('GLIMS_ID').mean(...)
+slope_2100_glaciers = ds_glacier_projections.slope20.sel(RCP='45', year=2099).groupby('GLIMS_ID').mean(...)
+
+area_2015_massifs = ds_glacier_projections.area.sel(RCP='45', year=2015).groupby('massif_ID').mean(dim=['member']).sum(dim='GLIMS_ID')
+area_2100_massifs = ds_glacier_projections.area.sel(RCP='45', year=2099).groupby('massif_ID').mean(dim=['member']).sum(dim='GLIMS_ID')
+
+avg_slopes = (slope_2015_glaciers + slope_2100_glaciers)/2
+
+y = (volume_2100_glaciers/volume_2015_glaciers)*100
+#y = volume_2100_glaciers
+
+max_alt, lat, lon, x = [],[],[],[]
+for glacier, glacier_slope in zip(y.GLIMS_ID, avg_slopes):
+    max_alt.append(glims_2003['MAX_PixelV'][glims_2003['GLIMS_ID'].values == glacier.GLIMS_ID.values[()][:14]].values[0])
+    lat.append(glims_2003['y_coord'][glims_2003['GLIMS_ID'].values == glacier.GLIMS_ID.values[()][:14]].values[0])
+    lon.append(glims_2003['x_coord'][glims_2003['GLIMS_ID'].values == glacier.GLIMS_ID.values[()][:14]].values[0])
+    
+#    x.append(np.array([max_alt[-1], lat[-1], lon[-1], glacier_slope.values]))
+    x.append(np.array([max_alt[-1], lat[-1], lon[-1]]))
+
+y = np.where(y > 100, np.nan, y)
+max_alt = np.asarray(max_alt)
+lat = np.asarray(lat)
+lon = np.asarray(lon)
+x = np.asarray(x)
+mask = np.isfinite(y)
+
+#plt.scatter(max_alt[mask], y[mask])
+#plt.show()
+
+scaler = StandardScaler()
+x_scaled = scaler.fit_transform(x)
+
+model = sm.OLS(y[mask], x_scaled[mask,:])
+model_fit = model.fit()
+
+print(model_fit.summary())
+
+import pdb; pdb.set_trace()
+
 ###  PLOTS   ######
 
 #### Zmean massif for map   #######
@@ -140,7 +187,7 @@ axs1.legend(z2100, loc='r', ncols=1, frame=False)
 #plt.yticks(rotation='90')
 #plt.subplots_adjust(top=0.15)
 #fig1.tight_layout(False)
-fig1.savefig("C:\\Jordi\\PhD\\Publications\\Third article\\maps\\" + "zmean_massif.pdf")
+fig1.savefig("C:\\Jordi\\PhD\\Publications\\Third article\\Bolibar_et_al_Science_Advances\\maps\\" + "zmean_massif.pdf")
 
 #plt.show()
 
@@ -148,10 +195,10 @@ fig1.savefig("C:\\Jordi\\PhD\\Publications\\Third article\\maps\\" + "zmean_mass
 
 #fig2, ax2 = plot.subplots(ncols=2, axwidth=3, share=3, aspect=0.75, wspace='7em')
 
-fig2, ax2 = plot.subplots([[1, 1], [2, 3]], ncols=2, nrows=2, axwidth=6.5, aspect=3, share=3)
+fig2, ax2 = plot.subplots([[1, 1], [2, 3]], ncols=2, nrows=2, axwidth=7, aspect=3.3, share=3)
 
 ax2.format(
-        abc=True, abcloc='lr',
+#        abc=True, abcloc='lr',
         ylocator=1,
         ytickminor=False,
         yticklabelloc='left'
@@ -159,13 +206,13 @@ ax2.format(
 
 mb_stripes = ax2[0].pcolormesh(MB_45_massif_groups.year.values, range(1,12), MB_45_massif_S_N, cmap='vikO_r', cmap_kw={'right': 0.7})
 fig2.colorbar(mb_stripes, ax=ax2[0])
-ax2[0].set_title('Annual glacier-wide MB')
+ax2[0].set_title('Annual glacier-wide MB (m.w.e.)')
 ax2[0].set_ylabel('Glacierized massif')
 ax2[0].set_xlabel('Year')
 
 snow_stripes = ax2[1].pcolormesh(snowfall_45_massif_groups.year.values, range(1,12), snowfall_45_massif_S_N, cmap='lapaz_r')
 fig2.colorbar(snow_stripes, ax=ax2[1])
-ax2[1].set_title('Annual snowfall')
+ax2[1].set_title('Annual snowfall (mm)')
 #ax2[1].set_ylabel('Glacierized massif')
 ax2[1].set_xlabel('Year')
 
@@ -176,9 +223,6 @@ ax2[2].set_ylabel('Glacierized massif')
 ax2[2].set_xlabel('Year')
 
 plt.show()
-
-import pdb; pdb.set_trace()
-
 
 #### Raster processing for maps  #############################3
 

@@ -56,7 +56,6 @@ workspace = Path(os.getcwd()).parent
 #workspace = 'C:\\Jordi\\PhD\\Python\\'
 
 
-
 ################     TOOLS    ###########################
 
 def r2_keras(y_true, y_pred):
@@ -78,11 +77,23 @@ def empty_folder(path):
         shutil.rmtree(path)
         
 def automatic_file_name_save(file_name_h, file_name_t, data, f_format):
+    
+    ### Flag to overwrite simulations for specific regions or glaciers  #####
+    avoid_bumping = True
+    
     file_name = file_name_h + file_name_t
     appendix = 2
     stored = False
     while not stored:
+        print("file_name: " + str(file_name))
         if not os.path.exists(file_name):
+            
+            if(avoid_bumping and appendix > 2):
+                if(appendix == 3):
+                    file_name = file_name_h + file_name_t
+                else:
+                    file_name = file_name_h + str(appendix-2) + "_" + file_name_t
+                
             try:
                 if(f_format == 'csv'):
                     np.savetxt(file_name, data, delimiter=";", fmt="%.7f")
@@ -589,8 +600,8 @@ def get_slope20(_masked_DEM_current_glacier_u, DEM_sorted_current_glacier_u, gla
     path_temp_shapefile = os.path.join(path_glacier_DEM_rasters, "aux_vector_" + str(glacierName) + ".shp")
     flowline_altitudes_full, flowline_coordinates = get_point_values(flowline, raster_current_DEM)
     if(flowline_altitudes_full.size == 0):
-        print("[ ERROR ] No match between DEM and flowline. Skipping glacier...")
-        return -9
+        print("[ ERROR ] No match between DEM and flowline. Adding dummy slope (20º)")
+        return 20
     
     flowline_altitudes = flowline_altitudes_full[flowline_altitudes_full>0]
     
@@ -1600,7 +1611,10 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
                 print("GLIMS ID: " + str(glimsID))
                 
                 # We process only the non-discarded glaciers with a delta h function and those greater than 0.5 km2
-                if(not filter_glacier['flag'] or (filter_glacier['flag'] and filter_glacier['ID'] == glacierID)):
+                
+#                if(not filter_glacier['flag'] or (filter_glacier['flag'] and filter_glacier['ID'] == glacierID)):
+                if(massif_idx == 8):
+                    
 #                print('glacierID: ' + str(glacierID))
 #                print("glacierArea: " + str(glacierArea))
 #                if(glacierID == 3651 and glacier_counter == 35): # Tré la Tête

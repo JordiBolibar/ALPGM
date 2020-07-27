@@ -67,12 +67,12 @@ settings.glacier_parameterized_functions(compute = False,
 
 ##########     SMB PROJECTION + GLACIER GEOMETRY EVOLUTION    #######
 settings.glacier_simulation(simulation_type, counter_threshold,
-                                           validate_SMB = True, # SMB model(s) validation or reconstruction
+                                           validate_SMB = False, # SMB model(s) validation or reconstruction
                             compute_projection_forcings = False, # Compute projection climate forcings
-                                      compute_evolution = False, # Compute glacier evolution
+                                      compute_evolution = True, # Compute glacier evolution
                                              reconstruct = True, # Reconstruct glacier-wide SMB timeseries
-                                               overwrite = True, # Erase all previous simulation files 
-                                               filter_glacier= {'flag':False, 'ID':3698}) # Simulate only a specific glacier (RGI ID)
+                                               overwrite = False, # Erase all previous simulation files 
+                                               filter_glacier= {'flag':False, 'ID':3643}) # Simulate only a specific glacier (RGI ID)
 
 
 #############################################################################################################
