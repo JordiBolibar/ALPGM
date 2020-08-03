@@ -151,8 +151,6 @@ model_fit = model.fit()
 
 print(model_fit.summary())
 
-import pdb; pdb.set_trace()
-
 ###  PLOTS   ######
 
 #### Zmean massif for map   #######

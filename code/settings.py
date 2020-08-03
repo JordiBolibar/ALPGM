@@ -78,6 +78,14 @@ def init(hist_forcing, proj_forcing, simu_type, smb_model, cluster, static_geome
         smb_model_type = smb_model
     elif(smb_model == 'lasso'):
         smb_model_type = smb_model 
+        
+        # Set ANN paths for compatibility
+        if(simulation_type == 'historical'):
+            path_ann = os.path.join(path_smb, 'ANN', 'LSYGO_soft')
+        elif(simulation_type == 'future'):
+            path_ann = os.path.join(path_smb, 'ANN', 'LSYGO_hard')
+        path_cv_ann = os.path.join(path_ann, 'CV')
+        path_ensemble_ann = os.path.join(path_ann, 'ensemble')
     
 # Auxiliary main functions
 
@@ -106,11 +114,20 @@ def adamont_simulation(simulation_type, compute_projection_forcings, compute_evo
     counter = 0
     forcing_threshold = 0
     if(simulation_type == 'future'):
-        # Preload the ensemble SMB models to speed up simulations
-        ensemble_SMB_models = glacier_evolution.preload_ensemble_SMB_models()
         thickness_idx = 0
 #        for thickness_idx in range(0,2):
-        for i in range(0, ADAMONT_proj_filepaths.size, 2):
+        
+        if(smb_model_type == 'lasso'):
+            n_members = ADAMONT_proj_filepaths.size
+            start = 24
+            ensemble_SMB_models = []
+        else:
+            n_members = ADAMONT_proj_filepaths.size
+            # Preload the ensemble SMB models to speed up simulations
+            start = 0
+            ensemble_SMB_models = glacier_evolution.preload_ensemble_SMB_models()
+        
+        for i in range(start, n_members, 2):
             if(forcing_threshold <= counter):
                 current_ADAMONT_model_daymean = str(os.path.join(path_adamont, ADAMONT_proj_filepaths[i]))
                 current_ADAMONT_model_daysum = str(os.path.join(path_adamont, ADAMONT_proj_filepaths[i+1]))

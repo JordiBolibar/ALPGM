@@ -188,7 +188,7 @@ def create_spatiotemporal_matrix(SMB_raw, season_raw_meteo_anomalies_SMB, mon_te
         with open(root + 'y_extended.txt', 'wb') as y_f:
             np.save(y_f, SMB_raw)
             
-        import pdb; pdb.set_trace()
+#        import pdb; pdb.set_trace()
             
         finite_idxs = np.isfinite(y_reg)
         x_reg_full = x_reg_full[finite_idxs,:]
@@ -340,7 +340,7 @@ def lasso_CV_model_selection(X, y, fig_idx, _year_groups, plot):
     return model_CV
     
 
-def generate_SMB_models(SMB_raw, season_raw_meteo_anomalies_SMB, mon_temp_anomalies, mon_snow_anomalies, spatiotemporal_flag, first_year, glims_rabatel, _glims_2015, glims_2003, glims_1985, glims_1967, fig_idx, ASTER_calibration):
+def generate_SMB_models(SMB_raw, season_raw_meteo_anomalies_SMB, mon_temp_anomalies, mon_snow_anomalies, spatiotemporal_flag, first_year, glims_rabatel, _glims_2015, glims_2003, glims_1985, glims_1967, fig_idx):
     
         
     # We create the full matrix for the spatiotemporal multiple linear regression
@@ -348,7 +348,7 @@ def generate_SMB_models(SMB_raw, season_raw_meteo_anomalies_SMB, mon_temp_anomal
     glacier_area = interpolate_extended_glims_variable('Area', glims_rabatel, glims_2003, glims_1985, glims_1967)
     glims_IDs = glims_rabatel['GLIMS_ID']
     
-    x_reg_full_array, x_reg_nn, x_reg_array, y_reg_array = create_spatiotemporal_matrix(SMB_raw, season_raw_meteo_anomalies_SMB, mon_temp_anomalies, mon_snow_anomalies, glims_rabatel, glacier_mean_altitude, glacier_area, spatiotemporal_flag, first_year, ASTER_calibration)
+    x_reg_full_array, x_reg_nn, x_reg_array, y_reg_array = create_spatiotemporal_matrix(SMB_raw, season_raw_meteo_anomalies_SMB, mon_temp_anomalies, mon_snow_anomalies, glims_rabatel, glacier_mean_altitude, glacier_area, spatiotemporal_flag, first_year)
     
     norm_scaler_array, logo_scaler_array = [],[]
     best_models, logo_models = [],[]
@@ -446,7 +446,20 @@ def generate_SMB_models(SMB_raw, season_raw_meteo_anomalies_SMB, mon_temp_anomal
     y = y[0,:]
     
     # Activate in order to test different Lasso versions using CV 
-    model_CV = lasso_CV_model_selection(X_full_scaled, y, fig_idx, year_groups, plot=False)
+#    model_CV = lasso_CV_model_selection(X_full_scaled, y, fig_idx, year_groups, plot=False)
+    model_CV = lasso_CV_model_selection(x_reg_full_array, y, fig_idx, year_groups, plot=False)
+    
+    # Save LassoLars model
+    with open(path_smb+'smb_function\\model_lasso_' + str(spatiotemporal_flag) + '.txt', 'wb') as model_lasso_gbl_f:
+        pickle.dump(model_CV, model_lasso_gbl_f)
+        
+    # Save data scaler
+    with open(path_smb+'smb_function\\full_scaler_' + str(spatiotemporal_flag) + '.txt', 'wb') as full_scaler_f:
+        np.save(full_scaler_f, full_scaler)
+    with open(path_smb+'smb_function\\norm_scaler_array_' + str(spatiotemporal_flag) + '.txt', 'wb') as norm_scaler_f:
+        np.save(norm_scaler_f, norm_scaler_array)
+        
+    import pdb; pdb.set_trace()
     
     #############   CHECKING RESULTS VIA CROSS-VALIDATION   ###########################
     print("\nStarting cross-validation...")
@@ -709,16 +722,6 @@ def generate_SMB_models(SMB_raw, season_raw_meteo_anomalies_SMB, mon_temp_anomal
     plt.legend()
     plt.show()
     
-    # Save LassoLars model
-    with open(path_smb+'smb_function\\model_lasso_' + str(spatiotemporal_flag) + '.txt', 'wb') as model_lasso_gbl_f:
-        pickle.dump(model_CV, model_lasso_gbl_f)
-        
-    # Save data scaler
-    with open(path_smb+'smb_function\\full_scaler_' + str(spatiotemporal_flag) + '.txt', 'wb') as full_scaler_f:
-        np.save(full_scaler_f, full_scaler)
-    with open(path_smb+'smb_function\\norm_scaler_array_' + str(spatiotemporal_flag) + '.txt', 'wb') as norm_scaler_f:
-        np.save(norm_scaler_f, norm_scaler_array)
-    
     return model_fit._results.rsquared, best_models, logo_models, logo_scaler_array, lasso_cv_models
 
 def get_raw_mon_data(local_mon_temp_anomalies_SMB, key):
@@ -787,19 +790,21 @@ def main(compute):
         
         fig_idx = 1
         
+        # Spatial models for the 1984-2014 period
+        print("\nSpatial dimension training/validation")
+        r2_period_gbl_logo, model_gbl_logo, logo_gbl_models, logo_scaler_array, lasso_logo_models = generate_SMB_models(SMB_raw_full, season_raw_meteo_anomalies_SMB, 
+                                                                                                                                  mon_temp_anomalies, mon_snow_anomalies, 'spatial', first_year,
+                                                                                                                                  glims_rabatel, glims_2015, glims_2003, glims_1985, glims_1967, fig_idx)
+        
+        
         # We generate the cross-validation machine learning SMB models
         # Temporal models for the 1959-2014 - onwards period
         print("\nTemporal dimension training/validation")
         r2_period_gbl_loyo, model_gbl_loyo, loyo_gbl_models, loyo_scaler_array, lasso_loyo_models = generate_SMB_models(SMB_raw_full, season_raw_meteo_anomalies_SMB, 
                                                                                                                                   mon_temp_anomalies, mon_snow_anomalies, 'temporal', first_year, 
-                                                                                                                                  glims_rabatel, glims_2015, glims_2003, glims_1985, glims_1967, fig_idx, ASTER_calibration)
+                                                                                                                                  glims_rabatel, glims_2015, glims_2003, glims_1985, glims_1967, fig_idx)
         
-        # Spatial models for the 1984-2014 period
-        print("\nSpatial dimension training/validation")
-        r2_period_gbl_logo, model_gbl_logo, logo_gbl_models, logo_scaler_array, lasso_logo_models = generate_SMB_models(SMB_raw_full, season_raw_meteo_anomalies_SMB, 
-                                                                                                                                  mon_temp_anomalies, mon_snow_anomalies, 'spatial', first_year,
-                                                                                                                                  glims_rabatel, glims_2015, glims_2003, glims_1985, glims_1967, fig_idx, ASTER_calibration)
-        
+
         # We store all the data in files        
         # LOYO
         midfolder = 'smb_function\\LOYO\\'

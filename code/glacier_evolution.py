@@ -79,7 +79,7 @@ def empty_folder(path):
 def automatic_file_name_save(file_name_h, file_name_t, data, f_format):
     
     ### Flag to overwrite simulations for specific regions or glaciers  #####
-    avoid_bumping = True
+    avoid_bumping = False
     
     file_name = file_name_h + file_name_t
     appendix = 2
@@ -191,9 +191,10 @@ def create_input_array(season_anomalies_y, monthly_anomalies_y, mean_alt_y, max_
     mon_snow_anomaly_y = monthly_anomalies_y['snow']
     
     # Lasso input features
+    
     input_variables_array = np.array([cpdd_y, w_snow_y, s_snow_y, mean_alt_y, max_alt, slope20, area_y, lon, lat, np.cos(aspect), mean_alt_y*cpdd_y, slope20*cpdd_y, max_alt*cpdd_y, area_y*cpdd_y, lat*cpdd_y, lon*cpdd_y, aspect*cpdd_y, mean_alt_y*w_snow_y, slope20*w_snow_y, max_alt*w_snow_y, area_y*w_snow_y, lat*w_snow_y, lon*w_snow_y, aspect*w_snow_y, mean_alt_y*s_snow_y, slope20*s_snow_y, max_alt*s_snow_y, area_y*s_snow_y, lat*s_snow_y, lon*s_snow_y, aspect*s_snow_y])
-#    input_variables_array = np.append(input_variables_array, mon_temp_anomaly_y)
-#    input_variables_array = np.append(input_variables_array, mon_snow_anomaly_y)
+    input_variables_array = np.append(input_variables_array, mon_temp_anomaly_y)
+    input_variables_array = np.append(input_variables_array, mon_snow_anomaly_y)
     
     # ANN input features
 #    input_features_nn_array = np.array([cpdd_y, w_snow_y, s_snow_y, mean_alt_y, max_alt, slope20, area_y, lon, lat, aspect])
@@ -1190,7 +1191,26 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
             ####   We simulate the annual glacier-wide SMB  ####
             # Data is scaled as during training 
             if(settings.smb_model_type == "lasso"):
-                SMB_y = lasso_model.predict(lasso_scaler.transform(x_lasso.reshape(1,-1)))
+                
+                if(np.all(np.isfinite(x_lasso))):
+                    SMB_y = lasso_model.predict(x_lasso.reshape(1,-1))[0]
+                else:
+                    SMB_y = np.nan
+                    
+#                import pdb; pdb.set_trace()
+                
+                if(settings.aster):
+                    correction = False
+                    if(np.any(smb_bias_correction['ID'] == glacierID)):
+                        correction = True
+                        # Bias correction based on ASTER SMB (2000-2016)
+                        # If glacier evolution mode (2003-2100) apply bias correction to all simulations
+                        # Otherwise, apply only to the last 15 years (2000-2015)
+                        bias_correction = smb_bias_correction['bias_correction_perc'][smb_bias_correction['ID'] == glacierID].values[0]
+                        if(SMB_y < 0):
+                            SMB_y = SMB_y*bias_correction
+                            print("\nApplying bias correction: " + str(bias_correction))
+                
             elif(settings.smb_model_type == "ann_no_weights" or settings.smb_model_type == "ann_weights"):
                 # We use an ensemble approach to compute the glacier-wide SMB
                 batch_size = 34
@@ -1372,10 +1392,14 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
             path_glacier_evolution = os.path.join(path_glacier_evolution, 'static_geometry')
             path_smb_simulations = os.path.join(path_smb_simulations, 'static_geometry')
             path_smb_function_adamont = os.path.join(path_smb_function_adamont, 'static_geometry')
+        elif(settings.smb_model_type == 'lasso'):
+            path_glacier_evolution = os.path.join(path_glacier_evolution, 'lasso')
+            path_smb_simulations = os.path.join(path_smb_simulations, 'lasso')
 
         # Delta h parameterization functions
         global path_delta_h_param
         path_delta_h_param = os.path.join(workspace, "glacier_data", "delta_h_param")
+        
         # Shapefiles
         global path_glacier_2003_shapefiles
         path_glacier_2003_shapefiles = os.path.join(workspace, 'glacier_data', 'glacier_shapefiles', '2003')
@@ -1383,6 +1407,7 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
         path_glacier_2015_shapefiles = os.path.join(workspace, 'glacier_data', 'glacier_shapefiles', '2015')
         global path_glacier_flowlines_shapefile
         path_glacier_flowlines_shapefile = os.path.join(path_glacier_2003_shapefiles, 'GLIMS_flowlines_2003' + '.shp')
+        
         # Rasters
         global path_glacier_ID_rasters
         path_glacier_ID_rasters = os.path.join(workspace, 'glacier_data', 'glacier_rasters', 'glacier_thickness', 'thickness_tif')
@@ -1392,6 +1417,11 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
         path_glacier_evolution_DEM_rasters = os.path.join(path_glacier_DEM_rasters, 'glacier_evolution') 
         global path_glacier_evolution_ID_rasters
         path_glacier_evolution_ID_rasters = os.path.join(path_glacier_ID_rasters, 'glacier_evolution')
+        
+        if(settings.smb_model_type == 'lasso'):
+            path_glacier_evolution_DEM_rasters = os.path.join(path_glacier_evolution_DEM_rasters, 'lasso')
+            path_glacier_evolution_ID_rasters = os.path.join(path_glacier_evolution_ID_rasters, 'lasso')
+        
         # Glacier evolution files
         global path_glacier_evolution_plots
         path_glacier_evolution_plots = os.path.join(path_glacier_evolution, 'plots')
@@ -1500,12 +1530,12 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
         # ANN nonlinear models ensemble preloaded separetly
         # Lasso
         # Data scaler
-        with open(os.path.join(path_smb_function, 'model_lasso_temporal.txt'), 'rb') as lasso_model_f:
+        with open(os.path.join(path_smb_function, 'model_lasso_spatial.txt'), 'rb') as lasso_model_f:
             lasso_model = np.load(lasso_model_f,  allow_pickle=True)
         # Lasso linear model
-        with open(os.path.join(path_smb_function, 'LOYO', 'full_scaler_temporal.txt'), 'rb') as lasso_scaler_f:
+        with open(os.path.join(path_smb_function, 'full_scaler_spatial.txt'), 'rb') as lasso_scaler_f:
             lasso_scaler = np.load(lasso_scaler_f,  allow_pickle=True)[()]
-        
+            
         # We open the raster files and shapefiles:
         shapefile_glacier_outlines = ogr.Open(path_glacier_outlines_shapefile)
         layer_glaciers = shapefile_glacier_outlines.GetLayer()
@@ -1612,8 +1642,8 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
                 
                 # We process only the non-discarded glaciers with a delta h function and those greater than 0.5 km2
                 
-#                if(not filter_glacier['flag'] or (filter_glacier['flag'] and filter_glacier['ID'] == glacierID)):
-                if(massif_idx == 8):
+                if(not filter_glacier['flag'] or (filter_glacier['flag'] and filter_glacier['ID'] == glacierID)):
+#                if(massif_idx == 8):
                     
 #                print('glacierID: ' + str(glacierID))
 #                print("glacierArea: " + str(glacierArea))
