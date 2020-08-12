@@ -784,21 +784,32 @@ else:
     MB_45_alpgm = ds_glacier_projections.MB.sel(RCP='45').mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
     MB_85_alpgm = ds_glacier_projections.MB.sel(RCP='85').mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
     
+    volume_26_alpgm = ds_glacier_projections.volume.sel(RCP='26').mean(dim=['massif_ID', 'member']).sum(dim=['GLIMS_ID'])[:-1]/1000
+    volume_45_alpgm = ds_glacier_projections.volume.sel(RCP='45').mean(dim=['massif_ID', 'member']).sum(dim=['GLIMS_ID'])[:-1]/1000
+    volume_85_alpgm = ds_glacier_projections.volume.sel(RCP='85').mean(dim=['massif_ID', 'member']).sum(dim=['GLIMS_ID'])[:-1]/1000
+    
     zmean_26_alpgm = ds_glacier_projections.zmean.sel(RCP='26').mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
     zmean_45_alpgm = ds_glacier_projections.zmean.sel(RCP='45').mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
     zmean_85_alpgm = ds_glacier_projections.zmean.sel(RCP='85').mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
     
-    zeko_MB_26 = pd.read_csv(os.path.join(path_glogem, 'ZekollariHussFarinotti_TC2019_massbalance_rcp26.csv'), sep=',')
-    zeko_MB_45 = pd.read_csv(os.path.join(path_glogem, 'ZekollariHussFarinotti_TC2019_massbalance_rcp45.csv'), sep=',')
-    zeko_MB_85 = pd.read_csv(os.path.join(path_glogem, 'ZekollariHussFarinotti_TC2019_massbalance_rcp85.csv'), sep=',')
+    zeko_MB_26 = pd.read_csv(os.path.join(path_glogem, 'ZekollariHussFarinotti_TC2019_massbalance_rcp26-selection.csv'), sep=',')
+    zeko_MB_45 = pd.read_csv(os.path.join(path_glogem, 'ZekollariHussFarinotti_TC2019_massbalance_rcp45-selection.csv'), sep=',')
+    zeko_MB_85 = pd.read_csv(os.path.join(path_glogem, 'ZekollariHussFarinotti_TC2019_massbalance_rcp85-selection.csv'), sep=',')
     
-    zeko_zmean_26 = pd.read_csv(os.path.join(path_glogem, 'ZekollariHussFarinotti_TC2019_meanaltitude_rcp26.csv'), sep=',')
-    zeko_zmean_45 = pd.read_csv(os.path.join(path_glogem, 'ZekollariHussFarinotti_TC2019_meanaltitude_rcp45.csv'), sep=',')
-    zeko_zmean_85 = pd.read_csv(os.path.join(path_glogem, 'ZekollariHussFarinotti_TC2019_meanaltitude_rcp85.csv'), sep=',')
+    zeko_volume_26 = pd.read_csv(os.path.join(path_glogem, 'ZekollariHussFarinotti_TC2019_volume_rcp26-selection.csv'), sep=',')
+    zeko_volume_45 = pd.read_csv(os.path.join(path_glogem, 'ZekollariHussFarinotti_TC2019_volume_rcp45-selection.csv'), sep=',')
+    zeko_volume_85 = pd.read_csv(os.path.join(path_glogem, 'ZekollariHussFarinotti_TC2019_volume_rcp85-selection.csv'), sep=',')
+    
+    zeko_zmean_26 = pd.read_csv(os.path.join(path_glogem, 'ZekollariHussFarinotti_TC2019_meanaltitude_rcp26-selection.csv'), sep=',')
+    zeko_zmean_45 = pd.read_csv(os.path.join(path_glogem, 'ZekollariHussFarinotti_TC2019_meanaltitude_rcp45-selection.csv'), sep=',')
+    zeko_zmean_85 = pd.read_csv(os.path.join(path_glogem, 'ZekollariHussFarinotti_TC2019_meanaltitude_rcp85-selection.csv'), sep=',')
     
     zeko_avg_MB_26 = zeko_MB_26.mean(axis=0).values[1:-1]
     zeko_avg_MB_45 = zeko_MB_45.mean(axis=0).values[1:-1]
     zeko_avg_MB_85 = zeko_MB_85.mean(axis=0).values[1:-1]
+    zeko_avg_volume_26 = zeko_volume_26.sum(axis=0).values[1:-1]
+    zeko_avg_volume_45 = zeko_volume_45.sum(axis=0).values[1:-1]
+    zeko_avg_volume_85 = zeko_volume_85.sum(axis=0).values[1:-1]
     zeko_avg_zmean_26 = zeko_zmean_26.mean(axis=0).values[1:-1]
     zeko_avg_zmean_45 = zeko_zmean_45.mean(axis=0).values[1:-1]
     zeko_avg_zmean_85 = zeko_zmean_85.mean(axis=0).values[1:-1]
@@ -819,6 +830,9 @@ else:
     zeko_avg_MB_26 = np.concatenate(([np.nan,np.nan], zeko_avg_MB_26))
     zeko_avg_MB_45 = np.concatenate(([np.nan,np.nan], zeko_avg_MB_45))
     zeko_avg_MB_85 = np.concatenate(([np.nan,np.nan], zeko_avg_MB_85))
+    zeko_avg_volume_26 = np.concatenate(([np.nan,np.nan], zeko_avg_volume_26))
+    zeko_avg_volume_45 = np.concatenate(([np.nan,np.nan], zeko_avg_volume_45))
+    zeko_avg_volume_85 = np.concatenate(([np.nan,np.nan], zeko_avg_volume_85))
     zeko_avg_zmean_26 = np.concatenate(([np.nan,np.nan], zeko_avg_zmean_26))
     zeko_avg_zmean_45 = np.concatenate(([np.nan,np.nan], zeko_avg_zmean_45))
     zeko_avg_zmean_85 = np.concatenate(([np.nan,np.nan], zeko_avg_zmean_85))
@@ -899,32 +913,37 @@ else:
     h2 = ax2[2].plot(MB_45_alpgm.year.values, MB_45_alpgm.values - zeko_avg_MB_45, c='sienna', linewidth=1)
     h2 = ax2[2].plot(MB_45_alpgm.year.values, poly45_algpgm, c='dark orange', linewidth=4, alpha=0.5)
     ax2[2].set_ylim([-2,1])
-    ax2[2].format(ylabel = "ALPGM - GloGEM ($\Delta$ m.w.e. a$^{-1}$)")
+    ax2[2].format(ylabel = "ALPGM - GloGEMflow ($\Delta$ m.w.e. a$^{-1}$)")
     h3 = ax2[4].plot(MB_85_alpgm.year.values, MB_85_alpgm.values - zeko_avg_MB_85, c='light maroon', linewidth=1)
     h3 = ax2[4].plot(MB_85_alpgm.year.values, poly85_algpgm, c='dark red', linewidth=4, alpha=0.5)
     ax2[4].set_ylim([-2,1])
     
     # Cumulative
+    ax2[1].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+    ax2[3].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+    ax2[5].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+    
     h1 = ax2[1].plot(MB_26_alpgm.year.values, mb_cum_diff_26, c='slate blue', linewidth=2)
-    ax2[1].set_ylim([-35,0])
+    ax2[1].set_ylim([-35,5])
 #    ax1[1].format(ylabel = "Lasso - Deep learning  ($\Delta$ m.w.e.)")
     h2 = ax2[3].plot(MB_45_alpgm.year.values, mb_cum_diff_45, c='sienna', linewidth=2)
-    ax2[3].set_ylim([-35,0])
-    ax2[3].format(ylabel = "ALPGM - GloGEM ($\Delta$ m.w.e. a$^{-1}$)")
+    ax2[3].set_ylim([-35,5])
+    ax2[3].format(ylabel = "ALPGM - GloGEMflow ($\Delta$ m.w.e. a$^{-1}$)")
     h3 = ax2[5].plot(MB_85_alpgm.year.values, mb_cum_diff_85, c='light maroon', linewidth=2)
-    ax2[5].set_ylim([-35,0])
+    ax2[5].set_ylim([-35,5])
 #    ax1[5].format(ylabel = "Lasso - Deep learning ($\Delta$ m.w.e.)")
     
     ######################
+    ####  ZMEAN  #########
     
     fig3, ax3 = plot.subplots(ncols=1, nrows=3, axwidth=2, aspect=1.5, sharey=1, hspace='2em')
 
     ax3.format(
-            abc=True, abcloc='ll', abcstyle='A',
+            abc=True, abcloc='ul', abcstyle='A',
             ygridminor=True,
             ytickloc='both', yticklabelloc='left',
             xlabel='Year',
-            ylabel='ALPGM - GloGEM glacier mean altitude ($\Delta$m)',
+            ylabel='ALPGM - GloGEMflow glacier mean altitude ($\Delta$m)',
             rightlabels=['RCP 2.6', 'RCP 4.5', 'RCP 8.5'],
     )
     
@@ -934,6 +953,38 @@ else:
     h1 = ax3[0].plot(zmean_26_alpgm.year.values, zmean_26_alpgm.values - zeko_avg_zmean_26, c='slate blue', linewidth=2)
     h2 = ax3[1].plot(zmean_45_alpgm.year.values, zmean_45_alpgm.values - zeko_avg_zmean_45, c='sienna', linewidth=2)
     h3 = ax3[2].plot(zmean_85_alpgm.year.values, zmean_85_alpgm.values - zeko_avg_zmean_85, c='light maroon', linewidth=2)
+    
+    ######################
+    ####  VOLUME  #########
+    
+    fig4, ax4 = plot.subplots(ncols=1, nrows=3, axwidth=2, aspect=1.5, share=1, hspace='2em')
+
+    ax3.format(
+            abc=True, abcloc='ul', abcstyle='A',
+            ygridminor=True,
+            ytickloc='both', yticklabelloc='left',
+            xlabel='Year',
+            rightlabels=['RCP 2.6', 'RCP 4.5', 'RCP 8.5'],
+    )
+    
+    h11 = ax4[0].plot(zmean_26_alpgm.year.values[:-1], volume_26_alpgm.values, c='midnightblue', linewidth=2, label='ALPGM', legend='r', legend_kw={'ncols':1,'frame':True})
+    h12 = ax4[0].plot(zmean_26_alpgm.year.values, zeko_avg_volume_26, c='skyblue', linewidth=2, label='GloGEMflow', legend='r', legend_kw={'ncols':1,'frame':True})
+    ax4[0].set_ylim([0,volume_26_alpgm.max()])
+    ax4[0].format(ylabel='Total glacier volume (km$^{3}$)')
+    
+    h21 = ax4[1].plot(zmean_45_alpgm.year.values[:-1], volume_45_alpgm.values, c='bronze', linewidth=2, label='ALPGM', legend='r', legend_kw={'ncols':1,'frame':True})
+    h22 = ax4[1].plot(zmean_45_alpgm.year.values, zeko_avg_volume_45, c='goldenrod', linewidth=2, label='GloGEMflow', legend='r', legend_kw={'ncols':1,'frame':True})
+    ax4[1].set_ylim([0,volume_45_alpgm.max()])
+    ax4[1].format(ylabel='Total glacier volume (km$^{3}$)')
+    
+    h31 = ax4[2].plot(zmean_85_alpgm.year.values[:-1], volume_85_alpgm.values, c='darkred', linewidth=2, label='ALPGM', legend='r', legend_kw={'ncols':1,'frame':True})
+    h32 = ax4[2].plot(zmean_85_alpgm.year.values, zeko_avg_volume_85, c='tomato', linewidth=2, label='GloGEMflow', legend='r', legend_kw={'ncols':1,'frame':True})
+    ax4[2].set_ylim([0,volume_85_alpgm.max()])
+    ax4[2].format(ylabel='Total glacier volume (km$^{3}$)')
+    
+#    ax4[0].legend((h11,h12), loc='r', ncols=1, frame=True)
+#    ax4[1].legend((h21,h22), loc='r', ncols=1, frame=True)
+#    ax4[2].legend((h31,h32), loc='r', ncols=1, frame=True)
     
     plt.show()
     

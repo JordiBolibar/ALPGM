@@ -79,7 +79,7 @@ def empty_folder(path):
 def automatic_file_name_save(file_name_h, file_name_t, data, f_format):
     
     ### Flag to overwrite simulations for specific regions or glaciers  #####
-    avoid_bumping = False
+    avoid_bumping = True
     
     file_name = file_name_h + file_name_t
     appendix = 2
@@ -289,7 +289,7 @@ def make_ensemble_simulation(ensemble_SMB_models, smb_bias_correction, x_ann, ba
 #    slope_dist = (training_slopes - ref_slope)**2
     
     # Depending if glacier is present in training dataset we use the CV or full model
-    if(not evolution and np.any(glims_rabatel['GLIMS_ID'] == glacier_IDs['GLIMS'].encode('utf-8'))):
+    if((not evolution or settings.simulation_type == "historical") and np.any(glims_rabatel['GLIMS_ID'] == glacier_IDs['GLIMS'].encode('utf-8'))):
         SMB_ensemble_members = ensemble_SMB_models['full']
         print("\nFull ensemble models")
     else:
