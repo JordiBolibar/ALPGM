@@ -72,7 +72,7 @@ def get_SAFRAN_glacier_coordinates(massif_number, zs, aspects, glims_data, glims
 def compute_local_anomalies(idx, glacier_CPDDs, glacier_winter_snow, glacier_summer_snow, 
                       local_anomalies, raw_local_anomalies):
     
-    # The anomalies are always computed with respect to the 1984-2014 mean
+    # The anomalies are always computed with respect to the 1967-2015 mean
     glacier_CPDDs[idx]['CPDD'] = np.asarray(glacier_CPDDs[idx]['CPDD'])
     glacier_CPDDs_training = glacier_CPDDs[idx]['CPDD'][-49:]
     glacier_CPDDs[idx]['Mean'] = glacier_CPDDs_training.mean()
@@ -103,7 +103,7 @@ def compute_local_anomalies(idx, glacier_CPDDs, glacier_winter_snow, glacier_sum
 def compute_monthly_anomalies(idx, glacier_mon_temp, glacier_mon_snow,
                               local_mon_anomalies, raw_local_mon_anomalies):
     
-    # The monthly meteo anomalies, as well as the seasonal ones, are always computed with respect to the 1984-2014 period
+    # The monthly meteo anomalies, as well as the seasonal ones, are always computed with respect to the 1967-2015 period
     mon_range = range(0, 12)
     
     for mon_idx in mon_range:

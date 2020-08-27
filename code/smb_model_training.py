@@ -183,15 +183,23 @@ def create_spatiotemporal_matrix(SMB_raw, season_raw_meteo_anomalies_SMB, mon_te
         x_reg = np.asarray(x_reg)
         y_reg = np.asarray(y_reg) 
         
+        finite_idxs = np.isfinite(y_reg)
+        x_reg_full = x_reg_full[finite_idxs,:]
+        
+        # Store files for NN
         with open(root + 'X_nn_extended.txt', 'wb') as x_f:
             np.save(x_f, x_reg_nn)
         with open(root + 'y_extended.txt', 'wb') as y_f:
             np.save(y_f, SMB_raw)
+         
+        # Store files for Lasso
+        with open(root + 'X_lasso.txt', 'wb') as x_f:
+            np.save(x_f, x_reg_full)
+        with open(root + 'y_lasso.txt', 'wb') as y_f:
+            np.save(y_f, SMB_raw)
             
-#        import pdb; pdb.set_trace()
+        import pdb; pdb.set_trace()
             
-        finite_idxs = np.isfinite(y_reg)
-        x_reg_full = x_reg_full[finite_idxs,:]
         x_reg_nn = x_reg_nn[finite_idxs,:]
         x_reg = x_reg[finite_idxs,:]
         y_reg = y_reg[finite_idxs]
@@ -459,7 +467,7 @@ def generate_SMB_models(SMB_raw, season_raw_meteo_anomalies_SMB, mon_temp_anomal
     with open(path_smb+'smb_function\\norm_scaler_array_' + str(spatiotemporal_flag) + '.txt', 'wb') as norm_scaler_f:
         np.save(norm_scaler_f, norm_scaler_array)
         
-    import pdb; pdb.set_trace()
+#    import pdb; pdb.set_trace()
     
     #############   CHECKING RESULTS VIA CROSS-VALIDATION   ###########################
     print("\nStarting cross-validation...")
@@ -498,23 +506,23 @@ def generate_SMB_models(SMB_raw, season_raw_meteo_anomalies_SMB, mon_temp_anomal
             print("test_idx: " + str(test_idx))
             
             # Lasso
-            scaled_X_train = X_full_scaled[train_idx]
-            scaled_X_test = X_full_scaled[test_idx]
+            X_train = x_reg_full_array[train_idx]
+            X_test = x_reg_full_array[test_idx]
             
             if(spatiotemporal_flag == 'spatial'):
                 logo_fold = LeaveOneGroupOut()
-                lasso_fold_splits = logo_fold.split(scaled_X_train, groups=groups[groups != fold_idx])
+                lasso_fold_splits = logo_fold.split(X_train, groups=groups[groups != fold_idx])
             elif(spatiotemporal_flag == 'temporal'):
                 loyo_fold = LeaveOneGroupOut()
                 year_groups_u = year_groups[year_groups != fold_idx]
 #                lasso_fold_splits = loyo_fold.split(scaled_X_train, groups=year_groups_u)
                 
 #            logo_model_lasso = LassoLarsIC(criterion='bic').fit(scaled_X_train, y[train_idx])
-            cv_model_lasso = LassoCV(cv=150, selection='random').fit(scaled_X_train, y[train_idx])
+            cv_model_lasso = LassoCV(cv=150, selection='random').fit(X_train, y[train_idx])
 #            cv_model_lasso = LassoCV(cv=lasso_fold_splits, selection='random').fit(scaled_X_train, y[train_idx])
             lasso_cv_models.append(cv_model_lasso)
             
-            SMB_lasso = cv_model_lasso.predict(scaled_X_test)
+            SMB_lasso = cv_model_lasso.predict(X_test)
             SMB_lasso_all = np.concatenate((SMB_lasso_all, SMB_lasso), axis=None)
             
             y_ref_lasso = np.concatenate((y_ref_lasso, y[test_idx]), axis=None)

@@ -79,7 +79,7 @@ def empty_folder(path):
 def automatic_file_name_save(file_name_h, file_name_t, data, f_format):
     
     ### Flag to overwrite simulations for specific regions or glaciers  #####
-    avoid_bumping = True
+    avoid_bumping = False
     
     file_name = file_name_h + file_name_t
     appendix = 2
@@ -207,14 +207,35 @@ def create_input_array(season_anomalies_y, monthly_anomalies_y, mean_alt_y, max_
 # Preloads in memory all the ANN SMB ensemble models to speed up the simulations
 def preload_ensemble_SMB_models():
     # CV ensemble
-    path_CV_ensemble = settings.path_cv_ann
-    path_CV_ensemble_members = np.asarray(os.listdir(path_CV_ensemble))
+    path_ann = "C:\\Users\\bolibarj\\Desktop\\ALPGM_backup\\LSYGO_hard"
+    path_CV_ensemble = os.path.join(path_ann, 'CV')
     
+#    path_CV_ensemble = settings.path_cv_ann
+    path_CV_ensemble_members = np.asarray(os.listdir(path_CV_ensemble))[:2]
+    
+    if(settings.smb_model_type == 'lasso'):
+        path_CV_lasso_ensemble = settings.path_cv_lasso
+        path_CV_lasso_ensemble_members = np.asarray(os.listdir(path_CV_lasso_ensemble))[:-2]
+        CV_lasso_ensemble_members = np.ndarray(path_CV_lasso_ensemble_members.shape, dtype=np.object)
+        
+        member_idx = 0
+        print("\nPreloading CV Lasso ensemble SMB models...")
+        for path_CV_member in path_CV_lasso_ensemble_members:
+            # We retrieve the ensemble member ANN model
+            with open(os.path.join(path_CV_lasso_ensemble, path_CV_member), 'rb') as lasso_model_f:
+                lasso_CV_member_model = np.load(lasso_model_f,  allow_pickle=True)
+                
+            CV_lasso_ensemble_members[member_idx] = lasso_CV_member_model
+            print("|", end="", flush=True)
+            member_idx = member_idx+1
+            
     print("\nTaking CV ensemble models from: " + str(path_CV_ensemble))
     
     # Full model ensemble
-    path_ensemble = settings.path_ensemble_ann
-    path_ensemble_members = np.asarray(os.listdir(path_ensemble))
+    path_ensemble = os.path.join(path_ann, 'ensemble')
+    
+#    path_ensemble = settings.path_ensemble_ann
+    path_ensemble_members = np.asarray(os.listdir(path_ensemble))[:2]
     
     print("\nTaking full ensemble models from: " + str(path_ensemble))
     
@@ -243,11 +264,12 @@ def preload_ensemble_SMB_models():
             member_idx = member_idx+1
         
     CV_ensemble_members = np.asarray(CV_ensemble_members)
+    CV_lasso_ensemble_members = np.asarray(CV_lasso_ensemble_members)
     ensemble_members = np.asarray(ensemble_members)
     print("\n")
     
     # We pack all the ensemble models
-    ensemble_member_models = {'CV': CV_ensemble_members, 'full':ensemble_members}
+    ensemble_member_models = {'CV': CV_ensemble_members, 'full':ensemble_members, 'lasso':CV_lasso_ensemble_members}
     
     return ensemble_member_models
 
@@ -274,13 +296,13 @@ def preload_ensemble_SMB_models():
 
 # Makes an ANN glacier-wide SMB simulation using an ensemble approach
 # Evolution flag = True for glacier_evolution.py format and False for smb_validation.py format
-def make_ensemble_simulation(ensemble_SMB_models, smb_bias_correction, x_ann, batch_size, glacier_IDs, glims_rabatel, aster_calibration, evolution):
+def make_ensemble_simulation(ensemble_SMB_models, smb_bias_correction, x, batch_size, glacier_IDs, glims_rabatel, aster_calibration, model_type, evolution):
     SMB_ensemble = []
     training_slopes = glims_rabatel['slope20']
-    if(len(x_ann.shape) == 2):
-        ref_slope = np.median(x_ann[:,5])
+    if(len(x.shape) == 2):
+        ref_slope = np.median(x[:,5])
     else:
-        ref_slope = np.median(x_ann[5])
+        ref_slope = np.median(x[5])
     first = True
     CV_ensemble = False
     member_idx = 0
@@ -289,7 +311,10 @@ def make_ensemble_simulation(ensemble_SMB_models, smb_bias_correction, x_ann, ba
 #    slope_dist = (training_slopes - ref_slope)**2
     
     # Depending if glacier is present in training dataset we use the CV or full model
-    if((not evolution or settings.simulation_type == "historical") and np.any(glims_rabatel['GLIMS_ID'] == glacier_IDs['GLIMS'].encode('utf-8'))):
+    if(model_type == 'lasso'):
+        SMB_ensemble_members = ensemble_SMB_models['lasso']
+        print("\nLasso ensemble models")
+    elif((not evolution or settings.simulation_type == "historical") and np.any(glims_rabatel['GLIMS_ID'] == glacier_IDs['GLIMS'].encode('utf-8'))):
         SMB_ensemble_members = ensemble_SMB_models['full']
         print("\nFull ensemble models")
     else:
@@ -302,10 +327,23 @@ def make_ensemble_simulation(ensemble_SMB_models, smb_bias_correction, x_ann, ba
         # We retrieve the ensemble member ANN model
         # Make single member prediction
         if(evolution):
-            x_ann = x_ann.reshape(1,-1)
-            SMB_member = ensemble_model.predict(x_ann, batch_size=batch_size)[0][0]
+            x = x.reshape(1,-1)
+            # Lasso
+            if(model_type == 'lasso'):
+                if(np.all(np.isfinite(x))):
+#                    import pdb; pdb.set_trace()
+                    SMB_member = ensemble_model[()].predict(x)[0]
+                else:
+                    SMB_member = np.nan
+            # ANN     
+            else:
+                SMB_member = ensemble_model.predict(x, batch_size=batch_size)[0][0]
         else:
-            SMB_member = ensemble_model.predict(x_ann, batch_size=batch_size).flatten()
+             if(model_type == 'lasso'):
+                SMB_member = ensemble_model[()].predict(x).flatten()
+             else:
+                SMB_member = ensemble_model.predict(x, batch_size=batch_size).flatten()
+        
         if(first):
             print("Running ensemble SMB simulation", end="", flush=True)
         print(".", end="", flush=True)
@@ -1108,7 +1146,7 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
                       flowline, _raster_current_DEM, current_glacier_DEM, store_plots, 
                       glacierName, glacierID, glimsID, massif, lat, lon, aspect,
                       midfolder, pixel_area, glaciers_with_errors, glims_rabatel,
-                      lasso_scaler, lasso_model, ensemble_SMB_models, smb_bias_correction,
+                      ensemble_SMB_models, smb_bias_correction,
                       year_range, ref_start, _ref_end, SAFRAN_idx, overwrite):
     
     print("Applying glacier evolution...")
@@ -1187,15 +1225,13 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
                 
             ####  CREATION OF THE MODEL TEST DATASET  ####
             x_lasso, x_ann = create_input_array(season_anomalies_y, monthly_anomalies_y, mean_glacier_alt, max_glacier_alt, slope20, current_glacierArea, lat, lon, aspect)
+            glacier_IDs = {'RGI': glacierID, 'GLIMS': glimsID}
             
             ####   We simulate the annual glacier-wide SMB  ####
             # Data is scaled as during training 
             if(settings.smb_model_type == "lasso"):
                 
-                if(np.all(np.isfinite(x_lasso))):
-                    SMB_y = lasso_model.predict(x_lasso.reshape(1,-1))[0]
-                else:
-                    SMB_y = np.nan
+                SMB_y, SMB_ensemble = make_ensemble_simulation(ensemble_SMB_models, smb_bias_correction, x_lasso, 34, glacier_IDs, glims_rabatel, settings.aster, settings.smb_model_type, evolution=True)
                     
 #                import pdb; pdb.set_trace()
                 
@@ -1214,7 +1250,6 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
             elif(settings.smb_model_type == "ann_no_weights" or settings.smb_model_type == "ann_weights"):
                 # We use an ensemble approach to compute the glacier-wide SMB
                 batch_size = 34
-                glacier_IDs = {'RGI': glacierID, 'GLIMS': glimsID}
                 SMB_y, SMB_ensemble = make_ensemble_simulation(ensemble_SMB_models, smb_bias_correction, x_ann, batch_size, glacier_IDs, glims_rabatel, settings.aster, evolution=True)
             
             yearly_simulated_SMB.append(SMB_y)
@@ -1525,17 +1560,6 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
         with open(os.path.join(path_safran_forcings, 'monthly_meteo.txt'), 'rb') as mon_f:
             monthly_meteo = np.load(mon_f,  allow_pickle=True)[()]
             
-        ###  We load the SMB models  ###
-        # Deep learning
-        # ANN nonlinear models ensemble preloaded separetly
-        # Lasso
-        # Data scaler
-        with open(os.path.join(path_smb_function, 'model_lasso_spatial.txt'), 'rb') as lasso_model_f:
-            lasso_model = np.load(lasso_model_f,  allow_pickle=True)
-        # Lasso linear model
-        with open(os.path.join(path_smb_function, 'full_scaler_spatial.txt'), 'rb') as lasso_scaler_f:
-            lasso_scaler = np.load(lasso_scaler_f,  allow_pickle=True)[()]
-            
         # We open the raster files and shapefiles:
         shapefile_glacier_outlines = ogr.Open(path_glacier_outlines_shapefile)
         layer_glaciers = shapefile_glacier_outlines.GetLayer()
@@ -1766,7 +1790,7 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
                                                                                                 store_plots, glacierName, 
                                                                                                 glacierID, glimsID, massif, lat, lon, aspect,
                                                                                                 midfolder, pixel_area, glaciers_with_errors, glims_rabatel,
-                                                                                                lasso_scaler, lasso_model, ensemble_SMB_models, smb_bias_correction,
+                                                                                                ensemble_SMB_models, smb_bias_correction,
                                                                                                 year_range, ref_start, ref_end, SAFRAN_idx, overwrite) 
                     else:
                         glacier_melted_flag = True

@@ -28,7 +28,7 @@ with_26 = True
 filter_glacier = False
 static_geometry = False
 load_dictionaries = True
-other_plots = False
+other_plots = True
 #filter_member = False
 # mer de glace
 #glacier_ID_filter = "G006934E45883N"
@@ -761,13 +761,19 @@ else:
     
 #    import pdb; pdb.set_trace()
     
-    MB_26_lasso = ds_glacier_projections_lasso.MB.sel(RCP='26').mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
-    MB_45_lasso = ds_glacier_projections_lasso.MB.sel(RCP='45').mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
-    MB_85_lasso = ds_glacier_projections_lasso.MB.sel(RCP='85').mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
+    submembers = ds_glacier_projections_lasso.member.values[10]
     
-    MB_26_nn = ds_glacier_projections.MB.sel(RCP='26', member=ds_glacier_projections_lasso.member.values).mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
-    MB_45_nn = ds_glacier_projections.MB.sel(RCP='45', member=ds_glacier_projections_lasso.member.values).mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
-    MB_85_nn = ds_glacier_projections.MB.sel(RCP='85', member=ds_glacier_projections_lasso.member.values).mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
+#    submembers = members_with_26[0]
+#    
+#    import pdb; pdb.set_trace()
+    
+    MB_26_lasso = ds_glacier_projections_lasso.MB.sel(RCP='26', member=[submembers]).mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
+    MB_45_lasso = ds_glacier_projections_lasso.MB.sel(RCP='45', member=[submembers]).mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
+    MB_85_lasso = ds_glacier_projections_lasso.MB.sel(RCP='85', member=[submembers]).mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
+    
+    MB_26_nn = ds_glacier_projections.MB.sel(RCP='26', member=[submembers]).mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
+    MB_45_nn = ds_glacier_projections.MB.sel(RCP='45', member=[submembers]).mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
+    MB_85_nn = ds_glacier_projections.MB.sel(RCP='85', member=[submembers]).mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
     
 #    import pdb; pdb.set_trace()
        
@@ -788,13 +794,17 @@ else:
     
     ds_smb_reconstructions = xr.open_dataset(os.path.join(path_dataset, 'french_alpine_glaciers_MB_reconstruction_1967_2015.nc'))
     
-    volume_26_alpgm = ds_glacier_projections.volume.sel(RCP='26').mean(dim=['massif_ID', 'member']).sum(dim=['GLIMS_ID'])[:-1]/1000
-    volume_45_alpgm = ds_glacier_projections.volume.sel(RCP='45').mean(dim=['massif_ID', 'member']).sum(dim=['GLIMS_ID'])[:-1]/1000
-    volume_85_alpgm = ds_glacier_projections.volume.sel(RCP='85').mean(dim=['massif_ID', 'member']).sum(dim=['GLIMS_ID'])[:-1]/1000
+    volume_26_alpgm = ds_glacier_projections.volume.sel(RCP='26').mean(dim=['massif_ID', 'member']).sum(dim=['GLIMS_ID'])[:-1]
+    volume_45_alpgm = ds_glacier_projections.volume.sel(RCP='45').mean(dim=['massif_ID', 'member']).sum(dim=['GLIMS_ID'])[:-1]
+    volume_85_alpgm = ds_glacier_projections.volume.sel(RCP='85').mean(dim=['massif_ID', 'member']).sum(dim=['GLIMS_ID'])[:-1]
     
     zmean_26_alpgm = ds_glacier_projections.zmean.sel(RCP='26').mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
     zmean_45_alpgm = ds_glacier_projections.zmean.sel(RCP='45').mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
     zmean_85_alpgm = ds_glacier_projections.zmean.sel(RCP='85').mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
+    
+    zmean_26_lasso = ds_glacier_projections_lasso.zmean.sel(RCP='26').mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
+    zmean_45_lasso = ds_glacier_projections_lasso.zmean.sel(RCP='45').mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
+    zmean_85_lasso = ds_glacier_projections_lasso.zmean.sel(RCP='85').mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
     
     zeko_MB_2003_2015 = pd.read_csv(os.path.join(path_glogem, 'ZekollariHussFarinotti_TC2019_massbalance0315.csv'), sep=',')
     
@@ -834,10 +844,8 @@ else:
     
     # We compute the average 2003-2015 MB bias to apply to GloGEMflow data
     # This ensures that both simulations with different calibrations can be compared
-    algpm_mean_MB_03_15 = ds_smb_reconstructions.sel(RGI_ID=RGI_ID_sel).mean('RGI_ID')[-13:].mean()
+    algpm_mean_MB_03_15 = ds_smb_reconstructions.sel(RGI_ID=RGI_ID_sel).mean('RGI_ID')[-12:].mean()
     MB_bias = (zeko_mean_MB_03_15 - algpm_mean_MB_03_15).values[()]
-    
-    import pdb; pdb.set_trace()
     
     zeko_avg_MB_26 = zeko_MB_26.mean(axis=0).values[1:-1] - MB_bias
     zeko_avg_MB_45 = zeko_MB_45.mean(axis=0).values[1:-1] - MB_bias
@@ -925,10 +933,10 @@ else:
     
     # Histograms
     bins = 'auto'
-    kde_x_DL_26 = np.linspace(MB_26_nn.values.min(), MB_26_nn.values.max(), 301)
-    kde_DL_26 = st.gaussian_kde(MB_26_nn.values)
-    kde_x_lasso_26 = np.linspace(MB_26_lasso.values.min(), MB_26_lasso.values.max(), 301)
-    kde_lasso_26 = st.gaussian_kde(MB_26_lasso.values)
+#    kde_x_DL_26 = np.linspace(MB_26_nn.values.min(), MB_26_nn.values.max(), 301)
+#    kde_DL_26 = st.gaussian_kde(MB_26_nn.values)
+#    kde_x_lasso_26 = np.linspace(MB_26_lasso.values.min(), MB_26_lasso.values.max(), 301)
+#    kde_lasso_26 = st.gaussian_kde(MB_26_lasso.values)
     kde_x_DL_45 = np.linspace(MB_45_nn.values.min(), MB_45_nn.values.max(), 301)
     kde_DL_45 = st.gaussian_kde(MB_45_nn.values)
     kde_x_lasso_45 = np.linspace(MB_45_lasso.values.min(), MB_45_lasso.values.max(), 301)
@@ -938,21 +946,23 @@ else:
     kde_x_lasso_85 = np.linspace(MB_85_lasso.values.min(), MB_85_lasso.values.max(), 301)
     kde_lasso_85 = st.gaussian_kde(MB_85_lasso.values)
     
+#    import pdb; pdb.set_trace()
+    
     alpha = 0.2
     
     ax1[2].format(xlabel = 'MB (m.w.e. a$^{-1}$)')
-    ax1[2].set_ylim([0,1])
+    ax1[2].set_ylim([0,1.5])
 #    ax1[2].hist(MB_26_nn.values, density=True, bins = 'auto', color='midnightblue', alpha=alpha)
 #    ax1[2].hist(MB_26_lasso.values, density=True, bins = 'auto', color='skyblue', alpha=alpha)
     ax1[2].axvline(x=0, color='black', linewidth=0.7)
-    ax1[2].plot(kde_x_DL_26, kde_DL_26(kde_x_DL_26), c='midnightblue', linewidth=2)
-    ax1[2].fill_between(kde_x_DL_26, 0, kde_DL_26(kde_x_DL_26), zorder=1, facecolor='midnightblue', alpha=alpha)
-    ax1[2].plot(kde_x_lasso_26, kde_lasso_26(kde_x_lasso_26), c='skyblue', linewidth=2, linestyle='--')
-    ax1[2].fill_between(kde_x_lasso_26, 0, kde_lasso_26(kde_x_lasso_26), zorder=1, facecolor='skyblue', alpha=alpha)
-    ax1[2].invert_xaxis()
+#    ax1[2].plot(kde_x_DL_26, kde_DL_26(kde_x_DL_26), c='midnightblue', linewidth=2)
+#    ax1[2].fill_between(kde_x_DL_26, 0, kde_DL_26(kde_x_DL_26), zorder=1, facecolor='midnightblue', alpha=alpha)
+#    ax1[2].plot(kde_x_lasso_26, kde_lasso_26(kde_x_lasso_26), c='skyblue', linewidth=2, linestyle='--')
+#    ax1[2].fill_between(kde_x_lasso_26, 0, kde_lasso_26(kde_x_lasso_26), zorder=1, facecolor='skyblue', alpha=alpha)
+#    ax1[2].invert_xaxis()
     
     ax1[5].format(xlabel = 'MB (m.w.e. a$^{-1}$)')
-    ax1[5].set_ylim([0,1])
+    ax1[5].set_ylim([0,1.5])
 #    ax1[5].hist(MB_45_nn.values, density=True, bins = 'auto', color='bronze', alpha=alpha)
 #    ax1[5].hist(MB_45_lasso.values, density=True, bins = 'auto', color='goldenrod', alpha=alpha)
     ax1[5].axvline(x=0, color='black', linewidth=0.7)
@@ -960,10 +970,10 @@ else:
     ax1[5].fill_between(kde_x_DL_45, 0, kde_DL_45(kde_x_DL_45), zorder=1, facecolor='bronze', alpha=alpha)
     ax1[5].plot(kde_x_lasso_45, kde_lasso_45(kde_x_lasso_45), c='tangerine', linewidth=2, linestyle='--')
     ax1[5].fill_between(kde_x_lasso_45, 0, kde_lasso_45(kde_x_lasso_45), zorder=1, facecolor='tangerine', alpha=alpha)
-    ax1[5].invert_xaxis()
+#    ax1[5].invert_xaxis()
     
     ax1[8].format(xlabel = 'MB (m.w.e. a$^{-1}$)')
-    ax1[8].set_ylim([0,1])
+    ax1[8].set_ylim([0,1.5])
 #    ax1[8].hist(MB_85_nn.values, density=True, bins = 'auto', color='darkred', alpha=alpha)
 #    ax1[8].hist(MB_85_lasso.values, density=True, bins = 'auto', color='tomato', alpha=alpha)
     ax1[8].axvline(x=0, color='black', linewidth=0.7)
@@ -971,7 +981,7 @@ else:
     ax1[8].fill_between(kde_x_DL_85, 0, kde_DL_85(kde_x_DL_85), zorder=1, facecolor='darkred', alpha=alpha)
     ax1[8].plot(kde_x_lasso_85, kde_lasso_85(kde_x_lasso_85), c='tomato', linewidth=2, linestyle='--')
     ax1[8].fill_between(kde_x_lasso_85, 0, kde_lasso_85(kde_x_lasso_85), zorder=1, facecolor='tomato', alpha=alpha)
-    ax1[8].invert_xaxis()
+#    ax1[8].invert_xaxis()
     
     # Cumulative MB 
     legend_cum = 'r'
@@ -985,13 +995,36 @@ else:
     ax1[9].plot(MB_26_nn.year.values, np.cumsum(MB_26_nn.values), c='midnightblue', linewidth=2, label='Deep learning - RCP 2.6', legend=legend_cum, legend_kw={'ncols':1,'frame':True})
     ax1[9].plot(MB_26_nn.year.values, np.cumsum(MB_26_lasso.values), c='skyblue', linewidth=2, linestyle='--', label='Lasso - RCP 2.6', legend=legend_cum, legend_kw={'ncols':1,'frame':True})
     
+    
+    ######################
+    ####  ZMEAN  #########
+    ######################
+    
+    fig2, ax2 = plot.subplots(ncols=1, nrows=3, axwidth=2, aspect=1.5, sharey=1, hspace='2em')
+
+    ax2.format(
+            abc=True, abcloc='ul', abcstyle='A',
+            ygridminor=True,
+            ytickloc='both', yticklabelloc='left',
+            xlabel='Year',
+            ylabel='ALPGM - Lasso glacier mean altitude ($\Delta$m)',
+            rightlabels=['RCP 2.6', 'RCP 4.5', 'RCP 8.5'],
+    )
+    
+    ax2[0].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+    ax2[1].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+    ax2[2].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+    h1 = ax2[0].plot(zmean_26_alpgm.year.values, zmean_26_alpgm.values - zmean_26_lasso.values, c='slate blue', linewidth=2)
+    h2 = ax2[1].plot(zmean_45_alpgm.year.values, zmean_45_alpgm.values - zmean_45_lasso.values, c='sienna', linewidth=2)
+    h3 = ax2[2].plot(zmean_85_alpgm.year.values, zmean_85_alpgm.values - zmean_85_lasso.values, c='light maroon', linewidth=2)
+    
     #######################################
     ######## ALPGM VS GLOGEMflow #########
     ######################################
     
-    fig2, ax2 = plot.subplots(ncols=2, nrows=3, axwidth=2, aspect=1.5, sharey=1, hspace='2em')
+    fig3, ax3 = plot.subplots(ncols=2, nrows=3, axwidth=2, aspect=1.5, sharey=1, hspace='2em')
 
-    ax2.format(
+    ax3.format(
             abc=True, abcloc='ul', abcstyle='A',
             ygridminor=True,
             ytickloc='both', yticklabelloc='left',
@@ -1001,43 +1034,43 @@ else:
     )
     
     # Non-cumulative
-    ax2[0].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
-    ax2[2].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
-    ax2[4].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+    ax3[0].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+    ax3[2].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+    ax3[4].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
     
-    h1 = ax2[0].plot(bolibar_MB_26.year.values, bolibar_MB_26.values - zeko_avg_MB_26, c='slate blue', linewidth=1)
-    h1 = ax2[0].plot(bolibar_MB_26.year.values, poly26_algpgm, c='dark blue', linewidth=4, alpha=0.5)
-    ax2[0].set_ylim([-1.3,1.5])
-    h2 = ax2[2].plot(bolibar_MB_45.year.values, bolibar_MB_45.values - zeko_avg_MB_45, c='sienna', linewidth=1)
-    h2 = ax2[2].plot(bolibar_MB_45.year.values, poly45_algpgm, c='dark orange', linewidth=4, alpha=0.5)
-    ax2[2].set_ylim([-1.3,1.5])
-    ax2[2].format(ylabel = "ALPGM - GloGEMflow ($\Delta$ m.w.e. a$^{-1}$)")
-    h3 = ax2[4].plot(bolibar_MB_85.year.values, bolibar_MB_85.values - zeko_avg_MB_85, c='light maroon', linewidth=1)
-    h3 = ax2[4].plot(bolibar_MB_85.year.values, poly85_algpgm, c='dark red', linewidth=4, alpha=0.5)
-    ax2[4].set_ylim([-1.3,1.5])
+    h1 = ax3[0].plot(bolibar_MB_26.year.values, bolibar_MB_26.values - zeko_avg_MB_26, c='slate blue', linewidth=1)
+    h1 = ax3[0].plot(bolibar_MB_26.year.values, poly26_algpgm, c='dark blue', linewidth=4, alpha=0.5)
+    ax3[0].set_ylim([-1.3,1.5])
+    h2 = ax3[2].plot(bolibar_MB_45.year.values, bolibar_MB_45.values - zeko_avg_MB_45, c='sienna', linewidth=1)
+    h2 = ax3[2].plot(bolibar_MB_45.year.values, poly45_algpgm, c='dark orange', linewidth=4, alpha=0.5)
+    ax3[2].set_ylim([-1.3,1.5])
+    ax3[2].format(ylabel = "ALPGM - GloGEMflow ($\Delta$ m.w.e. a$^{-1}$)")
+    h3 = ax3[4].plot(bolibar_MB_85.year.values, bolibar_MB_85.values - zeko_avg_MB_85, c='light maroon', linewidth=1)
+    h3 = ax3[4].plot(bolibar_MB_85.year.values, poly85_algpgm, c='dark red', linewidth=4, alpha=0.5)
+    ax3[4].set_ylim([-1.3,1.5])
     
     # Cumulative
-    ax2[1].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
-    ax2[3].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
-    ax2[5].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+    ax3[1].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+    ax3[3].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+    ax3[5].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
     
-    h1 = ax2[1].plot(bolibar_MB_26.year.values, mb_cum_diff_26, c='slate blue', linewidth=4)
-    ax2[1].set_ylim([-4,31])
-#    ax1[1].format(ylabel = "Lasso - Deep learning  ($\Delta$ m.w.e.)")
-    h2 = ax2[3].plot(bolibar_MB_45.year.values, mb_cum_diff_45, c='sienna', linewidth=4)
-    ax2[3].set_ylim([-4,31])
-    ax2[3].format(ylabel = "ALPGM - GloGEMflow ($\Delta$ m.w.e. a$^{-1}$)")
-    h3 = ax2[5].plot(bolibar_MB_85.year.values, mb_cum_diff_85, c='light maroon', linewidth=4)
-    ax2[5].set_ylim([-4,31])
-#    ax1[5].format(ylabel = "Lasso - Deep learning ($\Delta$ m.w.e.)")
+    h1 = ax3[1].plot(bolibar_MB_26.year.values, mb_cum_diff_26, c='slate blue', linewidth=4)
+    ax3[1].set_ylim([-4,31])
+#    ax3[1].format(ylabel = "Lasso - Deep learning  ($\Delta$ m.w.e.)")
+    h2 = ax3[3].plot(bolibar_MB_45.year.values, mb_cum_diff_45, c='sienna', linewidth=4)
+    ax3[3].set_ylim([-4,31])
+    ax3[3].format(ylabel = "ALPGM - GloGEMflow ($\Delta$ m.w.e. a$^{-1}$)")
+    h3 = ax3[5].plot(bolibar_MB_85.year.values, mb_cum_diff_85, c='light maroon', linewidth=4)
+    ax3[5].set_ylim([-4,31])
+#    ax3[5].format(ylabel = "Lasso - Deep learning ($\Delta$ m.w.e.)")
     
     ######################
     ####  ZMEAN  #########
     ######################
     
-    fig3, ax3 = plot.subplots(ncols=1, nrows=3, axwidth=2, aspect=1.5, sharey=1, hspace='2em')
+    fig4, ax4 = plot.subplots(ncols=1, nrows=3, axwidth=2, aspect=1.5, sharey=1, hspace='2em')
 
-    ax3.format(
+    ax4.format(
             abc=True, abcloc='ul', abcstyle='A',
             ygridminor=True,
             ytickloc='both', yticklabelloc='left',
@@ -1046,20 +1079,20 @@ else:
             rightlabels=['RCP 2.6', 'RCP 4.5', 'RCP 8.5'],
     )
     
-    ax3[0].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
-    ax3[1].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
-    ax3[2].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
-    h1 = ax3[0].plot(zmean_26_alpgm.year.values, zmean_26_alpgm.values - zeko_avg_zmean_26, c='slate blue', linewidth=2)
-    h2 = ax3[1].plot(zmean_45_alpgm.year.values, zmean_45_alpgm.values - zeko_avg_zmean_45, c='sienna', linewidth=2)
-    h3 = ax3[2].plot(zmean_85_alpgm.year.values, zmean_85_alpgm.values - zeko_avg_zmean_85, c='light maroon', linewidth=2)
+    ax4[0].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+    ax4[1].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+    ax4[2].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+    h1 = ax4[0].plot(zmean_26_alpgm.year.values, zmean_26_alpgm.values - zeko_avg_zmean_26, c='slate blue', linewidth=2)
+    h2 = ax4[1].plot(zmean_45_alpgm.year.values, zmean_45_alpgm.values - zeko_avg_zmean_45, c='sienna', linewidth=2)
+    h3 = ax4[2].plot(zmean_85_alpgm.year.values, zmean_85_alpgm.values - zeko_avg_zmean_85, c='light maroon', linewidth=2)
     
     ######################
     ####  VOLUME  #########
     ######################
     
-    fig4, ax4 = plot.subplots(ncols=2, nrows=3, axwidth=2, aspect=1.5, sharey=0, sharex=3, spanx=2, spany=1, hspace='2.2em')
+    fig5, ax5 = plot.subplots(ncols=2, nrows=3, axwidth=2, aspect=1.5, sharey=0, sharex=3, spanx=2, spany=1, hspace='2.2em')
 
-    ax4.format(
+    ax5.format(
             abc=True, abcloc='ur', abcstyle='A',
             ygridminor=True,
             ytickloc='both', yticklabelloc='left',
@@ -1069,39 +1102,39 @@ else:
     
 #    import pdb; pdb.set_trace()
     
-    h11 = ax4[0].plot(zmean_26_alpgm.year.values[:-1], volume_26_alpgm.values, c='midnightblue', linewidth=2, label='ALPGM', legend='r', legend_kw={'ncols':1,'frame':True})
-    h12 = ax4[0].plot(zmean_26_alpgm.year.values, zeko_avg_volume_26, c='skyblue', linewidth=2, label='GloGEMflow', legend='r', legend_kw={'ncols':1,'frame':True})
-    ax4[0].set_ylim([0,volume_26_alpgm.max()])
-    ax4[0].format(ylabel='Total glacier volume (km$^{3}$)')
+    h11 = ax5[0].plot(zmean_26_alpgm.year.values[:-1], volume_26_alpgm.values, c='midnightblue', linewidth=2, label='ALPGM', legend='r', legend_kw={'ncols':1,'frame':True})
+    h12 = ax5[0].plot(zmean_26_alpgm.year.values, zeko_avg_volume_26, c='skyblue', linewidth=2, label='GloGEMflow', legend='r', legend_kw={'ncols':1,'frame':True})
+    ax5[0].set_ylim([0,volume_26_alpgm.max()])
+    ax5[0].format(ylabel='Total glacier volume (km$^{3}$)')
     
-    h11 = ax4[1].plot(zmean_26_alpgm.year.values[:-1], (volume_26_alpgm.values/volume_26_alpgm.values.max())*100, c='midnightblue', linewidth=2)
-    h12 = ax4[1].plot(zmean_26_alpgm.year.values, (zeko_avg_volume_26/np.nanmax(zeko_avg_volume_26))*100, c='skyblue', linewidth=2)
-    ax4[1].set_ylim([0,100])
-    ax4[1].format(ylabel='Remaining glacier volume fraction (%)')
+    h11 = ax5[1].plot(zmean_26_alpgm.year.values[:-1], (volume_26_alpgm.values/volume_26_alpgm.values.max())*100, c='midnightblue', linewidth=2)
+    h12 = ax5[1].plot(zmean_26_alpgm.year.values, (zeko_avg_volume_26/np.nanmax(zeko_avg_volume_26))*100, c='skyblue', linewidth=2)
+    ax5[1].set_ylim([0,100])
+    ax5[1].format(ylabel='Remaining glacier volume fraction (%)')
     
-    h21 = ax4[2].plot(zmean_45_alpgm.year.values[:-1], volume_45_alpgm.values, c='bronze', linewidth=2, label='ALPGM', legend='r', legend_kw={'ncols':1,'frame':True})
-    h22 = ax4[2].plot(zmean_45_alpgm.year.values, zeko_avg_volume_45, c='tangerine', linewidth=2, label='GloGEMflow', legend='r', legend_kw={'ncols':1,'frame':True})
-    ax4[2].set_ylim([0,volume_45_alpgm.max()])
-    ax4[2].format(ylabel='Total glacier volume (km$^{3}$)')
+    h21 = ax5[2].plot(zmean_45_alpgm.year.values[:-1], volume_45_alpgm.values, c='bronze', linewidth=2, label='ALPGM', legend='r', legend_kw={'ncols':1,'frame':True})
+    h22 = ax5[2].plot(zmean_45_alpgm.year.values, zeko_avg_volume_45, c='tangerine', linewidth=2, label='GloGEMflow', legend='r', legend_kw={'ncols':1,'frame':True})
+    ax5[2].set_ylim([0,volume_45_alpgm.max()])
+    ax5[2].format(ylabel='Total glacier volume (km$^{3}$)')
     
-    h21 = ax4[3].plot(zmean_45_alpgm.year.values[:-1], (volume_45_alpgm.values/volume_45_alpgm.values.max())*100, c='bronze')
-    h22 = ax4[3].plot(zmean_45_alpgm.year.values, (zeko_avg_volume_45/np.nanmax(zeko_avg_volume_45))*100, c='tangerine', linewidth=2)
-    ax4[3].set_ylim([0,100])
-    ax4[3].format(ylabel='Remaining glacier volume fraction (%)')
+    h21 = ax5[3].plot(zmean_45_alpgm.year.values[:-1], (volume_45_alpgm.values/volume_45_alpgm.values.max())*100, c='bronze')
+    h22 = ax5[3].plot(zmean_45_alpgm.year.values, (zeko_avg_volume_45/np.nanmax(zeko_avg_volume_45))*100, c='tangerine', linewidth=2)
+    ax5[3].set_ylim([0,100])
+    ax5[3].format(ylabel='Remaining glacier volume fraction (%)')
     
-    h31 = ax4[4].plot(zmean_85_alpgm.year.values[:-1], volume_85_alpgm.values, c='darkred', linewidth=2, label='ALPGM', legend='r', legend_kw={'ncols':1,'frame':True})
-    h32 = ax4[4].plot(zmean_85_alpgm.year.values, zeko_avg_volume_85, c='tomato', linewidth=2, label='GloGEMflow', legend='r', legend_kw={'ncols':1,'frame':True})
-    ax4[4].set_ylim([0,volume_85_alpgm.max()])
-    ax4[4].format(ylabel='Total glacier volume (km$^{3}$)')
+    h31 = ax5[4].plot(zmean_85_alpgm.year.values[:-1], volume_85_alpgm.values, c='darkred', linewidth=2, label='ALPGM', legend='r', legend_kw={'ncols':1,'frame':True})
+    h32 = ax5[4].plot(zmean_85_alpgm.year.values, zeko_avg_volume_85, c='tomato', linewidth=2, label='GloGEMflow', legend='r', legend_kw={'ncols':1,'frame':True})
+    ax5[4].set_ylim([0,volume_85_alpgm.max()])
+    ax5[4].format(ylabel='Total glacier volume (km$^{3}$)')
     
-    h31 = ax4[5].plot(zmean_85_alpgm.year.values[:-1], (volume_85_alpgm.values/volume_85_alpgm.values.max())*100, c='darkred', linewidth=2)
-    h32 = ax4[5].plot(zmean_85_alpgm.year.values, (zeko_avg_volume_85/np.nanmax(zeko_avg_volume_85))*100, c='tomato', linewidth=2)
-    ax4[5].set_ylim([0,100])
-    ax4[5].format(ylabel='Remaining glacier volume fraction (%)')
+    h31 = ax5[5].plot(zmean_85_alpgm.year.values[:-1], (volume_85_alpgm.values/volume_85_alpgm.values.max())*100, c='darkred', linewidth=2)
+    h32 = ax5[5].plot(zmean_85_alpgm.year.values, (zeko_avg_volume_85/np.nanmax(zeko_avg_volume_85))*100, c='tomato', linewidth=2)
+    ax5[5].set_ylim([0,100])
+    ax5[5].format(ylabel='Remaining glacier volume fraction (%)')
     
-#    ax4[0].legend((h11,h12), loc='r', ncols=1, frame=True)
-#    ax4[1].legend((h21,h22), loc='r', ncols=1, frame=True)
-#    ax4[2].legend((h31,h32), loc='r', ncols=1, frame=True)
+#    ax5[0].legend((h11,h12), loc='r', ncols=1, frame=True)
+#    ax5[1].legend((h21,h22), loc='r', ncols=1, frame=True)
+#    ax5[2].legend((h31,h32), loc='r', ncols=1, frame=True)
     
     plt.show()
     

@@ -22,7 +22,7 @@ import pandas as pd
 import xarray as xr
 
 ###### FLAGS  #########
-with_26 = True
+with_26 = False
 filter_glacier = False
 static_geometry = False
 load_dictionaries = False
@@ -531,7 +531,7 @@ if(not load_dictionaries):
                                     
                                     glacier_projections_dict['MB'][current_idxs] = MB_y[1]
                                     glacier_projections_dict['area'][current_idxs] = area_y[1]
-                                    glacier_projections_dict['volume'][current_idxs] = volume_y[1]
+                                    glacier_projections_dict['volume'][current_idxs] = volume_y[1]/1000
                                     glacier_projections_dict['zmean'][current_idxs] = zmean_y[1]
                                     glacier_projections_dict['slope20'][current_idxs] = slope20_y[1]
                                     glacier_projections_dict['CPDD'][current_idxs] = s_CPDD_y[1] + w_CPDD_y[1]
@@ -548,7 +548,7 @@ if(not load_dictionaries):
                                     ### Full glacier evolution projections  ###
                                     RCP_data[current_RCP]['MB']['data'][year_idx].append(MB_y[1])
                                     RCP_data[current_RCP]['area']['data'][year_idx].append(area_y[1])
-                                    RCP_data[current_RCP]['volume']['data'][year_idx].append(volume_y[1])
+                                    RCP_data[current_RCP]['volume']['data'][year_idx].append(volume_y[1]/1000)
                                     RCP_data[current_RCP]['zmean']['data'][year_idx].append(zmean_y[1])
                                     RCP_data[current_RCP]['slope20']['data'][year_idx].append(slope20_y[1])
                                     RCP_data[current_RCP]['avg_area']['data'][year_idx].append(area_y[1])
@@ -584,7 +584,7 @@ if(not load_dictionaries):
                                     ### Full glacier evolution projections  ###
                                     RCP_members[current_RCP][member_idx]['MB']['data'][year_idx].append(MB_y[1])
                                     RCP_members[current_RCP][member_idx]['area']['data'][year_idx].append(area_y[1])
-                                    RCP_members[current_RCP][member_idx]['volume']['data'][year_idx].append(volume_y[1])
+                                    RCP_members[current_RCP][member_idx]['volume']['data'][year_idx].append(volume_y[1]/1000)
                                     RCP_members[current_RCP][member_idx]['zmean']['data'][year_idx].append(zmean_y[1])
                                     RCP_members[current_RCP][member_idx]['slope20']['data'][year_idx].append(slope20_y[1])
                                     RCP_members[current_RCP][member_idx]['avg_area']['data'][year_idx].append(area_y[1])
@@ -737,7 +737,7 @@ if(not load_dictionaries):
                 ### Full glacier evolution projections  ###
                 RCP_member_means[RCP][member]['MB']['year'] = np.array(RCP_members[RCP][member]['MB']['year'], dtype=int)
                 RCP_member_means[RCP][member]['area']['year'] = np.array(RCP_members[RCP][member]['area']['year'], dtype=int)
-                RCP_member_means[RCP][member]['volume']['year'] = np.array(RCP_members[RCP][member]['volume']['year'], dtype=int)
+                RCP_member_means[RCP][member]['volume']['year'] = np.array(RCP_members[RCP][member]['volume']['year'], dtype=int)/1000
                 RCP_member_means[RCP][member]['zmean']['year'] = np.array(RCP_members[RCP][member]['zmean']['year'], dtype=int)
                 RCP_member_means[RCP][member]['slope20']['year'] = np.array(RCP_members[RCP][member]['slope20']['year'], dtype=int)
                 RCP_member_means[RCP][member]['avg_area']['year'] = np.array(RCP_members[RCP][member]['avg_area']['year'], dtype=int)
@@ -770,7 +770,7 @@ if(not load_dictionaries):
                     ### Full glacier evolution projections  ###
                     RCP_member_means[RCP][member]['MB']['data'].append(np.nanmean(RCP_members[RCP][member]['MB']['data'][year_idx]))
                     RCP_member_means[RCP][member]['area']['data'].append(np.nansum(RCP_members[RCP][member]['area']['data'][year_idx]))
-                    RCP_member_means[RCP][member]['volume']['data'].append(np.nansum(RCP_members[RCP][member]['volume']['data'][year_idx]))
+                    RCP_member_means[RCP][member]['volume']['data'].append(np.nansum(RCP_members[RCP][member]['volume']['data'][year_idx])/1000)
                     RCP_member_means[RCP][member]['zmean']['data'].append(np.nanmean(RCP_members[RCP][member]['zmean']['data'][year_idx]))
                     RCP_member_means[RCP][member]['slope20']['data'].append(np.nanmean(RCP_members[RCP][member]['slope20']['data'][year_idx]))
                     RCP_member_means[RCP][member]['avg_area']['data'].append(np.nanmean(RCP_members[RCP][member]['avg_area']['data'][year_idx]))
@@ -956,7 +956,7 @@ if(not load_dictionaries):
         df_glacier_projections = ds_glacier_projections.to_dataframe().dropna(how='any')
         df_glacier_projections.to_csv(os.path.join(path_glacier_evolution, 'glacier_evolution_' + str(year_start) + '_2100.csv'), sep=";")
         
-#    import pdb; pdb.set_trace()
+    import pdb; pdb.set_trace()
     
 ##########    PLOTS    #######################
 if(filter_glacier):
@@ -989,7 +989,7 @@ h = plot_RCP_means(ax1[0], RCP_means, 'MB', with_26)
 ax1[0].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
 
 # Volume
-ax1[1].set_ylabel('Volume (m$^3$ 10$^6$)')
+ax1[1].set_ylabel('Volume (km$^3$)')
 ax1[1].set_xlabel('Year')
 ax1[1].set_ylim(0, np.max(RCP_means['45']['volume']['data']))
 ax1b = ax1[1].twinx()  # instantiate a second axes that shares the same x-axis

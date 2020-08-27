@@ -54,6 +54,7 @@ def init(hist_forcing, proj_forcing, simu_type, smb_model, cluster, static_geome
     
     global path_ann
     global path_cv_ann
+    global path_cv_lasso
     global path_ensemble_ann
     global smb_model_type
     
@@ -78,6 +79,7 @@ def init(hist_forcing, proj_forcing, simu_type, smb_model, cluster, static_geome
         smb_model_type = smb_model
     elif(smb_model == 'lasso'):
         smb_model_type = smb_model 
+        path_cv_lasso = os.path.join(path_smb, 'smb_function', 'Lasso_LSYGO_ensemble')
         
         # Set ANN paths for compatibility
         if(simulation_type == 'historical'):
@@ -117,15 +119,10 @@ def adamont_simulation(simulation_type, compute_projection_forcings, compute_evo
         thickness_idx = 0
 #        for thickness_idx in range(0,2):
         
-        if(smb_model_type == 'lasso'):
-            n_members = ADAMONT_proj_filepaths.size
-            start = 24
-            ensemble_SMB_models = []
-        else:
-            n_members = ADAMONT_proj_filepaths.size
-            # Preload the ensemble SMB models to speed up simulations
-            start = 0
-            ensemble_SMB_models = glacier_evolution.preload_ensemble_SMB_models()
+        n_members = ADAMONT_proj_filepaths.size
+        # Preload the ensemble SMB models to speed up simulations
+        start = 0
+        ensemble_SMB_models = glacier_evolution.preload_ensemble_SMB_models()
         
         for i in range(start, n_members, 2):
             if(forcing_threshold <= counter):
@@ -145,7 +142,7 @@ def glacier_simulation(simulation_type, counter_threshold, validate_SMB, compute
     if(simulation_type == "future"):
         adamont_simulation(simulation_type, compute_projection_forcings, compute_evolution, counter_threshold, overwrite, filter_glacier)
     elif(simulation_type == "historical"):
-        smb_validation.main(validate_SMB, reconstruct)
+        smb_validation.main(validate_SMB, reconstruct, smb_model_type)
         ensemble_SMB_models = []
         if(compute_evolution):
             # Preload the ensemble SMB models to speed up simulations

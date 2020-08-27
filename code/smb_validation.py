@@ -407,7 +407,7 @@ def compute_SAFRAN_anomalies(glacier_info, year_range, year_start, all_glacier_c
     return season_anomalies, mon_anomalies
 
 
-def main(compute, reconstruct):
+def main(compute, reconstruct, smb_model_type):
 
     ################################################################################
     ##################		                MAIN               	#####################
@@ -420,12 +420,19 @@ def main(compute, reconstruct):
     if(compute):
         global path_safran_forcings
         path_safran_forcings = settings.path_safran
-        path_smb_all_glaciers = os.path.join(path_smb, 'smb_simulations', 'SAFRAN', '1', 'all_glaciers_1967_2015')
+        if(smb_model_type == 'lasso'):
+            path_smb_all_glaciers = os.path.join(path_smb, 'smb_simulations', 'SAFRAN', '1', 'all_glaciers_1967_2015', 'lasso')
+        else:
+            path_smb_all_glaciers = os.path.join(path_smb, 'smb_simulations', 'SAFRAN', '1', 'all_glaciers_1967_2015', 'LSYGO')
         
         if(reconstruct):
-            # TODO: this doesn't do anything
-            path_ann = os.path.join(path_smb, 'ANN', 'LOGO')
-            path_cv_ann = os.path.join(path_ann, 'CV')
+            if(smb_model_type == 'lasso'):
+                path_ann = settings.path_cv_lasso
+                path_cv_ann = os.path.join(path_ann, 'CV')
+            else:
+#                path_ann = os.path.join(path_smb, 'ANN', 'LOGO')
+                path_ann = os.path.join(path_smb, 'ANN', 'LSYGO_hard')
+                path_cv_ann = os.path.join(path_ann, 'CV')
             
         else:
             # Set LOGO for model validation
@@ -502,8 +509,8 @@ def main(compute, reconstruct):
             all_glacier_coordinates = np.load(coords_f,  allow_pickle=True)
             
         # CV model RMSE to compute the dynamic ensemble weights
-        with open(os.path.join(settings.path_ann, 'RMSE_per_fold.txt'), 'rb') as rmse_f:
-            CV_RMSE = np.load(rmse_f,  allow_pickle=True)
+#        with open(os.path.join(settings.path_ann, 'RMSE_per_fold.txt'), 'rb') as rmse_f:
+#            CV_RMSE = np.load(rmse_f,  allow_pickle=True)
             
         smb_bias_correction = pd.read_csv(os.path.join(path_smb_validation, 'SMB_bias_correction.csv'), sep=";")
             
@@ -551,7 +558,7 @@ def main(compute, reconstruct):
                 
                 # We preload the ensemble SMB models to speed up the simulations
                 ensemble_SMB_models = preload_ensemble_SMB_models()
-                
+                isFirst = True
                 for glims_glacier in glims_2003:
     #                if(glacier_name == "d'Argentiere"):
 #                    if(glacier_idx == 421):
@@ -581,7 +588,11 @@ def main(compute, reconstruct):
                         
                         #####  Machine learning SMB simulations   ###################
                         glacier_IDs = {'RGI': rgiID, 'GLIMS': glimsID}
-                        SMB_nn, SMB_ensemble = make_ensemble_simulation(ensemble_SMB_models, smb_bias_correction, x_reg_nn, 34, glacier_IDs, glims_rabatel, aster_calibration, evolution=False)
+                        
+                        if(settings.smb_model_type == "lasso"):
+                            SMB_nn, SMB_ensemble = make_ensemble_simulation(ensemble_SMB_models, smb_bias_correction, x_reg_full, 34, glacier_IDs, glims_rabatel, settings.aster, settings.smb_model_type, evolution=False)
+                        else:
+                            SMB_nn, SMB_ensemble = make_ensemble_simulation(ensemble_SMB_models, smb_bias_correction, x_reg_nn, 34, glacier_IDs, glims_rabatel, aster_calibration, settings.smb_model_type, evolution=False)
 #                        SMB_nn = ann_model.predict(x_reg_nn, batch_size = 34)
 #                        SMB_nn = np.asarray(SMB_nn)[:,0].flatten()
                         
@@ -633,6 +644,24 @@ def main(compute, reconstruct):
                         file_name_t = 'ensemble_SMB.txt'
                         automatic_file_name_save(file_name_h, file_name_t, SMB_ensemble, 'txt')
                         
+                        # We concatenate the full matrix of predictors
+                        # Add nan tail values if glacier only covers until 2003
+                        nan_array = np.repeat(np.nan, 12)
+                        if(x_reg_nn.shape[0] < 49):
+                            x_reg_nn = np.concatenate((x_reg_nn, np.repeat(nan_array.reshape(-1,1), 34, axis=1)), axis=0)
+                            SMB_nn = np.concatenate((SMB_nn, nan_array), axis=0)
+                            
+                        # Add annual MB
+                        x_reg_nn = np.concatenate((SMB_nn.reshape(-1,1), x_reg_nn), axis=1)
+                        # Add RGI ID
+                        x_reg_nn = np.concatenate((np.repeat(glimsID, 49).reshape(-1,1), x_reg_nn), axis=1)
+                        
+                        if(isFirst):
+                            x_reconstructions = copy.deepcopy(x_reg_nn)
+                            isFirst = False
+                        else:
+                            x_reconstructions = np.concatenate((x_reconstructions, x_reg_nn), axis=0)
+                        
                     glacier_idx = glacier_idx+1
                     
                 # End glacier loop
@@ -640,7 +669,11 @@ def main(compute, reconstruct):
                 # We store the cumulative glacier-wide SMB of all the glaciers in the French Alps
                 cumulative_smb_glaciers = np.asarray(cumulative_smb_glaciers)
                 store_smb_data(os.path.join(path_smb_all_glaciers, 'cumulative_smb_all_glaciers.csv'), cumulative_smb_glaciers)
-                    
+                
+                ## We save the matrix with all the predictors used for the reconstructions
+                with open(os.path.join(path_smb, 'x_reconstructions_lasso.txt'), 'wb') as rec_f: 
+                    np.save(rec_f, x_reconstructions)
+                
             else:
                 #### SMB validation of the 32 glaciers with training data  ####
                 

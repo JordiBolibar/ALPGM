@@ -24,8 +24,9 @@ from difflib import SequenceMatcher
 
 ######   FLAGS    #######
 only_final = False
-
 calibrate_training_data = False
+### 'lasso' / 'LSYGO' / 'normal'
+reconstruction_type = 'lasso'
 
 ######   FILE PATHS    #######
 
@@ -34,16 +35,36 @@ workspace = Path(os.getcwd()).parent
 path_glims = os.path.join(workspace, 'glacier_data', 'GLIMS') 
 path_obs = 'C:\\Jordi\\PhD\\Data\\SMB\\'
 path_smb_root = os.path.join(workspace, 'glacier_data', 'smb')
-path_smb = os.path.join(workspace, 'glacier_data', 'smb', 'smb_simulations', 'SAFRAN', '1', 'all_glaciers_1967_2015', 'smb')
 path_smb_validation = os.path.join(workspace, 'glacier_data', 'smb', 'smb_validation')
-path_smb_plots = os.path.join(workspace, 'glacier_data', 'smb', 'smb_simulations', 'reconstruction_plots')
 
-path_backup = 'C:\\Users\\bolibarj\\Desktop\\ALPGM_backup\\smb_simulations\\SAFRAN\\1\\all_glaciers_1967_2015\\'
-
-path_reconstructions = 'C:\\Jordi\\PhD\\Publications\\Second article\\Dataset\\Updated dataset\\'
-path_aster_reconstructions = 'C:\\Jordi\\PhD\\Publications\\Second article\\Dataset\\ASTER dataset\\'
-path_dataset = 'C:\\Jordi\\PhD\\Publications\\Second article\\Dataset\\'
-
+if(reconstruction_type == 'normal'):
+    path_smb = os.path.join(workspace, 'glacier_data', 'smb', 'smb_simulations', 'SAFRAN', '1', 'all_glaciers_1967_2015', 'smb')
+    path_smb_plots = os.path.join(workspace, 'glacier_data', 'smb', 'smb_simulations', 'reconstruction_plots')
+    path_backup = 'C:\\Users\\bolibarj\\Desktop\\ALPGM_backup\\smb_simulations\\SAFRAN\\1\\all_glaciers_1967_2015\\'
+    
+    path_reconstructions = 'C:\\Jordi\\PhD\\Publications\\Second article\\Dataset\\Updated dataset\\'
+    path_aster_reconstructions = 'C:\\Jordi\\PhD\\Publications\\Second article\\Dataset\\ASTER dataset\\'
+    path_dataset = 'C:\\Jordi\\PhD\\Publications\\Second article\\Dataset\\'
+    
+elif(reconstruction_type == 'lasso'):
+    path_smb = os.path.join(workspace, 'glacier_data', 'smb', 'smb_simulations', 'SAFRAN', '1', 'all_glaciers_1967_2015', 'lasso', 'smb')
+    path_smb_plots = os.path.join(workspace, 'glacier_data', 'smb', 'smb_simulations', 'reconstruction_plots', 'lasso')
+    
+    path_backup = os.path.join(path_smb_root, 'smb_simulations', 'SAFRAN', '1', 'all_glaciers_1967_2015', 'lasso')
+    
+    path_reconstructions = os.path.join(workspace, 'glacier_data', 'smb', 'smb_simulations', 'SAFRAN', '1', 'all_glaciers_1967_2015', 'lasso', 'smb')
+    path_aster_reconstructions = 'C:\\Jordi\\PhD\\Publications\\Second article\\Dataset\\ASTER dataset\\lasso\\'
+    path_dataset = 'C:\\Jordi\\PhD\\Publications\\Second article\\Dataset\\lasso\\'
+    
+elif(reconstruction_type == 'LSYGO'):
+    path_smb = os.path.join(workspace, 'glacier_data', 'smb', 'smb_simulations', 'SAFRAN', '1', 'all_glaciers_1967_2015', 'LSYGO', 'smb')
+    path_smb_plots = os.path.join(workspace, 'glacier_data', 'smb', 'smb_simulations', 'reconstruction_plots', 'LSYGO')
+    
+    path_backup = os.path.join(path_smb_root, 'smb_simulations', 'SAFRAN', '1', 'all_glaciers_1967_2015', 'LSYGO')
+    
+    path_reconstructions = os.path.join(workspace, 'glacier_data', 'smb', 'smb_simulations', 'SAFRAN', '1', 'all_glaciers_1967_2015', 'LSYGO', 'smb')
+    path_aster_reconstructions = 'C:\\Jordi\\PhD\\Publications\\Second article\\Dataset\\ASTER dataset\\LSYGO\\'
+    path_dataset = 'C:\\Jordi\\PhD\\Publications\\Second article\\Dataset\\LSYGO\\'
 
 #######################    FUNCTIONS    ##########################################################
 

@@ -25,6 +25,7 @@ from sklearn.preprocessing import StandardScaler, normalize, MinMaxScaler
 from sklearn.metrics import r2_score
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from sklearn.utils.class_weight import compute_sample_weight
+from sklearn.linear_model import LassoCV
 #from sklearn.neighbors import KernelDensity
 
 from keras.callbacks import EarlyStopping
@@ -55,6 +56,7 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 workspace = Path(os.getcwd()).parent 
 root = workspace.parent
 path_smb = os.path.join(workspace, 'glacier_data', 'smb')
+path_smb_function = os.path.join(workspace, 'glacier_data', 'smb', 'smb_function', 'Lasso_LSYGO_ensemble')
 #SMB_raw_o = genfromtxt(path_smb + 'SMB_raw_extended.csv', delimiter=';', dtype=float)
 SMB_raw = genfromtxt(os.path.join(path_smb, 'SMB_raw_temporal.csv'), delimiter=';', dtype=float)
 path_ann_LOGO = os.path.join(path_smb , 'ANN', 'LOGO')
@@ -62,6 +64,7 @@ path_ann_LOYO = os.path.join(path_smb, 'ANN', 'LOYO')
 path_ann_LSYGO = os.path.join(path_smb, 'ANN', 'LSYGO')
 path_ann_LSYGO_hard = os.path.join(path_smb, 'ANN', 'LSYGO_hard')
 path_ann_LSYGO_past = os.path.join(path_smb, 'ANN', 'LSYGO_past')
+path_ann_LSYGO_future = os.path.join(path_smb, 'ANN', 'LSYGO_future')
 
 
 ######################################
@@ -70,16 +73,17 @@ w_weights = False
 #cross_validation = "LOGO"
 #cross_validation = "LOYO"
 #cross_validation = "LSYGO"
-cross_validation = "LSYGO_hard"
+#cross_validation = "LSYGO_hard"
 #cross_validation = "LSYGO_past"
-lsygo_soft = False
+cross_validation = "LSYGO_future"
+lsygo_soft = True
 #######  Flag to switch between training with a         ###############
 #######  single group of glaciers or cross-validation   ###############
 training = False
 # Train only the full model without training CV models
-final_model_only = False
+final_model_only = True
 # Activate the ensemble modelling approach
-final_model = False
+final_model = True
 # Only re-calculate fold performances based on previously trained models
 recalculate_performance = False
 ########################################
@@ -98,6 +102,9 @@ elif(cross_validation == 'LSYGO_hard'):
     path_cv_ann = os.path.join(path_ann, 'CV')
 elif(cross_validation == 'LSYGO_past'):
     path_ann = path_ann_LSYGO_past
+    path_cv_ann = os.path.join(path_ann, 'CV')
+elif(cross_validation == 'LSYGO_future'):
+    path_ann = path_ann_LSYGO_future
     path_cv_ann = os.path.join(path_ann, 'CV')
 
 
@@ -341,6 +348,9 @@ with open(os.path.join(root, 'X_nn_extended.txt'), 'rb') as x_f:
     X = np.load(x_f)
 with open(os.path.join(root, 'y_extended.txt'), 'rb') as y_f:
     y_o = np.load(y_f)
+    
+with open(os.path.join(root, 'X_lasso.txt'), 'rb') as x_f:
+    X_lasso = np.load(x_f)
 
 y = y_o.flatten()
 
@@ -350,214 +360,254 @@ print("y.shape: " + str(y.shape))
 
 #######################################################
 
-# Leave One Group Out indexes
-groups = []
-group_n = 1
-group_i = 1
 
-# Multi-glacier folds
-#for glacier in SMB_raw:
-#    groups = np.concatenate((groups, np.repeat(group_n, np.count_nonzero(~np.isnan(glacier)))), axis=None)
-#    if(group_i > 3):
-#        group_n = group_n+1
-#        group_i = 1
-#    group_i = group_i+1
-
-# Single-glacier folds
-#for glacier in SMB_raw:
-#    groups = np.concatenate((groups, np.repeat(group_n, np.count_nonzero(~np.isnan(glacier)))), axis=None)
-#    group_n = group_n+1
-
-for glacier in SMB_raw:
-    groups = np.concatenate((groups, np.repeat(group_n, glacier.size)), axis=None)
-    group_n = group_n+1
-
-    
-# Single-year folds
-year_groups = []
-year_n = 1
-current_group = 1
-#for glacier_group in groups:
-glacier_count = 0
-for glacier in SMB_raw:
-    for year in range(1, 58):
-        year_groups.append(year)
-    
-    glacier_count = glacier_count+1
-        
-        
-year_groups = np.asarray(year_groups)  
-year_groups_n = year_groups.max()  
-
-groups = np.asarray(groups)  
-
-lsygo_test_matrixes, lsygo_train_matrixes = [],[]
-
-# LSYGO folds
-year_idx = 0
-glacier_idx = 0
-#np.random.seed(10)
-#n_folds = 60
-n_folds = 100
-random_years = np.random.randint(0, 57, n_folds*6) # Random year idxs
-random_glaciers = np.random.randint(0, 32, n_folds*6) # Random glacier indexes
-
-y_not_nan = np.isfinite(y_o)
-y_is_nan = np.isnan(y_o)
-
-### Weighted bagging ########
-p_weights = np.ones(y_o[y_not_nan].shape)
-
-idx, i, j = 0, 0, 0
-for i in range(0, y_o.shape[0]):
-    for j in range(0, y_o.shape[1]):
-        if(np.isfinite(y_o[i,j])):
-            if(j < 26):
-                p_weights[idx] = p_weights[idx] + 1/3 # Add weight for the 1959-1967 period
-            idx=idx+1
-            
 # Set the weights for different time periods        
 #y_weights = np.where(random_years > 44, 1/2, 1)
             
-# Balance years with less negative/positive SMB  
-y_weights = []
-for year in random_years:
-    if(np.nanmean(y_o[:, year]) > -0.5):
-        y_weights.append(1.5)
-    else:
-        y_weights.append(1)
-y_weights = np.asarray(y_weights)
-
 # No weights
 #y_weights = np.ones(random_years.shape)
 
 avg_sampled_smb = []    
-#############################
-     
-for fold in range(1, n_folds+1):
-    test_matrix, train_matrix = np.zeros((32, 57), dtype=np.int8), np.ones((32, 57), dtype=np.int8)
-    
-    if(lsygo_soft):
-        ##################  Soft LSYGO   ###################################
-        choice = weighted_choice(np.asarray(range(0,1048)), p_weights)
-        
-        # Weighted bagging 
-        idx, i, j = 0, 0, 0
-        for i in range(0, y_o.shape[0]):
-            for j in range(0, y_o.shape[1]):
-                if(np.isfinite(y_o[i,j])):
-                    if(choice == idx):
-                        glacier_idx = i
-                        year_idx = j
-        #            print("counter = " + str(idx))
-                    idx=idx+1
-        
-        print("\nChosen glacier: " + str(glacier_idx))
-        print("Chosen year: " + str(year_idx))
-        print("SMB: " + str(y_o[glacier_idx,year_idx]))
-        avg_sampled_smb = np.concatenate((avg_sampled_smb, np.concatenate((y_o[glacier_idx,:], y_o[:,year_idx]))))
-        
-        # Fill test matrix
-        test_matrix[glacier_idx, :] = 1
-        # Fill train matrix
-        train_matrix[glacier_idx, :] = 0
-        
-        # Fill test matrix
-        test_matrix[:, year_idx] = 1
-        
-        # Fill train matrix
-        train_matrix[:, year_idx] = 0
-    
-    else:
-        ############  Hard LSYGO   ##########################################
-        
-#        print("\nglacier_idx: " + str(glacier_idx))
-#        print("year_idx: " + str(year_idx))
-#        print("random_glaciers[glacier_idx]: " + str(random_glaciers[glacier_idx]))
-#        print("random_years[year_idx]: " + str(random_years[year_idx]))
-        
-        year_choice = []
-        for i in range(0, 4):
-            year_choice.append(weighted_choice(random_years, y_weights))
-        
-        print("Chosen years: " + str(year_choice))
-        
-        # Fill test matrix
-        # 1
-        test_matrix[random_glaciers[glacier_idx], year_choice[0]] = 1
-        test_matrix[random_glaciers[glacier_idx], year_choice[1]] = 1
-        test_matrix[random_glaciers[glacier_idx], year_choice[2]] = 1
-        test_matrix[random_glaciers[glacier_idx], year_choice[3]] = 1
-        
-        # 2
-        test_matrix[random_glaciers[glacier_idx+1], year_choice[0]] = 1
-        test_matrix[random_glaciers[glacier_idx+1], year_choice[1]] = 1
-        test_matrix[random_glaciers[glacier_idx+1], year_choice[2]] = 1
-        test_matrix[random_glaciers[glacier_idx+1], year_choice[3]] = 1
-        
-        # 3
-        test_matrix[random_glaciers[glacier_idx+2], year_choice[0]] = 1
-        test_matrix[random_glaciers[glacier_idx+2], year_choice[1]] = 1
-        test_matrix[random_glaciers[glacier_idx+2], year_choice[2]] = 1
-        test_matrix[random_glaciers[glacier_idx+2], year_choice[3]] = 1
-        
-        # 4
-        test_matrix[random_glaciers[glacier_idx+3], year_choice[0]] = 1
-        test_matrix[random_glaciers[glacier_idx+3], year_choice[1]] = 1
-        test_matrix[random_glaciers[glacier_idx+3], year_choice[2]] = 1
-        test_matrix[random_glaciers[glacier_idx+3], year_choice[3]] = 1
-        
-        # Fill train matrix
-        train_matrix[random_glaciers[glacier_idx], :] = 0
-        train_matrix[random_glaciers[glacier_idx+1], :] = 0
-        train_matrix[random_glaciers[glacier_idx+2], :] = 0
-        train_matrix[random_glaciers[glacier_idx+3], :] = 0
-        
-        train_matrix[:, year_choice[0]] = 0
-        train_matrix[:, year_choice[1]] = 0
-        train_matrix[:, year_choice[2]] = 0
-        train_matrix[:, year_choice[3]] = 0
-        
-        ###########################################################################
-    
-    # Add matrixes to folds
-    lsygo_test_matrixes.append(test_matrix)
-    lsygo_train_matrixes.append(train_matrix)
-    
-    year_idx = year_idx+4
-    glacier_idx = glacier_idx+4
-
-#import pdb; pdb.set_trace()
 
 # We capture the mask from the SMB data to remove the nan gaps  
 finite_mask = np.isfinite(y)
 
-if(lsygo_soft):
-    print("\nAverage sampled SMB LSYGO: " + str(np.nanmean(avg_sampled_smb)))
-
 X = X[finite_mask,:]
 y = y[finite_mask]
 
+#############################
 
-groups = groups[finite_mask]
+SMB_lasso, SMB_obs = [],[]
 
-year_groups = year_groups[finite_mask] - 25
+for iteration in range(1,2): 
+    
+    # Leave One Group Out indexes
+    groups = []
+    group_n = 1
+    group_i = 1
+    
+    # Multi-glacier folds
+    #for glacier in SMB_raw:
+    #    groups = np.concatenate((groups, np.repeat(group_n, np.count_nonzero(~np.isnan(glacier)))), axis=None)
+    #    if(group_i > 3):
+    #        group_n = group_n+1
+    #        group_i = 1
+    #    group_i = group_i+1
+    
+    # Single-glacier folds
+    #for glacier in SMB_raw:
+    #    groups = np.concatenate((groups, np.repeat(group_n, np.count_nonzero(~np.isnan(glacier)))), axis=None)
+    #    group_n = group_n+1
+    
+    for glacier in SMB_raw:
+        groups = np.concatenate((groups, np.repeat(group_n, glacier.size)), axis=None)
+        group_n = group_n+1
+    
+        
+    # Single-year folds
+    year_groups = []
+    year_n = 1
+    current_group = 1
+    #for glacier_group in groups:
+    glacier_count = 0
+    for glacier in SMB_raw:
+        for year in range(1, 58):
+            year_groups.append(year)
+        
+        glacier_count = glacier_count+1
+            
+            
+    year_groups = np.asarray(year_groups)  
+    year_groups_n = year_groups.max()  
+    
+    groups = np.asarray(groups)  
+    
+    lsygo_test_matrixes, lsygo_train_matrixes = [],[]
+    year_idx = 0
+    glacier_idx = 0
+    
+    # LSYGO folds
+    #np.random.seed(10)
+    n_folds = 60
+#    n_folds = 100
+    random_years = np.random.randint(0, 57, n_folds*6) # Random year idxs
+    random_glaciers = np.random.randint(0, 32, n_folds*6) # Random glacier indexes
+    
+    # Balance years with less negative/positive SMB  
+    y_weights = []
+    for year in random_years:
+        if(np.nanmean(y_o[:, year]) > -0.5):
+#            y_weights.append(1.5)
+            y_weights.append(1)
+        else:
+            y_weights.append(1)
+    y_weights = np.asarray(y_weights)
+    
+    y_not_nan = np.isfinite(y_o)
+    y_is_nan = np.isnan(y_o)
+    
+    ### Weighted bagging ########
+    p_weights = np.ones(y_o[y_not_nan].shape)
+    
+    idx, i, j = 0, 0, 0
+    for i in range(0, y_o.shape[0]):
+        for j in range(0, y_o.shape[1]):
+            if(np.isfinite(y_o[i,j])):
+                if(j < 26):
+                    p_weights[idx] = p_weights[idx] + 1/3 # Add weight for the 1959-1967 period
+                idx=idx+1
+            
+    
+    for fold in range(1, n_folds+1):
+        test_matrix, train_matrix = np.zeros((32, 57), dtype=np.int8), np.ones((32, 57), dtype=np.int8)
+        
+        if(lsygo_soft):
+            ##################  Soft LSYGO   ###################################
+            choice = weighted_choice(np.asarray(range(0,1048)), p_weights)
+            
+            # Weighted bagging 
+            idx, i, j = 0, 0, 0
+            for i in range(0, y_o.shape[0]):
+                for j in range(0, y_o.shape[1]):
+                    if(np.isfinite(y_o[i,j])):
+                        if(choice == idx):
+                            glacier_idx = i
+                            year_idx = j
+            #            print("counter = " + str(idx))
+                        idx=idx+1
+            
+            print("\nChosen glacier: " + str(glacier_idx))
+            print("Chosen year: " + str(year_idx))
+            print("SMB: " + str(y_o[glacier_idx,year_idx]))
+            avg_sampled_smb = np.concatenate((avg_sampled_smb, np.concatenate((y_o[glacier_idx,:], y_o[:,year_idx]))))
+            
+            # Fill test matrix
+            test_matrix[glacier_idx, :] = 1
+            # Fill train matrix
+            train_matrix[glacier_idx, :] = 0
+            
+            # Fill test matrix
+            test_matrix[:, year_idx] = 1
+            
+            # Fill train matrix
+            train_matrix[:, year_idx] = 0
+        
+        else:
+            ############  Hard LSYGO   ##########################################
+            
+    #        print("\nglacier_idx: " + str(glacier_idx))
+    #        print("year_idx: " + str(year_idx))
+    #        print("random_glaciers[glacier_idx]: " + str(random_glaciers[glacier_idx]))
+    #        print("random_years[year_idx]: " + str(random_years[year_idx]))
+            
+            year_choice = []
+            for i in range(0, 4):
+                year_choice.append(weighted_choice(random_years, y_weights))
+            
+            print("Chosen years: " + str(year_choice))
+            
+            # Fill test matrix
+            # 1
+            test_matrix[random_glaciers[glacier_idx], year_choice[0]] = 1
+            test_matrix[random_glaciers[glacier_idx], year_choice[1]] = 1
+            test_matrix[random_glaciers[glacier_idx], year_choice[2]] = 1
+            test_matrix[random_glaciers[glacier_idx], year_choice[3]] = 1
+            
+            # 2
+            test_matrix[random_glaciers[glacier_idx+1], year_choice[0]] = 1
+            test_matrix[random_glaciers[glacier_idx+1], year_choice[1]] = 1
+            test_matrix[random_glaciers[glacier_idx+1], year_choice[2]] = 1
+            test_matrix[random_glaciers[glacier_idx+1], year_choice[3]] = 1
+            
+            # 3
+            test_matrix[random_glaciers[glacier_idx+2], year_choice[0]] = 1
+            test_matrix[random_glaciers[glacier_idx+2], year_choice[1]] = 1
+            test_matrix[random_glaciers[glacier_idx+2], year_choice[2]] = 1
+            test_matrix[random_glaciers[glacier_idx+2], year_choice[3]] = 1
+            
+            # 4
+            test_matrix[random_glaciers[glacier_idx+3], year_choice[0]] = 1
+            test_matrix[random_glaciers[glacier_idx+3], year_choice[1]] = 1
+            test_matrix[random_glaciers[glacier_idx+3], year_choice[2]] = 1
+            test_matrix[random_glaciers[glacier_idx+3], year_choice[3]] = 1
+            
+            # Fill train matrix
+            train_matrix[random_glaciers[glacier_idx], :] = 0
+            train_matrix[random_glaciers[glacier_idx+1], :] = 0
+            train_matrix[random_glaciers[glacier_idx+2], :] = 0
+            train_matrix[random_glaciers[glacier_idx+3], :] = 0
+            
+            train_matrix[:, year_choice[0]] = 0
+            train_matrix[:, year_choice[1]] = 0
+            train_matrix[:, year_choice[2]] = 0
+            train_matrix[:, year_choice[3]] = 0
+            
+            ###########################################################################
+        
+        # Add matrixes to folds
+        lsygo_test_matrixes.append(test_matrix)
+        lsygo_train_matrixes.append(train_matrix)
+        
+        year_idx = year_idx+4
+        glacier_idx = glacier_idx+4
+    
+    #import pdb; pdb.set_trace()
+    if(lsygo_soft):
+        print("\nAverage sampled SMB LSYGO: " + str(np.nanmean(avg_sampled_smb)))
+    
+    groups = groups[finite_mask]
+    
+    year_groups = year_groups[finite_mask] - 25
+    
+    # Remove negative fold indexes and set them to 0 (not used in CV)
+    year_groups = np.where(year_groups < 0, 0, year_groups)
+    
+    # We flatten and filter the nan values
+    lsygo_test_int_folds, lsygo_train_int_folds = [],[]
+    # Filter LSYGO folds
+    for test_fold, train_fold in zip(lsygo_test_matrixes, lsygo_train_matrixes):
+    #    print("test_fold.flatten()[finite_mask]: " + str(np.sum(test_fold.flatten()[finite_mask])))
+        if(np.sum(test_fold.flatten()[finite_mask]) > 0):
+            lsygo_test_int_folds.append(test_fold.flatten()[finite_mask])
+            lsygo_train_int_folds.append(train_fold.flatten()[finite_mask])
+    
+    # From int to boolean
+    lsygo_test_folds = np.array(lsygo_test_int_folds, dtype=bool)
+    lsygo_train_folds = np.array(lsygo_train_int_folds, dtype=bool)
+    
+    lsygo_idx_train_folds, lsygo_idx_test_folds = [],[]
+    for train_fold, test_fold in zip(lsygo_train_folds, lsygo_test_folds):
+        lsygo_idx_train_folds.append(np.asarray(range(0,1048))[train_fold])
+        lsygo_idx_test_folds.append(np.asarray(range(0,1048))[test_fold])
+    
+    lsygo_idx_train_folds = np.asarray(lsygo_idx_train_folds)
+    lsygo_idx_test_folds = np.asarray(lsygo_idx_test_folds)
+    
+    lsygo_idx_folds = zip(lsygo_idx_train_folds,lsygo_idx_test_folds)
+    
+    #####  LASSO   #######
+    
+    # We fit the LSYGO hard Lasso model
+    cv_model_lasso = LassoCV(cv=lsygo_idx_folds).fit(X_lasso, y)
+    
+    for fold in lsygo_idx_test_folds:
+        SMB_obs = np.concatenate((SMB_obs, y[fold]), axis=None)
+        SMB_lasso = np.concatenate((SMB_lasso, cv_model_lasso.predict(X_lasso[fold,:])), axis=None)
+    
+#    import pdb; pdb.set_trace()
 
-# Remove negative fold indexes and set them to 0 (not used in CV)
-year_groups = np.where(year_groups < 0, 0, year_groups)
+    
+    # We save the lasso model
+    with open(os.path.join(path_smb_function, 'lasso_LSYGO_hard_' + str(iteration) + '.txt'), 'wb') as model_gbl_f:
+        np.save(model_gbl_f, cv_model_lasso)
 
-# We flatten and filter the nan values
-lsygo_test_int_folds, lsygo_train_int_folds = [],[]
-# Filter LSYGO folds
-for test_fold, train_fold in zip(lsygo_test_matrixes, lsygo_train_matrixes):
-#    print("test_fold.flatten()[finite_mask]: " + str(np.sum(test_fold.flatten()[finite_mask])))
-    if(np.sum(test_fold.flatten()[finite_mask]) > 0):
-        lsygo_test_int_folds.append(test_fold.flatten()[finite_mask])
-        lsygo_train_int_folds.append(train_fold.flatten()[finite_mask])
-
-# From int to boolean
-lsygo_test_folds = np.array(lsygo_test_int_folds, dtype=bool)
-lsygo_train_folds = np.array(lsygo_train_int_folds, dtype=bool)
+# Store all the SMB data from all 100 models      
+with open(os.path.join(path_smb_function, 'SMB_lasso_all.txt'), 'wb') as smb_f: 
+    np.save(smb_f, SMB_lasso)
+with open(os.path.join(path_smb_function, 'SMB_lasso_obs_all.txt'), 'wb') as smb_f: 
+    np.save(smb_f, SMB_obs)
+    
+#import pdb; pdb.set_trace()
 
 logo = LeaveOneGroupOut()
 loyo = LeaveOneGroupOut()
@@ -614,7 +664,7 @@ elif(cross_validation == 'LOYO'):
 # LOYO
     test_idx = np.where(year_groups == glacier_subset_idx)
     train_idx = np.where(year_groups != glacier_subset_idx)
-elif(cross_validation == "LSYGO" or cross_validation == "LSYGO_past" or cross_validation == "LSYGO_hard"):
+elif(cross_validation == "LSYGO" or cross_validation == "LSYGO_past" or cross_validation == "LSYGO_hard" or cross_validation == "LSYGO_future"):
     test_idx = lsygo_test_folds[glacier_subset_idx]
     train_idx = lsygo_train_folds[glacier_subset_idx]
 
@@ -646,7 +696,7 @@ if(training):
         model = create_loyo_model(n_features)
     elif(cross_validation == 'LOGO'):
         model = create_logo_model(n_features, final=False)
-    elif(cross_validation == 'LSYGO' or cross_validation == 'LSYGO_past' or cross_validation == 'LSYGO_hard'):
+    elif(cross_validation == 'LSYGO' or cross_validation == 'LSYGO_past' or cross_validation == 'LSYGO_hard' or cross_validation == "LSYGO_future"):
         model = create_lsygo_model(n_features, final=False)
         
 #    train_idx = np.asarray(train_idx)
@@ -750,7 +800,7 @@ else:
 #    
 #    weights_full = positive_smb_weights
     
-    SMB_nn_all = []
+    SMB_nn_all, SMB_nn_obs_all = [],[]
     RMSE_nn_all, RMSE_nn_all_w = [],[]
     bias_nn_all = []
     r2_nn_all, r2_nn_all_w = [],[]
@@ -777,6 +827,11 @@ else:
         n_epochs = 3000
 #        n_epochs = 800
     elif(cross_validation == 'LSYGO_past'):
+        splits = zip(past_folds_train, past_folds_test)
+        full_model = create_lsygo_model(n_features, final=False)
+        fold_filter = -1
+        n_epochs = 2000
+    elif(cross_validation == 'LSYGO_future'):
         splits = zip(past_folds_train, past_folds_test)
         full_model = create_lsygo_model(n_features, final=False)
         fold_filter = -1
@@ -829,7 +884,7 @@ else:
         #                print("train_idx: " + str(np.where(train_idx == True)))
                         
         #                import pdb; pdb.set_trace()
-                    
+        
                     weights_train = weights_full[train_idx]
                     weights_test = weights_full[test_idx]
                     
@@ -845,6 +900,9 @@ else:
                     elif(cross_validation == "LSYGO_past"):
                         model = create_lsygo_model(n_features, final=False)
                         file_name = 'best_model_LSYGO_past.h5'
+                    elif(cross_validation == "LSYGO_future"):
+                        model = create_lsygo_model(n_features, final=False)
+                        file_name = 'best_model_LSYGO_future.h5'
                     
                     es = EarlyStopping(monitor='val_loss', mode='min', min_delta=0.01, patience=1000)
                     mc = ModelCheckpoint(os.path.join(path_ann, str(file_name)), monitor='val_loss', mode='min', save_best_only=True, verbose=1)
@@ -884,6 +942,7 @@ else:
                     
                     SMB_nn = best_model.predict(X_test, batch_size = 32)
                     SMB_nn_all = np.concatenate((SMB_nn_all, SMB_nn), axis=None)
+                    SMB_nn_obs_all = np.concatenate((SMB_nn_obs_all, y_test), axis=None)
                     
                     #### We store the CV model
                     if not os.path.exists(path_cv_ann):
@@ -957,7 +1016,11 @@ else:
             np.save(rmse_f, RMSE_nn_all)
         with open(os.path.join(path_ann, 'bias_per_fold.txt'), 'wb') as bias_f: 
             np.save(bias_f, bias_nn_all)
-        
+        with open(os.path.join(path_ann, 'SMB_nn_all.txt'), 'wb') as smb_f: 
+            np.save(smb_f, SMB_nn_all)
+        with open(os.path.join(path_ann, 'SMB_nn_obs_all.txt'), 'wb') as smb_obs_f: 
+            np.save(smb_obs_f, SMB_nn_obs_all)   
+            
 #        import pdb; pdb.set_trace()
         
         # Calculate the point density
@@ -1011,6 +1074,9 @@ else:
             elif(cross_validation == 'LSYGO_past'):
                 full_model = create_lsygo_model(n_features, final=True)
                 n_epochs = 2000
+            elif(cross_validation == 'LSYGO_future'):
+                full_model = create_lsygo_model(n_features, final=False)
+                n_epochs = 2000
              
             es = EarlyStopping(monitor='loss', mode='min', min_delta=0.01, patience=1000)
             
@@ -1046,7 +1112,8 @@ else:
             print("\nFull model score: " + str(full_original_score))
             print("\nFull model bias: " + str(overall_bias))
             
-            if(pos_rmse < 0.35 and neg_rmse < 0.4 and np.abs(overall_bias) < 0.1):
+#            if(pos_rmse < 0.35 and neg_rmse < 0.4 and np.abs(overall_bias) < 0.1):
+            if(pos_rmse < 1 and neg_rmse < 0.8 and np.abs(overall_bias) < 0.2):
                 average_overall_score.append(full_original_score[0])
                 average_pos_rmse.append(pos_rmse)
                 average_neg_rmse.append(neg_rmse)
