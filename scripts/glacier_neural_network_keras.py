@@ -26,6 +26,7 @@ from sklearn.metrics import r2_score
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from sklearn.utils.class_weight import compute_sample_weight
 from sklearn.linear_model import LassoCV
+from sklearn.linear_model import RidgeCV
 #from sklearn.neighbors import KernelDensity
 
 from keras.callbacks import EarlyStopping
@@ -81,9 +82,9 @@ lsygo_soft = True
 #######  single group of glaciers or cross-validation   ###############
 training = False
 # Train only the full model without training CV models
-final_model_only = True
+final_model_only = False
 # Activate the ensemble modelling approach
-final_model = True
+final_model = False
 # Only re-calculate fold performances based on previously trained models
 recalculate_performance = False
 ########################################
@@ -319,6 +320,12 @@ def create_lsygo_model(n_features, final):
         model.add(Dropout(0.1))
     #    model.add(Dropout(0.05))
     
+        model.add(Dense(5, kernel_initializer='he_normal'))
+        model.add(BatchNormalization()) 
+        model.add(LeakyReLU(alpha=0.05))
+        model.add(Dropout(0.1))
+    #    model.add(Dropout(0.05))
+    
     # Output layer
     model.add(Dense(1))
     
@@ -379,7 +386,7 @@ y = y[finite_mask]
 
 SMB_lasso, SMB_obs = [],[]
 
-for iteration in range(1,2): 
+for iteration in range(1,20): 
     
     # Leave One Group Out indexes
     groups = []
@@ -428,7 +435,7 @@ for iteration in range(1,2):
     
     # LSYGO folds
     #np.random.seed(10)
-    n_folds = 60
+    n_folds = 50
 #    n_folds = 100
     random_years = np.random.randint(0, 57, n_folds*6) # Random year idxs
     random_glaciers = np.random.randint(0, 32, n_folds*6) # Random glacier indexes
@@ -437,7 +444,7 @@ for iteration in range(1,2):
     y_weights = []
     for year in random_years:
         if(np.nanmean(y_o[:, year]) > -0.5):
-#            y_weights.append(1.5)
+#            y_weights.append(1.33)
             y_weights.append(1)
         else:
             y_weights.append(1)
@@ -454,7 +461,8 @@ for iteration in range(1,2):
         for j in range(0, y_o.shape[1]):
             if(np.isfinite(y_o[i,j])):
                 if(j < 26):
-                    p_weights[idx] = p_weights[idx] + 1/3 # Add weight for the 1959-1967 period
+#                    p_weights[idx] = p_weights[idx] + 1/3 # Add weight for the 1959-1967 period
+                    p_weights[idx] = p_weights[idx] 
                 idx=idx+1
             
     
@@ -588,11 +596,11 @@ for iteration in range(1,2):
     #####  LASSO   #######
     
     # We fit the LSYGO hard Lasso model
-    cv_model_lasso = LassoCV(cv=lsygo_idx_folds).fit(X_lasso, y)
+    cv_model_lasso = LassoCV(cv=lsygo_idx_folds).fit(X, y)
     
     for fold in lsygo_idx_test_folds:
         SMB_obs = np.concatenate((SMB_obs, y[fold]), axis=None)
-        SMB_lasso = np.concatenate((SMB_lasso, cv_model_lasso.predict(X_lasso[fold,:])), axis=None)
+        SMB_lasso = np.concatenate((SMB_lasso, cv_model_lasso.predict(X[fold,:])), axis=None)
     
 #    import pdb; pdb.set_trace()
 
@@ -801,6 +809,7 @@ else:
 #    weights_full = positive_smb_weights
     
     SMB_nn_all, SMB_nn_obs_all = [],[]
+    SMB_nn_folds, SMB_nn_obs_folds = [],[]
     RMSE_nn_all, RMSE_nn_all_w = [],[]
     bias_nn_all = []
     r2_nn_all, r2_nn_all_w = [],[]
@@ -832,7 +841,7 @@ else:
         fold_filter = -1
         n_epochs = 2000
     elif(cross_validation == 'LSYGO_future'):
-        splits = zip(past_folds_train, past_folds_test)
+        splits = zip(lsygo_train_folds, lsygo_test_folds)
         full_model = create_lsygo_model(n_features, final=False)
         fold_filter = -1
         n_epochs = 2000
@@ -869,6 +878,8 @@ else:
                     
                     SMB_nn = SMB_model.predict(X_test, batch_size = 32)
                     SMB_nn_all = np.concatenate((SMB_nn_all, SMB_nn), axis=None)
+                    SMB_nn_folds.append(SMB_nn)
+                    SMB_nn_obs_folds.append(y_test)
                     
                 # Train new models
                 else:
@@ -1020,8 +1031,14 @@ else:
             np.save(smb_f, SMB_nn_all)
         with open(os.path.join(path_ann, 'SMB_nn_obs_all.txt'), 'wb') as smb_obs_f: 
             np.save(smb_obs_f, SMB_nn_obs_all)   
+        with open(os.path.join(path_ann, 'SMB_nn_folds.txt'), 'wb') as smb_f: 
+            np.save(smb_f, np.asarray(SMB_nn_folds))
+        with open(os.path.join(path_ann, 'SMB_nn_obs_folds.txt'), 'wb') as smb_obs_f: 
+            np.save(smb_obs_f, np.asarray(SMB_nn_obs_folds))  
             
 #        import pdb; pdb.set_trace()
+        
+#        stacking_model = RidgeCV(cv=60).fit(np.transpose(SMB_nn_folds), SMB_nn_obs_folds)
         
         # Calculate the point density
         xy = np.vstack([SMB_ref_all,SMB_nn_all])
@@ -1113,7 +1130,7 @@ else:
             print("\nFull model bias: " + str(overall_bias))
             
 #            if(pos_rmse < 0.35 and neg_rmse < 0.4 and np.abs(overall_bias) < 0.1):
-            if(pos_rmse < 1 and neg_rmse < 0.8 and np.abs(overall_bias) < 0.2):
+            if(pos_rmse < 0.8 and np.abs(overall_bias) < 0.1):
                 average_overall_score.append(full_original_score[0])
                 average_pos_rmse.append(pos_rmse)
                 average_neg_rmse.append(neg_rmse)
@@ -1132,7 +1149,7 @@ else:
                             
                 with open(os.path.join(path_e_member, 'SMB_nn.txt'), 'wb') as SMB_nn_all_f: 
                     np.save(SMB_nn_all_f, SMB_nn_original)
-            
+                    
             if(len(average_overall_score) > 0):
                 print("\n Overall ensemble performance so far: " + str(np.average(average_overall_score)))
                 print("\n Overall ensemble positive SMB RMSE so far: " + str(np.average(average_pos_rmse)))

@@ -28,7 +28,7 @@ with_26 = True
 filter_glacier = False
 static_geometry = False
 load_dictionaries = True
-other_plots = True
+other_plots = False
 #filter_member = False
 # mer de glace
 #glacier_ID_filter = "G006934E45883N"
@@ -754,29 +754,32 @@ else:
     #### Analyzing Deep learning - Lasso runs  ######
     #################################################
     
-    ds_glacier_projections_lasso = xr.open_dataset(os.path.join(path_glacier_evolution, 'glacier_evolution_lasso_' + str(year_start) + '_2100.nc'))
+    ds_glacier_projections_lasso = xr.open_dataset(os.path.join(path_glacier_evolution, 'glacier_evolution_lasso_' + str(year_start) + '_2100_hard.nc'))
     
-    path_glacier_evolution = os.path.join(workspace, 'glacier_data', 'glacier_evolution')
-    ds_glacier_projections = xr.open_dataset(os.path.join(path_glacier_evolution, 'glacier_evolution_' + str(year_start) + '_2100.nc'))
+    path_glacier_evolution_nn = os.path.join(workspace, 'glacier_data', 'glacier_evolution')
+    ds_glacier_projections = xr.open_dataset(os.path.join(path_glacier_evolution_nn, 'glacier_evolution_' + str(year_start) + '_2100.nc'))
     
-#    import pdb; pdb.set_trace()
-    
-    submembers = ds_glacier_projections_lasso.member.values[10]
-    
-#    submembers = members_with_26[0]
+#    submembers = ds_glacier_projections_lasso.member.values[-5:]
+    submembers = ds_glacier_projections.member.values[:6]
 #    
 #    import pdb; pdb.set_trace()
     
-    MB_26_lasso = ds_glacier_projections_lasso.MB.sel(RCP='26', member=[submembers]).mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
-    MB_45_lasso = ds_glacier_projections_lasso.MB.sel(RCP='45', member=[submembers]).mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
-    MB_85_lasso = ds_glacier_projections_lasso.MB.sel(RCP='85', member=[submembers]).mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
+    MB_26_lasso = ds_glacier_projections_lasso.MB.sel(RCP='26', member=submembers).mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
+    MB_45_lasso = ds_glacier_projections_lasso.MB.sel(RCP='45', member=submembers).mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
+    MB_85_lasso = ds_glacier_projections_lasso.MB.sel(RCP='85', member=submembers).mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
     
-    MB_26_nn = ds_glacier_projections.MB.sel(RCP='26', member=[submembers]).mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
-    MB_45_nn = ds_glacier_projections.MB.sel(RCP='45', member=[submembers]).mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
-    MB_85_nn = ds_glacier_projections.MB.sel(RCP='85', member=[submembers]).mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
+    MB_26_lasso_members = ds_glacier_projections_lasso.MB.sel(RCP='26', member=submembers).groupby('member').mean(dim=['GLIMS_ID', 'massif_ID'])
+    MB_45_lasso_members = ds_glacier_projections_lasso.MB.sel(RCP='45', member=submembers).groupby('member').mean(dim=['GLIMS_ID', 'massif_ID'])
+    MB_85_lasso_members = ds_glacier_projections_lasso.MB.sel(RCP='85', member=submembers).groupby('member').mean(dim=['GLIMS_ID', 'massif_ID'])
     
-#    import pdb; pdb.set_trace()
-       
+    MB_26_nn = ds_glacier_projections.MB.sel(RCP='26', member=submembers).mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
+    MB_45_nn = ds_glacier_projections.MB.sel(RCP='45', member=submembers).mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
+    MB_85_nn = ds_glacier_projections.MB.sel(RCP='85', member=submembers).mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
+    
+    MB_26_nn_members = ds_glacier_projections.MB.sel(RCP='26', member=submembers).groupby('member').mean(dim=['GLIMS_ID', 'massif_ID'])
+    MB_45_nn_members = ds_glacier_projections.MB.sel(RCP='45', member=submembers).groupby('member').mean(dim=['GLIMS_ID', 'massif_ID'])
+    MB_85_nn_members = ds_glacier_projections.MB.sel(RCP='85', member=submembers).groupby('member').mean(dim=['GLIMS_ID', 'massif_ID'])
+    
     p26 = poly.Polynomial.fit(MB_26_lasso.year.values[:-1], (MB_26_nn.values - MB_26_lasso.values)[:-1], 3)
     poly26 = np.asarray(p26.linspace(n=MB_45_lasso.year.values[:-1].size))[1,:]
     p45 = poly.Polynomial.fit(MB_45_lasso.year.values[:-1], (MB_45_nn.values - MB_45_lasso.values)[:-1], 3)
@@ -784,9 +787,9 @@ else:
     p85 = poly.Polynomial.fit(MB_85_lasso.year.values[:-1], (MB_85_nn.values - MB_85_lasso.values)[:-1], 3)
     poly85 = np.asarray(p85.linspace(n=MB_85_lasso.year.values[:-1].size))[1,:]
     
-    #########################################
-    #### Analyzing ALPGM - GloGEM runs ######
-    #########################################
+    #############################################
+    #### Analyzing ALPGM - GloGEMflow runs ######
+    #############################################
     
 #    MB_26_alpgm = ds_glacier_projections.MB.sel(RCP='26').mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
 #    MB_45_alpgm = ds_glacier_projections.MB.sel(RCP='45').mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
@@ -794,17 +797,32 @@ else:
     
     ds_smb_reconstructions = xr.open_dataset(os.path.join(path_dataset, 'french_alpine_glaciers_MB_reconstruction_1967_2015.nc'))
     
+    # Volume
     volume_26_alpgm = ds_glacier_projections.volume.sel(RCP='26').mean(dim=['massif_ID', 'member']).sum(dim=['GLIMS_ID'])[:-1]
     volume_45_alpgm = ds_glacier_projections.volume.sel(RCP='45').mean(dim=['massif_ID', 'member']).sum(dim=['GLIMS_ID'])[:-1]
     volume_85_alpgm = ds_glacier_projections.volume.sel(RCP='85').mean(dim=['massif_ID', 'member']).sum(dim=['GLIMS_ID'])[:-1]
     
-    zmean_26_alpgm = ds_glacier_projections.zmean.sel(RCP='26').mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
-    zmean_45_alpgm = ds_glacier_projections.zmean.sel(RCP='45').mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
-    zmean_85_alpgm = ds_glacier_projections.zmean.sel(RCP='85').mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
+    volume_26_alpgm_lasso = ds_glacier_projections_lasso.volume.sel(RCP='26').mean(dim=['massif_ID', 'member']).sum(dim=['GLIMS_ID'])[:-1]
+    volume_45_alpgm_lasso = ds_glacier_projections_lasso.volume.sel(RCP='45').mean(dim=['massif_ID', 'member']).sum(dim=['GLIMS_ID'])[:-1]
+    volume_85_alpgm_lasso = ds_glacier_projections_lasso.volume.sel(RCP='85').mean(dim=['massif_ID', 'member']).sum(dim=['GLIMS_ID'])[:-1]
     
-    zmean_26_lasso = ds_glacier_projections_lasso.zmean.sel(RCP='26').mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
-    zmean_45_lasso = ds_glacier_projections_lasso.zmean.sel(RCP='45').mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
-    zmean_85_lasso = ds_glacier_projections_lasso.zmean.sel(RCP='85').mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
+    # Zmean
+    zmean_26_alpgm = ds_glacier_projections.zmean.sel(RCP='26').mean(dim=['massif_ID', 'member']).median(dim=['GLIMS_ID'])
+    zmean_45_alpgm = ds_glacier_projections.zmean.sel(RCP='45').mean(dim=['massif_ID', 'member']).median(dim=['GLIMS_ID'])
+    zmean_85_alpgm = ds_glacier_projections.zmean.sel(RCP='85').mean(dim=['massif_ID', 'member']).median(dim=['GLIMS_ID'])
+    
+    zmean_26_lasso = ds_glacier_projections_lasso.zmean.sel(RCP='26').mean(dim=['massif_ID', 'member']).median(dim=['GLIMS_ID'])
+    zmean_45_lasso = ds_glacier_projections_lasso.zmean.sel(RCP='45').mean(dim=['massif_ID', 'member']).median(dim=['GLIMS_ID'])
+    zmean_85_lasso = ds_glacier_projections_lasso.zmean.sel(RCP='85').mean(dim=['massif_ID', 'member']).median(dim=['GLIMS_ID'])
+    
+    # Area
+    area_26_alpgm = ds_glacier_projections.area.sel(RCP='26').mean(dim=['massif_ID', 'member']).median(dim=['GLIMS_ID'])
+    area_45_alpgm = ds_glacier_projections.area.sel(RCP='45').mean(dim=['massif_ID', 'member']).median(dim=['GLIMS_ID'])
+    area_85_alpgm = ds_glacier_projections.area.sel(RCP='85').mean(dim=['massif_ID', 'member']).median(dim=['GLIMS_ID'])
+    
+    area_26_lasso = ds_glacier_projections_lasso.area.sel(RCP='26').mean(dim=['massif_ID', 'member']).median(dim=['GLIMS_ID'])
+    area_45_lasso = ds_glacier_projections_lasso.area.sel(RCP='45').mean(dim=['massif_ID', 'member']).median(dim=['GLIMS_ID'])
+    area_85_lasso = ds_glacier_projections_lasso.area.sel(RCP='85').mean(dim=['massif_ID', 'member']).median(dim=['GLIMS_ID'])
     
     zeko_MB_2003_2015 = pd.read_csv(os.path.join(path_glogem, 'ZekollariHussFarinotti_TC2019_massbalance0315.csv'), sep=',')
     
@@ -898,21 +916,34 @@ else:
             collabels=['Annual nonlinear difference', 'Cumulative nonlinear difference', 'MB distribution']
     )
     
+#    import pdb; pdb.set_trace()
+    
     # Non-cumulative
     ax1[0].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
     ax1[3].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
     ax1[6].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
     
+    # Mean of RCP 2.6 members
     h1 = ax1[0].plot(MB_26_lasso.year.values, MB_26_nn.values - MB_26_lasso.values, c='slate blue', linewidth=1)
     h1 = ax1[0].plot(MB_26_lasso.year.values[:-1], poly26, c='dark blue', linewidth=4, alpha=0.5)
+    # Individual RCP 2.6 members
+    for member_nn_26, member_lasso_26 in zip(MB_26_nn_members, MB_26_lasso_members):
+        ax1[0].plot(MB_26_lasso.year.values, member_nn_26.values - member_lasso_26.values, c='slate blue', linewidth=0.1)
     ax1[0].set_ylim([-1,0.75])
-#    ax1[0].format(ylabel = "Lasso - Deep learning ($\Delta$ m.w.e. a$^{-1}$)")
+    # Mean of RCP 4.5 members
     h2 = ax1[3].plot(MB_45_lasso.year.values, MB_45_nn.values - MB_45_lasso.values, c='sienna', linewidth=1)
     h2 = ax1[3].plot(MB_45_lasso.year.values[:-1], poly45, c='dark orange', linewidth=4, alpha=0.5)
+    # Individual RCP 4.5 members
+    for member_nn_45, member_lasso_45 in zip(MB_45_nn_members, MB_45_lasso_members):
+        ax1[3].plot(MB_45_lasso.year.values, member_nn_45.values - member_lasso_45.values, c='sienna', linewidth=0.1)
     ax1[3].set_ylim([-1,0.75])
     ax1[3].format(ylabel = "Deep learning - Lasso ($\Delta$ m.w.e. a$^{-1}$)")
+    # Mean of RCP 8.5 members
     h3 = ax1[6].plot(MB_85_lasso.year.values, MB_85_nn.values - MB_85_lasso.values, c='light maroon', linewidth=1)
     h3 = ax1[6].plot(MB_85_lasso.year.values[:-1], poly85, c='dark red', linewidth=4, alpha=0.5)
+    # Individual RCP 8.5 members
+    for member_nn_85, member_lasso_85 in zip(MB_85_nn_members, MB_85_lasso_members):
+        ax1[6].plot(MB_85_lasso.year.values, member_nn_85.values - member_lasso_85.values, c='light maroon', linewidth=0.1)
     ax1[6].set_ylim([-1,0.75])
 #    ax1[4].format(ylabel = "Lasso - Deep learning ($\Delta$ m.w.e. a$^{-1}$)")
     
@@ -921,15 +952,25 @@ else:
     ax1[4].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
     ax1[7].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
     
+    # Mean of RCP 2.6 members
     h1 = ax1[1].plot(MB_26_lasso.year.values, np.cumsum(MB_26_nn.values - MB_26_lasso.values), c='slate blue', linewidth=4)
-    ax1[1].set_ylim([-4,27])
-#    ax1[1].format(ylabel = "Lasso - Deep learning  ($\Delta$ m.w.e.)")
+    # Individual RCP 2.6 members
+    for member_nn_26, member_lasso_26 in zip(MB_26_nn_members, MB_26_lasso_members):
+        ax1[1].plot(MB_26_lasso.year.values, np.cumsum(member_nn_26.values - member_lasso_26.values), c='slate blue', linewidth=0.3)
+    ax1[1].set_ylim([-8,27])
+    # Mean of RCP 4.5 members
     h2 = ax1[4].plot(MB_45_lasso.year.values, np.cumsum(MB_45_nn.values - MB_45_lasso.values), c='sienna', linewidth=4)
+    # Individual RCP 4.5 members
+    for member_nn_45, member_lasso_45 in zip(MB_45_nn_members, MB_45_lasso_members):
+        ax1[4].plot(MB_45_lasso.year.values, np.cumsum(member_nn_45.values - member_lasso_45.values), c='sienna', linewidth=0.3)
     ax1[4].set_ylim([-4,27])
+    # Mean of RCP 8.5 members
     ax1[4].format(ylabel = "Deep learning - Lasso ($\Delta$ m.w.e.)")
     h3 = ax1[7].plot(MB_85_lasso.year.values, np.cumsum(MB_85_nn.values - MB_85_lasso.values), c='light maroon', linewidth=4)
+    # Individual RCP 8.5 members
+    for member_nn_85, member_lasso_85 in zip(MB_85_nn_members, MB_85_lasso_members):
+        ax1[7].plot(MB_85_lasso.year.values, np.cumsum(member_nn_85.values - member_lasso_85.values), c='light maroon', linewidth=0.3)
     ax1[7].set_ylim([-4,27])
-#    ax1[5].format(ylabel = "Lasso - Deep learning ($\Delta$ m.w.e.)")
     
     # Histograms
     bins = 'auto'
@@ -950,38 +991,29 @@ else:
     
     alpha = 0.2
     
-    ax1[2].format(xlabel = 'MB (m.w.e. a$^{-1}$)')
-    ax1[2].set_ylim([0,1.5])
-#    ax1[2].hist(MB_26_nn.values, density=True, bins = 'auto', color='midnightblue', alpha=alpha)
-#    ax1[2].hist(MB_26_lasso.values, density=True, bins = 'auto', color='skyblue', alpha=alpha)
-    ax1[2].axvline(x=0, color='black', linewidth=0.7)
+#    ax1[2].format(xlabel = 'MB (m.w.e. a$^{-1}$)')
+#    ax1[2].set_ylim([0,1.5])
+#    ax1[2].axvline(x=0, color='black', linewidth=0.7)
 #    ax1[2].plot(kde_x_DL_26, kde_DL_26(kde_x_DL_26), c='midnightblue', linewidth=2)
 #    ax1[2].fill_between(kde_x_DL_26, 0, kde_DL_26(kde_x_DL_26), zorder=1, facecolor='midnightblue', alpha=alpha)
 #    ax1[2].plot(kde_x_lasso_26, kde_lasso_26(kde_x_lasso_26), c='skyblue', linewidth=2, linestyle='--')
 #    ax1[2].fill_between(kde_x_lasso_26, 0, kde_lasso_26(kde_x_lasso_26), zorder=1, facecolor='skyblue', alpha=alpha)
-#    ax1[2].invert_xaxis()
     
     ax1[5].format(xlabel = 'MB (m.w.e. a$^{-1}$)')
     ax1[5].set_ylim([0,1.5])
-#    ax1[5].hist(MB_45_nn.values, density=True, bins = 'auto', color='bronze', alpha=alpha)
-#    ax1[5].hist(MB_45_lasso.values, density=True, bins = 'auto', color='goldenrod', alpha=alpha)
     ax1[5].axvline(x=0, color='black', linewidth=0.7)
     ax1[5].plot(kde_x_DL_45, kde_DL_45(kde_x_DL_45), c='bronze', linewidth=2)
     ax1[5].fill_between(kde_x_DL_45, 0, kde_DL_45(kde_x_DL_45), zorder=1, facecolor='bronze', alpha=alpha)
     ax1[5].plot(kde_x_lasso_45, kde_lasso_45(kde_x_lasso_45), c='tangerine', linewidth=2, linestyle='--')
     ax1[5].fill_between(kde_x_lasso_45, 0, kde_lasso_45(kde_x_lasso_45), zorder=1, facecolor='tangerine', alpha=alpha)
-#    ax1[5].invert_xaxis()
     
     ax1[8].format(xlabel = 'MB (m.w.e. a$^{-1}$)')
     ax1[8].set_ylim([0,1.5])
-#    ax1[8].hist(MB_85_nn.values, density=True, bins = 'auto', color='darkred', alpha=alpha)
-#    ax1[8].hist(MB_85_lasso.values, density=True, bins = 'auto', color='tomato', alpha=alpha)
     ax1[8].axvline(x=0, color='black', linewidth=0.7)
     ax1[8].plot(kde_x_DL_85, kde_DL_85(kde_x_DL_85), c='darkred', linewidth=2)
     ax1[8].fill_between(kde_x_DL_85, 0, kde_DL_85(kde_x_DL_85), zorder=1, facecolor='darkred', alpha=alpha)
     ax1[8].plot(kde_x_lasso_85, kde_lasso_85(kde_x_lasso_85), c='tomato', linewidth=2, linestyle='--')
     ax1[8].fill_between(kde_x_lasso_85, 0, kde_lasso_85(kde_x_lasso_85), zorder=1, facecolor='tomato', alpha=alpha)
-#    ax1[8].invert_xaxis()
     
     # Cumulative MB 
     legend_cum = 'r'
@@ -1135,6 +1167,102 @@ else:
 #    ax5[0].legend((h11,h12), loc='r', ncols=1, frame=True)
 #    ax5[1].legend((h21,h22), loc='r', ncols=1, frame=True)
 #    ax5[2].legend((h31,h32), loc='r', ncols=1, frame=True)
+    
+    ###################################
+    ####  VOLUME DL VS LASSO  #########
+    ###################################
+    
+    fig6, ax6 = plot.subplots(ncols=1, nrows=3, axwidth=2, aspect=1.5, sharey=0, sharex=3, spanx=2, spany=1, hspace='2.2em')
+
+    ax6.format(
+            abc=True, abcloc='ur', abcstyle='A',
+            ygridminor=True,
+            ytickloc='both', yticklabelloc='left',
+            xlabel='Year',
+            rightlabels=['RCP 2.6', 'RCP 4.5', 'RCP 8.5'],
+    )
+    
+#    import pdb; pdb.set_trace()
+    
+    h11 = ax6[0].plot(volume_26_alpgm.year.values, volume_26_alpgm.values, c='midnightblue', linewidth=2, label='Deep learning', legend='r', legend_kw={'ncols':1,'frame':True})
+    h12 = ax6[0].plot(volume_26_alpgm_lasso.year.values, volume_26_alpgm_lasso/1000, c='skyblue', linewidth=2, label='Lasso', legend='r', legend_kw={'ncols':1,'frame':True})
+#    ax6[0].set_ylim([0,volume_26_alpgm.max()])
+    ax6[0].format(ylabel='Total glacier volume (km$^{3}$)')
+    
+    h21 = ax6[1].plot(volume_45_alpgm.year.values, volume_45_alpgm.values, c='bronze', linewidth=2, label='Deep learning', legend='r', legend_kw={'ncols':1,'frame':True})
+    h22 = ax6[1].plot(volume_45_alpgm_lasso.year.values, volume_45_alpgm_lasso/1000, c='tangerine', linewidth=2, label='Lasso', legend='r', legend_kw={'ncols':1,'frame':True})
+#    ax6[1].set_ylim([0,volume_45_alpgm.max()])
+    ax6[1].format(ylabel='Total glacier volume (km$^{3}$)')
+    
+    h31 = ax6[2].plot(volume_85_alpgm.year.values, volume_85_alpgm.values, c='darkred', linewidth=2, label='Deep learning', legend='r', legend_kw={'ncols':1,'frame':True})
+    h32 = ax6[2].plot(volume_85_alpgm_lasso.year.values, volume_85_alpgm_lasso/1000, c='tomato', linewidth=2, label='Lasso', legend='r', legend_kw={'ncols':1,'frame':True})
+#    ax6[2].set_ylim([0,volume_85_alpgm.max()])
+    ax6[2].format(ylabel='Total glacier volume (km$^{3}$)')
+    
+    ############################################
+    ####  MEDIAN OF ZMEAN DL VS LASSO  #########
+    ############################################
+    
+    fig7, ax7 = plot.subplots(ncols=1, nrows=3, axwidth=2, aspect=1.5, sharey=0, sharex=3, spanx=2, spany=1, hspace='2.2em')
+
+    ax7.format(
+            abc=True, abcloc='ur', abcstyle='A',
+            ygridminor=True,
+            ytickloc='both', yticklabelloc='left',
+            xlabel='Year',
+            rightlabels=['RCP 2.6', 'RCP 4.5', 'RCP 8.5'],
+    )
+    
+#    import pdb; pdb.set_trace()
+    
+    h11 = ax7[0].plot(zmean_26_alpgm.year.values, zmean_26_alpgm.values, c='midnightblue', linewidth=2, label='Deep learning', legend='r', legend_kw={'ncols':1,'frame':True})
+    h12 = ax7[0].plot(zmean_26_lasso.year.values, zmean_26_lasso, c='skyblue', linewidth=2, label='Lasso', legend='r', legend_kw={'ncols':1,'frame':True})
+#    ax7[0].set_ylim([0,volume_26_alpgm.max()])
+    ax7[0].format(ylabel='Median of glacier mean altitudes (m.a.s.l.)')
+    
+    h21 = ax7[1].plot(zmean_45_alpgm.year.values, zmean_45_alpgm.values, c='bronze', linewidth=2, label='Deep learning', legend='r', legend_kw={'ncols':1,'frame':True})
+    h22 = ax7[1].plot(zmean_45_lasso.year.values, zmean_45_lasso, c='tangerine', linewidth=2, label='Lasso', legend='r', legend_kw={'ncols':1,'frame':True})
+#    ax7[1].set_ylim([0,volume_45_alpgm.max()])
+    ax7[1].format(ylabel='Median of glacier mean altitudes (m.a.s.l.)')
+    
+    h31 = ax7[2].plot(zmean_85_alpgm.year.values, zmean_85_alpgm.values, c='darkred', linewidth=2, label='Deep learning', legend='r', legend_kw={'ncols':1,'frame':True})
+    h32 = ax7[2].plot(zmean_85_lasso.year.values, zmean_85_lasso, c='tomato', linewidth=2, label='Lasso', legend='r', legend_kw={'ncols':1,'frame':True})
+#    ax7[2].set_ylim([0,volume_85_alpgm.max()])
+    ax7[2].format(ylabel='Median of glacier mean altitudes (m.a.s.l.)')
+    
+    ############################################
+    ####  MEDIAN OF AREA DL VS LASSO  #########
+    ############################################
+    
+    fig8, ax8 = plot.subplots(ncols=1, nrows=3, axwidth=2, aspect=1.5, sharey=0, sharex=3, spanx=2, spany=1, hspace='2.2em')
+
+    ax8.format(
+            abc=True, abcloc='ur', abcstyle='A',
+            ygridminor=True,
+            ytickloc='both', yticklabelloc='left',
+            xlabel='Year',
+            rightlabels=['RCP 2.6', 'RCP 4.5', 'RCP 8.5'],
+    )
+    
+#    import pdb; pdb.set_trace()
+    
+    h11 = ax8[0].plot(area_26_alpgm.year.values, area_26_alpgm.values, c='midnightblue', linewidth=2, label='Deep learning', legend='r', legend_kw={'ncols':1,'frame':True})
+    h12 = ax8[0].plot(area_26_lasso.year.values, area_26_lasso, c='skyblue', linewidth=2, label='Lasso', legend='r', legend_kw={'ncols':1,'frame':True})
+#    ax8[0].set_ylim([0,volume_26_alpgm.max()])
+    ax8[0].format(ylabel='Median of glacier area (km$^{3}$)')
+    
+    h21 = ax8[1].plot(area_45_alpgm.year.values, area_45_alpgm.values, c='bronze', linewidth=2, label='Deep learning', legend='r', legend_kw={'ncols':1,'frame':True})
+    h22 = ax8[1].plot(area_45_lasso.year.values, area_45_lasso, c='tangerine', linewidth=2, label='Lasso', legend='r', legend_kw={'ncols':1,'frame':True})
+#    ax8[1].set_ylim([0,volume_45_alpgm.max()])
+    ax8[1].format(ylabel='Median of glacier area (km$^{3}$)')
+    
+    h31 = ax8[2].plot(area_85_alpgm.year.values, area_85_alpgm.values, c='darkred', linewidth=2, label='Deep learning', legend='r', legend_kw={'ncols':1,'frame':True})
+    h32 = ax8[2].plot(area_85_lasso.year.values, area_85_lasso, c='tomato', linewidth=2, label='Lasso', legend='r', legend_kw={'ncols':1,'frame':True})
+#    ax8[2].set_ylim([0,volume_85_alpgm.max()])
+    ax8[2].format(ylabel='Median of glacier area (km$^{3}$)')
+    
+    
+    
     
     plt.show()
     

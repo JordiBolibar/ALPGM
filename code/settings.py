@@ -61,16 +61,23 @@ def init(hist_forcing, proj_forcing, simu_type, smb_model, cluster, static_geome
     global aster
     aster = ASTER_calibration
     
+    global stacking_coefs
+    
+    # Save stacking model
+    with open(os.path.join(path_smb,'smb_function', 'stacking_coeffs.txt'), 'rb') as model_lasso_gbl_f:
+        stacking_coefs = np.load(model_lasso_gbl_f,  allow_pickle=True)
+    
     if(smb_model == 'ann_no_weights'):
         if(simulation_type == 'historical'):
             path_ann = os.path.join(path_smb, 'ANN', 'LSYGO_soft')
         elif(simulation_type == 'future'):
-            path_ann = os.path.join(path_smb, 'ANN', 'LSYGO_hard')
+            path_ann = os.path.join(path_smb, 'ANN', 'LSYGO_future')
 #            path_ann = os.path.join(path_smb, 'ANN', 'LSYGO')
 #        path_ann = path_smb + 'ANN\\LOGO\\'
 #        path_ann = path_smb + 'ANN\\LOYO\\'
         path_cv_ann = os.path.join(path_ann, 'CV')
         path_ensemble_ann = os.path.join(path_ann, 'ensemble')
+        path_cv_lasso = os.path.join(path_smb, 'smb_function', 'Lasso_LSYGO_ensemble')
         smb_model_type = smb_model
     elif(smb_model == 'ann_weights'):
         path_ann = os.path.join(path_smb, 'ANN', 'LSYGO', 'weights')

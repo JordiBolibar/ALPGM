@@ -76,6 +76,16 @@ def empty_folder(path):
     if(os.path.exists(path)):
         shutil.rmtree(path)
         
+def ensemble_nn_simulation(SMB_ensemble, coefs):
+    SMB_nn_cv_members = []
+    for SMB_member, coef in zip(SMB_ensemble, coefs):
+        SMB_nn_cv_members.append(SMB_member*coef)
+    SMB_nn_cv_members = np.asarray(SMB_nn_cv_members)
+    
+    nn_prediction = SMB_nn_cv_members.sum(axis=0)
+    
+    return nn_prediction
+        
 def automatic_file_name_save(file_name_h, file_name_t, data, f_format):
     
     ### Flag to overwrite simulations for specific regions or glaciers  #####
@@ -207,17 +217,17 @@ def create_input_array(season_anomalies_y, monthly_anomalies_y, mean_alt_y, max_
 # Preloads in memory all the ANN SMB ensemble models to speed up the simulations
 def preload_ensemble_SMB_models():
     # CV ensemble
-    path_ann = "C:\\Users\\bolibarj\\Desktop\\ALPGM_backup\\LSYGO_hard"
+    path_ann = settings.path_ann
     path_CV_ensemble = os.path.join(path_ann, 'CV')
     
 #    path_CV_ensemble = settings.path_cv_ann
-    path_CV_ensemble_members = np.asarray(os.listdir(path_CV_ensemble))[:2]
+    path_CV_ensemble_members = np.asarray(os.listdir(path_CV_ensemble))
+    
+    path_CV_lasso_ensemble = settings.path_cv_lasso
+    path_CV_lasso_ensemble_members = np.asarray(os.listdir(path_CV_lasso_ensemble))
+    CV_lasso_ensemble_members = np.ndarray(path_CV_lasso_ensemble_members.shape, dtype=np.object)
     
     if(settings.smb_model_type == 'lasso'):
-        path_CV_lasso_ensemble = settings.path_cv_lasso
-        path_CV_lasso_ensemble_members = np.asarray(os.listdir(path_CV_lasso_ensemble))[:-2]
-        CV_lasso_ensemble_members = np.ndarray(path_CV_lasso_ensemble_members.shape, dtype=np.object)
-        
         member_idx = 0
         print("\nPreloading CV Lasso ensemble SMB models...")
         for path_CV_member in path_CV_lasso_ensemble_members:
@@ -235,7 +245,7 @@ def preload_ensemble_SMB_models():
     path_ensemble = os.path.join(path_ann, 'ensemble')
     
 #    path_ensemble = settings.path_ensemble_ann
-    path_ensemble_members = np.asarray(os.listdir(path_ensemble))[:2]
+    path_ensemble_members = np.asarray(os.listdir(path_ensemble))
     
     print("\nTaking full ensemble models from: " + str(path_ensemble))
     
@@ -252,16 +262,16 @@ def preload_ensemble_SMB_models():
         print("|", end="", flush=True)
         member_idx = member_idx+1
     
-    if(settings.simulation_type == 'historical'):
-        member_idx = 0
-        print("\n\nPreloading ensemble full SMB models...")
-        for path_member in path_ensemble_members:
-            # We retrieve the ensemble member ANN model
-            ann_member_model = load_model(os.path.join(path_ensemble, path_member, 'ann_glacier_model.h5'), custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error}, compile=False)
-    #        ensemble_members.append(ann_member_model)
-            ensemble_members[member_idx] = ann_member_model
-            print("|", end="", flush=True)
-            member_idx = member_idx+1
+#    if(settings.simulation_type == 'historical'):
+#    member_idx = 0
+#    print("\n\nPreloading ensemble full SMB models...")
+#    for path_member in path_ensemble_members:
+#        # We retrieve the ensemble member ANN model
+#        ann_member_model = load_model(os.path.join(path_ensemble, path_member, 'ann_glacier_model.h5'), custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error}, compile=False)
+##        ensemble_members.append(ann_member_model)
+#        ensemble_members[member_idx] = ann_member_model
+#        print("|", end="", flush=True)
+#        member_idx = member_idx+1
         
     CV_ensemble_members = np.asarray(CV_ensemble_members)
     CV_lasso_ensemble_members = np.asarray(CV_lasso_ensemble_members)
@@ -384,7 +394,15 @@ def make_ensemble_simulation(ensemble_SMB_models, smb_bias_correction, x, batch_
             # Inverse slope difference weighted ensemble
 #            ensemble_simulation = np.average(SMB_ensemble, weights=1/slope_dist)
             # Average of all ensemble members
+            
+            # Normal average
             ensemble_simulation = np.average(SMB_ensemble)
+            
+#            import pdb; pdb.set_trace()
+            
+            # Stacked ensemble
+#            ensemble_simulation = ensemble_nn_simulation(SMB_ensemble, settings.stacking_coefs)
+            
         else:
             # Unweighted ensemble average
             ensemble_simulation = np.average(SMB_ensemble)
@@ -1231,7 +1249,7 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
             # Data is scaled as during training 
             if(settings.smb_model_type == "lasso"):
                 
-                SMB_y, SMB_ensemble = make_ensemble_simulation(ensemble_SMB_models, smb_bias_correction, x_lasso, 34, glacier_IDs, glims_rabatel, settings.aster, settings.smb_model_type, evolution=True)
+                SMB_y, SMB_ensemble = make_ensemble_simulation(ensemble_SMB_models, smb_bias_correction, x_lasso, 32, glacier_IDs, glims_rabatel, settings.aster, settings.smb_model_type, evolution=True)
                     
 #                import pdb; pdb.set_trace()
                 
@@ -1249,8 +1267,8 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
                 
             elif(settings.smb_model_type == "ann_no_weights" or settings.smb_model_type == "ann_weights"):
                 # We use an ensemble approach to compute the glacier-wide SMB
-                batch_size = 34
-                SMB_y, SMB_ensemble = make_ensemble_simulation(ensemble_SMB_models, smb_bias_correction, x_ann, batch_size, glacier_IDs, glims_rabatel, settings.aster, evolution=True)
+                batch_size = 32
+                SMB_y, SMB_ensemble = make_ensemble_simulation(ensemble_SMB_models, smb_bias_correction, x_ann, batch_size, glacier_IDs, glims_rabatel, settings.aster, settings.smb_model_type, evolution=True)
             
             yearly_simulated_SMB.append(SMB_y)
             print("Simulated SMB: " + str(SMB_y))
