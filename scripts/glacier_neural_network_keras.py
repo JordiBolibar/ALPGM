@@ -65,6 +65,7 @@ path_ann_LOYO = os.path.join(path_smb, 'ANN', 'LOYO')
 path_ann_LSYGO = os.path.join(path_smb, 'ANN', 'LSYGO')
 path_ann_LSYGO_hard = os.path.join(path_smb, 'ANN', 'LSYGO_hard')
 path_ann_LSYGO_past = os.path.join(path_smb, 'ANN', 'LSYGO_past')
+path_ann_LSYGO_soft = os.path.join(path_smb, 'ANN', 'LSYGO_soft')
 path_ann_LSYGO_future = os.path.join(path_smb, 'ANN', 'LSYGO_future')
 
 
@@ -76,7 +77,7 @@ w_weights = False
 #cross_validation = "LSYGO"
 #cross_validation = "LSYGO_hard"
 #cross_validation = "LSYGO_past"
-cross_validation = "LSYGO_future"
+cross_validation = "LSYGO_soft"
 lsygo_soft = True
 #######  Flag to switch between training with a         ###############
 #######  single group of glaciers or cross-validation   ###############
@@ -103,6 +104,9 @@ elif(cross_validation == 'LSYGO_hard'):
     path_cv_ann = os.path.join(path_ann, 'CV')
 elif(cross_validation == 'LSYGO_past'):
     path_ann = path_ann_LSYGO_past
+    path_cv_ann = os.path.join(path_ann, 'CV')
+elif(cross_validation == 'LSYGO_soft'):
+    path_ann = path_ann_LSYGO_soft
     path_cv_ann = os.path.join(path_ann, 'CV')
 elif(cross_validation == 'LSYGO_future'):
     path_ann = path_ann_LSYGO_future
@@ -331,8 +335,8 @@ def create_lsygo_model(n_features, final):
     
     
     ##### Optimizers  #######
-#    optimizer = optimizers.rmsprop(lr=0.004)
-    optimizer = optimizers.rmsprop(lr=0.002)
+    optimizer = optimizers.rmsprop(lr=0.01)
+#    optimizer = optimizers.rmsprop(lr=0.002)
 #    optimizer = optimizers.rmsprop(lr=0.001)
 #    optimizer = optimizers.rmsprop(lr=0.0005)
 #    optimizer = optimizers.adam(lr=0.0005)
@@ -443,9 +447,9 @@ for iteration in range(1,20):
     # Balance years with less negative/positive SMB  
     y_weights = []
     for year in random_years:
-        if(np.nanmean(y_o[:, year]) > -0.5):
-#            y_weights.append(1.33)
-            y_weights.append(1)
+        if(np.nanmean(y_o[:, year]) > 0):
+            y_weights.append(1.2)
+#            y_weights.append(1)
         else:
             y_weights.append(1)
     y_weights = np.asarray(y_weights)
@@ -460,9 +464,13 @@ for iteration in range(1,20):
     for i in range(0, y_o.shape[0]):
         for j in range(0, y_o.shape[1]):
             if(np.isfinite(y_o[i,j])):
-                if(j < 26):
-#                    p_weights[idx] = p_weights[idx] + 1/3 # Add weight for the 1959-1967 period
-                    p_weights[idx] = p_weights[idx] 
+#                if(j < 26):
+                if(y_o[i,j] > 0):
+                    p_weights[idx] = p_weights[idx] + 1/2 
+#                    p_weights[idx] = p_weights[idx] 
+                elif(y_o[i,j] < -2.5):
+                    p_weights[idx] = p_weights[idx] + 1/4 
+                    
                 idx=idx+1
             
     
@@ -672,7 +680,7 @@ elif(cross_validation == 'LOYO'):
 # LOYO
     test_idx = np.where(year_groups == glacier_subset_idx)
     train_idx = np.where(year_groups != glacier_subset_idx)
-elif(cross_validation == "LSYGO" or cross_validation == "LSYGO_past" or cross_validation == "LSYGO_hard" or cross_validation == "LSYGO_future"):
+elif(cross_validation == "LSYGO" or cross_validation == "LSYGO_past" or cross_validation == "LSYGO_hard" or cross_validation == "LSYGO_soft" or cross_validation == "LSYGO_future"):
     test_idx = lsygo_test_folds[glacier_subset_idx]
     train_idx = lsygo_train_folds[glacier_subset_idx]
 
@@ -840,7 +848,7 @@ else:
         full_model = create_lsygo_model(n_features, final=False)
         fold_filter = -1
         n_epochs = 2000
-    elif(cross_validation == 'LSYGO_future'):
+    elif(cross_validation == 'LSYGO_future' or cross_validation == 'LSYGO_soft'):
         splits = zip(lsygo_train_folds, lsygo_test_folds)
         full_model = create_lsygo_model(n_features, final=False)
         fold_filter = -1
@@ -911,6 +919,9 @@ else:
                     elif(cross_validation == "LSYGO_past"):
                         model = create_lsygo_model(n_features, final=False)
                         file_name = 'best_model_LSYGO_past.h5'
+                    elif(cross_validation == "LSYGO_soft"):
+                        model = create_lsygo_model(n_features, final=False)
+                        file_name = 'best_model_LSYGO_soft.h5'
                     elif(cross_validation == "LSYGO_future"):
                         model = create_lsygo_model(n_features, final=False)
                         file_name = 'best_model_LSYGO_future.h5'
@@ -1090,6 +1101,9 @@ else:
                 n_epochs = 3500
             elif(cross_validation == 'LSYGO_past'):
                 full_model = create_lsygo_model(n_features, final=True)
+                n_epochs = 2000
+            elif(cross_validation == 'LSYGO_soft'):
+                full_model = create_lsygo_model(n_features, final=False)
                 n_epochs = 2000
             elif(cross_validation == 'LSYGO_future'):
                 full_model = create_lsygo_model(n_features, final=False)

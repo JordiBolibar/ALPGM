@@ -760,7 +760,7 @@ else:
     ds_glacier_projections = xr.open_dataset(os.path.join(path_glacier_evolution_nn, 'glacier_evolution_' + str(year_start) + '_2100.nc'))
     
 #    submembers = ds_glacier_projections_lasso.member.values[-5:]
-    submembers = ds_glacier_projections.member.values[:6]
+    submembers = ds_glacier_projections.member.values
 #    
 #    import pdb; pdb.set_trace()
     
@@ -1186,17 +1186,17 @@ else:
     
     h11 = ax6[0].plot(volume_26_alpgm.year.values, volume_26_alpgm.values, c='midnightblue', linewidth=2, label='Deep learning', legend='r', legend_kw={'ncols':1,'frame':True})
     h12 = ax6[0].plot(volume_26_alpgm_lasso.year.values, volume_26_alpgm_lasso/1000, c='skyblue', linewidth=2, label='Lasso', legend='r', legend_kw={'ncols':1,'frame':True})
-#    ax6[0].set_ylim([0,volume_26_alpgm.max()])
+    ax6[0].set_ylim([0,volume_26_alpgm.max()])
     ax6[0].format(ylabel='Total glacier volume (km$^{3}$)')
     
     h21 = ax6[1].plot(volume_45_alpgm.year.values, volume_45_alpgm.values, c='bronze', linewidth=2, label='Deep learning', legend='r', legend_kw={'ncols':1,'frame':True})
     h22 = ax6[1].plot(volume_45_alpgm_lasso.year.values, volume_45_alpgm_lasso/1000, c='tangerine', linewidth=2, label='Lasso', legend='r', legend_kw={'ncols':1,'frame':True})
-#    ax6[1].set_ylim([0,volume_45_alpgm.max()])
+    ax6[1].set_ylim([0,volume_45_alpgm.max()])
     ax6[1].format(ylabel='Total glacier volume (km$^{3}$)')
     
     h31 = ax6[2].plot(volume_85_alpgm.year.values, volume_85_alpgm.values, c='darkred', linewidth=2, label='Deep learning', legend='r', legend_kw={'ncols':1,'frame':True})
     h32 = ax6[2].plot(volume_85_alpgm_lasso.year.values, volume_85_alpgm_lasso/1000, c='tomato', linewidth=2, label='Lasso', legend='r', legend_kw={'ncols':1,'frame':True})
-#    ax6[2].set_ylim([0,volume_85_alpgm.max()])
+    ax6[2].set_ylim([0,volume_85_alpgm.max()])
     ax6[2].format(ylabel='Total glacier volume (km$^{3}$)')
     
     ############################################
