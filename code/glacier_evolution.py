@@ -202,7 +202,8 @@ def create_input_array(season_anomalies_y, monthly_anomalies_y, mean_alt_y, max_
     
     # Lasso input features
     
-    input_variables_array = np.array([cpdd_y, w_snow_y, s_snow_y, mean_alt_y, max_alt, slope20, area_y, lon, lat, np.cos(aspect), mean_alt_y*cpdd_y, slope20*cpdd_y, max_alt*cpdd_y, area_y*cpdd_y, lat*cpdd_y, lon*cpdd_y, aspect*cpdd_y, mean_alt_y*w_snow_y, slope20*w_snow_y, max_alt*w_snow_y, area_y*w_snow_y, lat*w_snow_y, lon*w_snow_y, aspect*w_snow_y, mean_alt_y*s_snow_y, slope20*s_snow_y, max_alt*s_snow_y, area_y*s_snow_y, lat*s_snow_y, lon*s_snow_y, aspect*s_snow_y])
+#    input_variables_array = np.array([cpdd_y, w_snow_y, s_snow_y, mean_alt_y, max_alt, slope20, area_y, lon, lat, np.cos(aspect), mean_alt_y*cpdd_y, slope20*cpdd_y, max_alt*cpdd_y, area_y*cpdd_y, lat*cpdd_y, lon*cpdd_y, aspect*cpdd_y, mean_alt_y*w_snow_y, slope20*w_snow_y, max_alt*w_snow_y, area_y*w_snow_y, lat*w_snow_y, lon*w_snow_y, aspect*w_snow_y, mean_alt_y*s_snow_y, slope20*s_snow_y, max_alt*s_snow_y, area_y*s_snow_y, lat*s_snow_y, lon*s_snow_y, aspect*s_snow_y])
+    input_variables_array = np.array([cpdd_y, w_snow_y, s_snow_y, mean_alt_y, max_alt, slope20, area_y, lon, lat, np.cos(aspect)])
     input_variables_array = np.append(input_variables_array, mon_temp_anomaly_y)
     input_variables_array = np.append(input_variables_array, mon_snow_anomaly_y)
     
@@ -224,7 +225,7 @@ def preload_ensemble_SMB_models():
     path_CV_ensemble_members = np.asarray(os.listdir(path_CV_ensemble))
     
     path_CV_lasso_ensemble = settings.path_cv_lasso
-    path_CV_lasso_ensemble_members = np.asarray(os.listdir(path_CV_lasso_ensemble))
+    path_CV_lasso_ensemble_members = np.asarray(os.listdir(path_CV_lasso_ensemble))[:-2]
     CV_lasso_ensemble_members = np.ndarray(path_CV_lasso_ensemble_members.shape, dtype=np.object)
     
     if(settings.smb_model_type == 'lasso'):

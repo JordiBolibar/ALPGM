@@ -71,7 +71,7 @@ def init(hist_forcing, proj_forcing, simu_type, smb_model, cluster, static_geome
         if(simulation_type == 'historical'):
             path_ann = os.path.join(path_smb, 'ANN', 'LSYGO_soft')
         elif(simulation_type == 'future'):
-            path_ann = os.path.join(path_smb, 'ANN', 'LSYGO_future')
+            path_ann = os.path.join(path_smb, 'ANN', 'LSYGO_soft')
 #            path_ann = os.path.join(path_smb, 'ANN', 'LSYGO')
 #        path_ann = path_smb + 'ANN\\LOGO\\'
 #        path_ann = path_smb + 'ANN\\LOYO\\'
