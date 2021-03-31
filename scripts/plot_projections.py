@@ -25,7 +25,8 @@ import xarray as xr
 with_26 = False
 filter_glacier = False
 static_geometry = False
-load_dictionaries = False
+load_dictionaries = True
+save_xarray = False
 #filter_member = False
 # mer de glace
 #glacier_ID_filter = "G006934E45883N"
@@ -225,33 +226,34 @@ def store_RCP_mean(path_variable, variable, RCP_means):
                 with open('config.dictionary', 'wb') as config_dictionary_file:
                     pickle.dump(RCP_means, config_dictionary_file)
                 
-def plot_individual_members(ax, RCP_member_means, RCP_means, variable, filtered_member, alpha=0.3):
+def plot_individual_members(ax, RCP_member_means, RCP_means, variable, filtered_member, alpha=0.7):
     member_idx = 0
+    linewidth=0.3
     for member_26 in RCP_member_means['26']:
         data_26 = member_26[variable]['data']
         if(len(data_26) > 0 and (member_idx == filtered_member or filtered_member == -1)):
             if(len(RCP_means['26'][variable]['year']) > len(data_26)):
-                ax.plot(RCP_means['26'][variable]['year'][:-1], data_26, linewidth=0.1, alpha=alpha, c='steelblue')
+                ax.plot(RCP_means['26'][variable]['year'][:-1], data_26, linewidth=linewidth, alpha=alpha, c='steelblue')
             else:
-                ax.plot(RCP_means['26'][variable]['year'], data_26, linewidth=0.1, alpha=alpha, c='steelblue')
+                ax.plot(RCP_means['26'][variable]['year'], data_26, linewidth=linewidth, alpha=alpha, c='steelblue')
         member_idx=member_idx+1
     member_idx = 0
     for member_45 in RCP_member_means['45']:
         data_45 = member_45[variable]['data']
         if(len(data_45) > 0 and (member_idx == filtered_member or filtered_member == -1)):
             if(len(RCP_means['45'][variable]['year']) > len(data_45)):
-                ax.plot(RCP_means['45'][variable]['year'][:-1], data_45, linewidth=0.1, alpha=alpha+0.1, c='brown orange')
+                ax.plot(RCP_means['45'][variable]['year'][:-1], data_45, linewidth=linewidth, alpha=alpha+0.1, c='brown orange')
             else:
-                ax.plot(RCP_means['45'][variable]['year'], data_45, linewidth=0.1, alpha=alpha+0.1, c='brown orange')
+                ax.plot(RCP_means['45'][variable]['year'], data_45, linewidth=linewidth, alpha=alpha+0.1, c='brown orange')
         member_idx=member_idx+1
     member_idx = 0
     for member_85 in RCP_member_means['85']:
         data_85 = member_85[variable]['data']
         if(len(data_85) > 0 and (member_idx == filtered_member or filtered_member == -1)):
             if(len(RCP_means['85'][variable]['year']) > len(data_85)):
-                ax.plot(RCP_means['85'][variable]['year'][:-1], data_85, linewidth=0.1, alpha=alpha, c='darkred')
+                ax.plot(RCP_means['85'][variable]['year'][:-1], data_85, linewidth=linewidth, alpha=alpha, c='darkred')
             else:
-                ax.plot(RCP_means['85'][variable]['year'], data_85, linewidth=0.1, alpha=alpha, c='darkred')
+                ax.plot(RCP_means['85'][variable]['year'], data_85, linewidth=linewidth, alpha=alpha, c='darkred')
         member_idx=member_idx+1
         
 def plot_individual_members_diff(ax, RCP_member_means, RCP_means, variable, static_variable, filtered_member, alpha=0.15):
@@ -358,8 +360,8 @@ if(not load_dictionaries):
         current_member = path_forcing_area[8:-32]
         
         # Filter members depending if we want to include RCP 2.6 or not
-#        if((with_26 and np.any(current_member == members_with_26)) or (not with_26 and current_RCP != '26')):
-        if(True):
+        if((with_26 and np.any(current_member == members_with_26)) or (not with_26 and current_RCP != '26')):
+#        if(True):
     #    if(current_member == 'CLMcom-CCLM4-8-17_CNRM-CERFACS-CNRM-CM5'):
             print("\nProcessing " + str(path_forcing_area))
             
@@ -531,7 +533,7 @@ if(not load_dictionaries):
                                     
                                     glacier_projections_dict['MB'][current_idxs] = MB_y[1]
                                     glacier_projections_dict['area'][current_idxs] = area_y[1]
-                                    glacier_projections_dict['volume'][current_idxs] = volume_y[1]/1000
+                                    glacier_projections_dict['volume'][current_idxs] = volume_y[1]
                                     glacier_projections_dict['zmean'][current_idxs] = zmean_y[1]
                                     glacier_projections_dict['slope20'][current_idxs] = slope20_y[1]
                                     glacier_projections_dict['CPDD'][current_idxs] = s_CPDD_y[1] + w_CPDD_y[1]
@@ -737,7 +739,7 @@ if(not load_dictionaries):
                 ### Full glacier evolution projections  ###
                 RCP_member_means[RCP][member]['MB']['year'] = np.array(RCP_members[RCP][member]['MB']['year'], dtype=int)
                 RCP_member_means[RCP][member]['area']['year'] = np.array(RCP_members[RCP][member]['area']['year'], dtype=int)
-                RCP_member_means[RCP][member]['volume']['year'] = np.array(RCP_members[RCP][member]['volume']['year'], dtype=int)/1000
+                RCP_member_means[RCP][member]['volume']['year'] = np.array(RCP_members[RCP][member]['volume']['year'], dtype=int)
                 RCP_member_means[RCP][member]['zmean']['year'] = np.array(RCP_members[RCP][member]['zmean']['year'], dtype=int)
                 RCP_member_means[RCP][member]['slope20']['year'] = np.array(RCP_members[RCP][member]['slope20']['year'], dtype=int)
                 RCP_member_means[RCP][member]['avg_area']['year'] = np.array(RCP_members[RCP][member]['avg_area']['year'], dtype=int)
@@ -770,7 +772,7 @@ if(not load_dictionaries):
                     ### Full glacier evolution projections  ###
                     RCP_member_means[RCP][member]['MB']['data'].append(np.nanmean(RCP_members[RCP][member]['MB']['data'][year_idx]))
                     RCP_member_means[RCP][member]['area']['data'].append(np.nansum(RCP_members[RCP][member]['area']['data'][year_idx]))
-                    RCP_member_means[RCP][member]['volume']['data'].append(np.nansum(RCP_members[RCP][member]['volume']['data'][year_idx])/1000)
+                    RCP_member_means[RCP][member]['volume']['data'].append(np.nansum(RCP_members[RCP][member]['volume']['data'][year_idx]))
                     RCP_member_means[RCP][member]['zmean']['data'].append(np.nanmean(RCP_members[RCP][member]['zmean']['data'][year_idx]))
                     RCP_member_means[RCP][member]['slope20']['data'].append(np.nanmean(RCP_members[RCP][member]['slope20']['data'][year_idx]))
                     RCP_member_means[RCP][member]['avg_area']['data'].append(np.nanmean(RCP_members[RCP][member]['avg_area']['data'][year_idx]))
@@ -917,7 +919,7 @@ else:
 #print(overall_annual_mean)
 
 # Transfer dictionary to xarray dataset   
-if(not load_dictionaries):    
+if(not load_dictionaries and save_xarray):    
     ds_glacier_projections = xr.Dataset(data_vars={'MB': (('GLIMS_ID', 'massif_ID', 'RCP', 'member', 'year'), glacier_projections_dict['MB']),
                                                    'area': (('GLIMS_ID', 'massif_ID', 'RCP', 'member', 'year'), glacier_projections_dict['area']),
                                                    'volume': (('GLIMS_ID', 'massif_ID', 'RCP', 'member', 'year'), glacier_projections_dict['volume']),
@@ -956,7 +958,7 @@ if(not load_dictionaries):
         df_glacier_projections = ds_glacier_projections.to_dataframe().dropna(how='any')
         df_glacier_projections.to_csv(os.path.join(path_glacier_evolution, 'glacier_evolution_' + str(year_start) + '_2100.csv'), sep=";")
         
-    import pdb; pdb.set_trace()
+import pdb; pdb.set_trace()
     
 ##########    PLOTS    #######################
 if(filter_glacier):
@@ -965,6 +967,7 @@ else:
     header = "french_alps_avg_"
 
 ############  Area and volume   #####################################################################################
+    
 
 #############       Plot each one of the RCP-GCM-RCM combinations       #############################################
     
@@ -975,7 +978,7 @@ fig1, ax1 = plot.subplots([[1, 1], [2, 3]], ncols=2, nrows=2, axwidth=4, aspect=
 #    fig1.suptitle("Regional average French alpine glacier projections under climate change")
 
 ax1.format(
-        abc=True, abcloc='ur', abcstyle='A',
+        abc=True, abcloc='ur', abcstyle='a',
         ygridminor=True,
         ytickloc='both', yticklabelloc='left'
 )
@@ -984,7 +987,7 @@ ax1.format(
 ax1[0].set_ylabel('Glacier-wide MB (m.w.e. a$^{-1}$)')
 ax1[0].set_xlabel('Year')
 
-plot_individual_members(ax1[0], RCP_member_means, RCP_means, 'MB', filtered_member)
+plot_individual_members(ax1[0], RCP_member_means, RCP_means, 'MB', filtered_member, alpha=0.2)
 h = plot_RCP_means(ax1[0], RCP_means, 'MB', with_26)
 ax1[0].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
 
@@ -996,7 +999,7 @@ ax1b = ax1[1].twinx()  # instantiate a second axes that shares the same x-axis
 ax1b.set_ylim(0, 100)
 ax1b.set_ylabel('Remaining fraction (%)')
 
-plot_individual_members(ax1[1], RCP_member_means, RCP_means, 'volume', filtered_member)
+plot_individual_members(ax1[1], RCP_member_means, RCP_means, 'volume', filtered_member, alpha=0.4)
 h = plot_RCP_means(ax1[1], RCP_means, 'volume', with_26)
 
 ax1[2].set_ylabel('Area (km$^{2}$)')
@@ -1007,7 +1010,7 @@ ax1c.set_ylim(0, 100)
 ax1c.set_ylabel('Remaining fraction (%)')
 
 # Area
-plot_individual_members(ax1[2], RCP_member_means, RCP_means, 'area', filtered_member)
+plot_individual_members(ax1[2], RCP_member_means, RCP_means, 'area', filtered_member, alpha=0.4)
 h = plot_RCP_means(ax1[2], RCP_means, 'area', with_26)
 
 fig1.legend(h, loc='r', ncols=1, frame=True)
@@ -1027,7 +1030,7 @@ fig2, (ax21, ax22, ax23) = plot.subplots([[1, 1], [2, 3]], ncols=2, nrows=2, axw
 
 for ax2 in (ax21, ax22, ax23):
     ax2.format(
-            abc=True, abcloc='ul', abcstyle='A',
+            abc=True, abcloc='ul', abcstyle='a',
             ygridminor=True,
             ytickloc='both', yticklabelloc='left'
     )
@@ -1046,16 +1049,18 @@ ax22.set_xlabel('Year')
 ax23.set_ylabel('Mean glacier area (km$^{2}$)')
 ax23.set_xlabel('Year')
 
+alpha=0.4
+
 # Mean altitude
-plot_individual_members(ax21, RCP_member_means, RCP_means, 'zmean', filtered_member)
+plot_individual_members(ax21, RCP_member_means, RCP_means, 'zmean', filtered_member, alpha=alpha)
 h = plot_RCP_means(ax21, RCP_means, 'zmean', with_26)
 
 # Slope 20% altitudinal range
-plot_individual_members(ax22, RCP_member_means, RCP_means, 'slope20', filtered_member)
+plot_individual_members(ax22, RCP_member_means, RCP_means, 'slope20', filtered_member, alpha=alpha)
 h = plot_RCP_means(ax22, RCP_means, 'slope20', with_26)
 
 # Mean glacier area
-plot_individual_members(ax23, RCP_member_means, RCP_means, 'avg_area', filtered_member)
+plot_individual_members(ax23, RCP_member_means, RCP_means, 'avg_area', filtered_member, alpha=alpha)
 h = plot_RCP_means(ax23, RCP_means, 'avg_area', with_26)
 
 fig2.legend(h, loc='r', ncols=1, frame=True)
@@ -1079,7 +1084,7 @@ fig3, axs3 = plot.subplots(ncols=3, nrows=3, aspect=2, axwidth=2, spany=0)
 #    fig3.suptitle("French Alpine glaciers average regional climate signal evolution")
 
 axs3.format(
-        abc=True, abcloc='ul', abcstyle='A',
+        abc=True, abcloc='ul', abcstyle='a',
         ygridminor=True,
         ytickloc='both', yticklabelloc='left',
         xlabel='Year'
@@ -1187,7 +1192,7 @@ if(static_geometry):
 #        fig6.suptitle("Glacier retreat topographical feedback on climate projections")
     
     axs6.format(
-            abc=True, abcloc='ul', abcstyle='A',
+            abc=True, abcloc='ul', abcstyle='a',
             ygridminor=True,
             ytickloc='both', yticklabelloc='left',
             xlabel='Year'

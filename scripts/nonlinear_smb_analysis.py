@@ -77,6 +77,15 @@ def ensemble_lasso_simulation(X_lasso, CV_lasso_ensemble_members):
     
     return lasso_prediction
 
+
+def draw_boxplot(ax, data, labels, offset,edge_color, fill_color): 
+    pos = np.arange(data.shape[1])+offset 
+    ax.boxplot(data, positions=pos, widths=0.5, labels=labels, manage_xticks=False, sym="", zorder=5) 
+#    for element in ['boxes', 'whiskers', 'fliers', 'medians', 'caps']: 
+#     plt.setp(bp[element], color=edge_color) 
+#    for patch in bp['boxes']: 
+#     patch.set(facecolor=fill_color) 
+
 #def ensemble_nn_simulation(X, CV_ensemble_members, coefs):
 #    SMB_nn_cv_members = []
 #    for nn_model, coef in zip(CV_ensemble_members, coefs):
@@ -124,6 +133,8 @@ with open(os.path.join(path_smb, 'x_reconstructions.txt'), 'rb') as x_f:
     
 with open(os.path.join(path_smb, 'x_reconstructions_lasso.txt'), 'rb') as x_f:
     x_reconstructions_lasso = np.load(x_f)
+    
+#import pdb; pdb.set_trace()
     
 ### We filter the combinations of topo-climatic predictors from Lasso
 pred_names = np.array(['CPDD', 'W snow', 'S snow', 'Zmean', 'Zmax', 'Slope', 'Area', 'Lon', 'Lat', 'Aspect', 'Temp October', 'Temp November', 'Temp December', 'Temp January', 'Temp February', 'Temp March', 'Temp April', 'Temp May', 'Temp June', 'Temp July', 'Temp August', 'Temp September', 'Snow October', 'Snow November', 'Snow December', 'Snow January', 'Snow February', 'Snow March', 'Snow April', 'Snow May', 'Snow June', 'Snow July', 'Snow August', 'Snow September'])
@@ -211,26 +222,26 @@ ensemble_members = np.ndarray(path_ensemble_members.shape, dtype=np.object)
 CV_lasso_ensemble_members = np.ndarray(path_CV_lasso_ensemble_members.shape, dtype=np.object)
 
 member_idx = 0
-print("\nPreloading CV Lasso ensemble SMB models...")
-for path_CV_member in path_CV_lasso_ensemble_members:
-    # We retrieve the ensemble member ANN model
-    with open(os.path.join(path_CV_lasso_ensemble, path_CV_member), 'rb') as lasso_model_f:
-        lasso_CV_member_model = np.load(lasso_model_f,  allow_pickle=True)
-    CV_lasso_ensemble_members[member_idx] = lasso_CV_member_model
-    print("|", end="", flush=True)
-    member_idx = member_idx+1
-    
-member_numbers = []
-
-member_idx = 0
-print("\nPreloading CV ensemble SMB models...")
-for path_CV_member in path_CV_ensemble_members:
-    # We retrieve the ensemble member ANN model
-    member_numbers.append(path_CV_member[8:10])
-    ann_CV_member_model = load_model(os.path.join(path_CV_ensemble, path_CV_member), custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error}, compile=False)
-    CV_ensemble_members[member_idx] = ann_CV_member_model
-    print("|", end="", flush=True)
-    member_idx = member_idx+1
+#print("\nPreloading CV Lasso ensemble SMB models...")
+#for path_CV_member in path_CV_lasso_ensemble_members:
+#    # We retrieve the ensemble member ANN model
+#    with open(os.path.join(path_CV_lasso_ensemble, path_CV_member), 'rb') as lasso_model_f:
+#        lasso_CV_member_model = np.load(lasso_model_f,  allow_pickle=True)
+#    CV_lasso_ensemble_members[member_idx] = lasso_CV_member_model
+#    print("|", end="", flush=True)
+#    member_idx = member_idx+1
+#    
+#member_numbers = []
+#
+#member_idx = 0
+#print("\nPreloading CV ensemble SMB models...")
+#for path_CV_member in path_CV_ensemble_members:
+#    # We retrieve the ensemble member ANN model
+#    member_numbers.append(path_CV_member[8:10])
+#    ann_CV_member_model = load_model(os.path.join(path_CV_ensemble, path_CV_member), custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error}, compile=False)
+#    CV_ensemble_members[member_idx] = ann_CV_member_model
+#    print("|", end="", flush=True)
+#    member_idx = member_idx+1
 
 #member_idx = 0
 #print("\n\nPreloading ensemble full SMB models...")
@@ -260,20 +271,20 @@ years = years.flatten()[finite_mask]
 
 X = X[finite_mask,:]
 
-with open(os.path.join(path_smb_function, 'model_lasso_spatial_reduced.txt'), 'rb') as lasso_model_f:
-    lasso_single_model = np.load(lasso_model_f,  allow_pickle=True)
-with open(os.path.join(path_smb_function, 'full_scaler_spatial_reduced.txt'), 'rb') as lasso_model_f:
-    spatial_scaler = np.load(lasso_model_f,  allow_pickle=True)[()]
+#with open(os.path.join(path_smb_function, 'model_lasso_spatial_reduced.txt'), 'rb') as lasso_model_f:
+#    lasso_single_model = np.load(lasso_model_f,  allow_pickle=True)
+#with open(os.path.join(path_smb_function, 'full_scaler_spatial_reduced.txt'), 'rb') as lasso_model_f:
+#    spatial_scaler = np.load(lasso_model_f,  allow_pickle=True)[()]
 
 ### Perform ensemble simulations  ###############
-for lasso_model in CV_lasso_ensemble_members[:-2]:  ### Do not take last two files, they are not models  
-    SMB_lasso_member = lasso_model[()].predict(X)
-    SMB_lasso_members.append(SMB_lasso_member)
-    
-for nn_model in CV_ensemble_members:
-#    import pdb; pdb.set_trace()
-    SMB_nn_member = nn_model.predict(X, batch_size=32).flatten()
-    SMB_nn_cv_members.append(SMB_nn_member)
+#for lasso_model in CV_lasso_ensemble_members[:-2]:  ### Do not take last two files, they are not models  
+#    SMB_lasso_member = lasso_model[()].predict(X)
+#    SMB_lasso_members.append(SMB_lasso_member)
+#    
+#for nn_model in CV_ensemble_members:
+##    import pdb; pdb.set_trace()
+#    SMB_nn_member = nn_model.predict(X, batch_size=32).flatten()
+#    SMB_nn_cv_members.append(SMB_nn_member)
     
 #for nn_model in ensemble_members:
 ##    import pdb; pdb.set_trace()
@@ -287,54 +298,58 @@ SMB_nn_ensemble_members = np.asarray(SMB_nn_ensemble_members)
 # Save simulations by Lasso ensemble
 #with open(os.path.join(path_smb_function_validation, 'SMB_lasso_members.txt'), 'wb') as lasso_f:
 #    np.save(lasso_f, SMB_lasso_members)
-## Save simulations by deep learning ensemble
+# Save simulations by deep learning ensemble
 #with open(os.path.join(path_smb_function_validation, 'SMB_nn_cv_members.txt'), 'wb') as nn_f:
 #    np.save(nn_f, SMB_nn_cv_members)
 #with open(os.path.join(path_smb_function_validation, 'SMB_nn_ensemble_members.txt'), 'wb') as nn_f:
 #    np.save(nn_f, SMB_nn_ensemble_members)
     
 ## Load ensemble simulations  
-#with open(os.path.join(path_smb_function_validation, 'SMB_lasso_members.txt'), 'rb') as lasso_f:
-#    SMB_lasso_members = np.load(lasso_f)
-#with open(os.path.join(path_smb_function_validation, 'SMB_nn_cv_members.txt'), 'rb') as nn_f:
-#    SMB_nn_cv_members = np.load(nn_f)
+with open(os.path.join(path_smb_function_validation, 'SMB_lasso_members.txt'), 'rb') as lasso_f:
+    SMB_lasso_members = np.load(lasso_f)
+with open(os.path.join(path_smb_function_validation, 'SMB_nn_cv_members.txt'), 'rb') as nn_f:
+    SMB_nn_cv_members = np.load(nn_f)
 with open(os.path.join(path_smb_function_validation, 'SMB_nn_ensemble_members.txt'), 'rb') as nn_f:
     SMB_nn_ensemble_members = np.load(nn_f)
     
 # Model results during cross-validation in glacier_neural_network_keras.py
     
-#with open(os.path.join(path_cv_lasso, 'SMB_lasso_all.txt'), 'rb') as lasso_f:
-#    SMB_lasso_all_CV = np.load(lasso_f)
-#with open(os.path.join(path_cv_lasso, 'SMB_lasso_obs_all.txt'), 'rb') as lasso_f:
-#    SMB_lasso_obs_CV = np.load(lasso_f)
-#with open(os.path.join(path_ann_LSYGO_hard, 'SMB_nn_all.txt'), 'rb') as nn_f:
-#    SMB_nn_all_CV = np.load(nn_f)
-#with open(os.path.join(path_ann_LSYGO_hard, 'SMB_nn_obs_all.txt'), 'rb') as nn_f:
-#    SMB_nn_obs_CV = np.load(nn_f)
-#with open(os.path.join(path_ann_LSYGO_hard, 'RMSE_per_fold.txt'), 'rb') as nn_f:
-#    RMSE_per_fold = np.load(nn_f)    
+with open(os.path.join(path_cv_lasso, 'SMB_lasso_all.txt'), 'rb') as lasso_f:
+    SMB_lasso_all_CV = np.load(lasso_f)
+with open(os.path.join(path_cv_lasso, 'SMB_lasso_obs_all.txt'), 'rb') as lasso_f:
+    SMB_lasso_obs_CV = np.load(lasso_f)
+with open(os.path.join(path_ann_LSYGO_hard, 'SMB_nn_all.txt'), 'rb') as nn_f:
+    SMB_nn_all_CV = np.load(nn_f)
+with open(os.path.join(path_ann_LSYGO_hard, 'SMB_nn_obs_all.txt'), 'rb') as nn_f:
+    SMB_nn_obs_CV = np.load(nn_f)
+with open(os.path.join(path_ann_LSYGO_hard, 'RMSE_per_fold.txt'), 'rb') as nn_f:
+    RMSE_per_fold = np.load(nn_f)    
     
-    
+#import pdb; pdb.set_trace()   
+
+print("\nRMSE validation DL: " + str(math.sqrt(mean_squared_error(SMB_nn_obs_CV, SMB_nn_all_CV))))
+
+print("\nr2 validation DL: " + str(r2_score(SMB_nn_obs_CV, SMB_nn_all_CV)))
 
 ###### STACKING OF DL MODELS  ########
-rmse_members = []
-for member in SMB_nn_cv_members:
-    rmse_members.append(math.sqrt(mean_squared_error(y, member)))
-rmse_members = np.asarray(rmse_members)
-    
-weights = compute_sample_weight(class_weight='balanced', y=y)
-weights_n = weights*(1/weights.min())
-y_oversampled = copy.deepcopy(y)
-SMB_nn_cv_members_oversampled = copy.deepcopy(np.transpose(SMB_nn_cv_members))
-
-idx=0
-for weight, value in zip(weights_n, y):
-    if(weight >= 1 and value > 0):
-        multip = np.round(weight).astype(int)
-        for i in range(0, multip):
-            y_oversampled = np.concatenate((y_oversampled, [value]))
-            SMB_nn_cv_members_oversampled = np.concatenate((SMB_nn_cv_members_oversampled, np.transpose(SMB_nn_cv_members)[idx].reshape(1,-1)), axis=0)
-    idx=idx+1
+#rmse_members = []
+#for member in SMB_nn_cv_members:
+#    rmse_members.append(math.sqrt(mean_squared_error(y, member)))
+#rmse_members = np.asarray(rmse_members)
+#    
+#weights = compute_sample_weight(class_weight='balanced', y=y)
+#weights_n = weights*(1/weights.min())
+#y_oversampled = copy.deepcopy(y)
+#SMB_nn_cv_members_oversampled = copy.deepcopy(np.transpose(SMB_nn_cv_members))
+#
+#idx=0
+#for weight, value in zip(weights_n, y):
+#    if(weight >= 1 and value > 0):
+#        multip = np.round(weight).astype(int)
+#        for i in range(0, multip):
+#            y_oversampled = np.concatenate((y_oversampled, [value]))
+#            SMB_nn_cv_members_oversampled = np.concatenate((SMB_nn_cv_members_oversampled, np.transpose(SMB_nn_cv_members)[idx].reshape(1,-1)), axis=0)
+#    idx=idx+1
     
 #with open(os.path.join(path_smb,'smb_function', 'stacking_lasso_model.txt'), 'rb') as lasso_model_f:
 #    stacking_model = np.load(lasso_model_f,  allow_pickle=True)
@@ -397,29 +412,29 @@ lasso_area_analysis = copy.deepcopy(nn_area_analysis)
 
 #import pdb; pdb.set_trace()
 
-cpdd_range = np.arange(-1000, 1000, 100)
-#X_nn_cpdd = clean_reconstructions(x_reconstructions[:,2:].astype(float))
-#X_lasso_cpdd = clean_reconstructions(x_reconstructions[:,2:].astype(float))
-X_nn_cpdd = copy.deepcopy(X)
-X_lasso_cpdd = copy.deepcopy(X)
+cpdd_range = np.arange(-1500, 1500, 100)
+X_nn_cpdd = clean_reconstructions(x_reconstructions[:,2:].astype(float))
+X_lasso_cpdd = clean_reconstructions(x_reconstructions[:,2:].astype(float))
+#X_nn_cpdd = copy.deepcopy(X)
+#X_lasso_cpdd = copy.deepcopy(X)
 
 lasso_cpdd_analysis = copy.deepcopy(nn_area_analysis)
 nn_cpdd_analysis = copy.deepcopy(nn_area_analysis)
 
 wsnow_range = np.arange(-1500, 1500, 100)
-#X_nn_wsnow = clean_reconstructions(x_reconstructions[:,2:].astype(float))
-#X_lasso_wsnow = clean_reconstructions(x_reconstructions[:,2:].astype(float))
-X_nn_wsnow = copy.deepcopy(X)
-X_lasso_wsnow = copy.deepcopy(X)
+X_nn_wsnow = clean_reconstructions(x_reconstructions[:,2:].astype(float))
+X_lasso_wsnow = clean_reconstructions(x_reconstructions[:,2:].astype(float))
+#X_nn_wsnow = copy.deepcopy(X)
+#X_lasso_wsnow = copy.deepcopy(X)
 
 ssnow_range = np.arange(-1000, 1000, 100)
-#X_nn_ssnow = clean_reconstructions(x_reconstructions[:,2:].astype(float))
-#X_lasso_ssnow = clean_reconstructions(x_reconstructions[:,2:].astype(float))
-X_nn_ssnow = copy.deepcopy(X)
-X_lasso_ssnow = copy.deepcopy(X)
+X_nn_ssnow = clean_reconstructions(x_reconstructions[:,2:].astype(float))
+X_lasso_ssnow = clean_reconstructions(x_reconstructions[:,2:].astype(float))
+#X_nn_ssnow = copy.deepcopy(X)
+#X_lasso_ssnow = copy.deepcopy(X)
 #
 
-coefs = (np.abs(lasso_single_model.coef_)/np.abs(lasso_single_model.coef_).sum())*100
+#coefs = (np.abs(lasso_single_model.coef_)/np.abs(lasso_single_model.coef_).sum())*100
 
 #### SENSITIVITY ANALYSIS ENSEMBLE  ######################################
 
@@ -428,92 +443,92 @@ sensitivity_analysis = True
 
 if(sensitivity_analysis):
 
-    print("\nLasso coefs: " + str(coefs))
+#    print("\nLasso coefs: " + str(coefs))
     
     #import pdb; pdb.set_trace()
     
-    for cpdd in cpdd_range:
-        
-    #    import pdb; pdb.set_trace()
-        
-        cpdd_dif = (cpdd - X_nn_cpdd[:,0])/183
-        cpdd_dif_lasso = (cpdd - X_lasso_cpdd[:,0])/183
-        
-        for i in range(16,22):
-            X_nn_cpdd[:,i] = X_nn_cpdd[:,i] + cpdd_dif
-            X_lasso_cpdd[:,i] = X_lasso_cpdd[:,i] + cpdd_dif_lasso
-        
-        X_nn_cpdd[:,0] = np.repeat(cpdd, X_nn_cpdd[:,0].size)
-        X_lasso_cpdd[:,0] = np.repeat(cpdd, X_lasso_cpdd[:,0].size)
-        
-    #    lasso_prediction = lasso_single_model.predict(spatial_scaler.transform(X_lasso_cpdd))
-        lasso_prediction = ensemble_lasso_simulation(X_lasso_cpdd, CV_lasso_ensemble_members)
-        nn_prediction = ensemble_nn_simulation(X_nn_cpdd, sensitivity_ensemble)
-        
-    #    print("lasso_prediction: " + str(lasso_prediction[0]))
-    #    print("nn_prediction: " + str(nn_prediction[0]))
-        
-        lasso_cpdd_analysis['MB'].append(lasso_prediction.tolist())
-        nn_cpdd_analysis['MB'].append(nn_prediction.tolist())
-        
-    lasso_cpdd_analysis['MB'] = np.asarray(lasso_cpdd_analysis['MB'])    
-    nn_cpdd_analysis['MB'] = np.asarray(nn_cpdd_analysis['MB'])
+#    for cpdd in cpdd_range:
+#        
+#    #    import pdb; pdb.set_trace()
+#        
+#        cpdd_dif = (cpdd - X_nn_cpdd[:,0])/183
+#        cpdd_dif_lasso = (cpdd - X_lasso_cpdd[:,0])/183
+#        
+#        for i in range(16,22):
+#            X_nn_cpdd[:,i] = X_nn_cpdd[:,i] + cpdd_dif
+#            X_lasso_cpdd[:,i] = X_lasso_cpdd[:,i] + cpdd_dif_lasso
+#        
+#        X_nn_cpdd[:,0] = np.repeat(cpdd, X_nn_cpdd[:,0].size)
+#        X_lasso_cpdd[:,0] = np.repeat(cpdd, X_lasso_cpdd[:,0].size)
+#        
+#    #    lasso_prediction = lasso_single_model.predict(spatial_scaler.transform(X_lasso_cpdd))
+#        lasso_prediction = ensemble_lasso_simulation(X_lasso_cpdd, CV_lasso_ensemble_members)
+#        nn_prediction = ensemble_nn_simulation(X_nn_cpdd, sensitivity_ensemble)
+#        
+#    #    print("lasso_prediction: " + str(lasso_prediction[0]))
+#    #    print("nn_prediction: " + str(nn_prediction[0]))
+#        
+#        lasso_cpdd_analysis['MB'].append(lasso_prediction.tolist())
+#        nn_cpdd_analysis['MB'].append(nn_prediction.tolist())
+#        
+#    lasso_cpdd_analysis['MB'] = np.asarray(lasso_cpdd_analysis['MB'])    
+#    nn_cpdd_analysis['MB'] = np.asarray(nn_cpdd_analysis['MB'])
     
     #import pdb; pdb.set_trace()
     
     ### Save analysis
-    with open(os.path.join(path_smb_function_validation, 'lasso_cpdd_analysis_32_50_hard.txt'), 'wb') as lasso_f:
-        np.save(lasso_f, lasso_cpdd_analysis)
-    with open(os.path.join(path_smb_function_validation, 'nn_cpdd_analysis_all_32_50_hard.txt'), 'wb') as nn_f:
-        np.save(nn_f, nn_cpdd_analysis)
+#    with open(os.path.join(path_smb_function_validation, 'lasso_cpdd_analysis_all_60_soft_final.txt'), 'wb') as lasso_f:
+#        np.save(lasso_f, lasso_cpdd_analysis)
+#    with open(os.path.join(path_smb_function_validation, 'nn_cpdd_analysis_all_all_60_soft_final.txt'), 'wb') as nn_f:
+#        np.save(nn_f, nn_cpdd_analysis)
         
-    #with open(os.path.join(path_smb_function_validation, 'lasso_cpdd_analysis.txt'), 'rb') as lasso_f:
-    #    lasso_cpdd_analysis = np.load(lasso_f, allow_pickle=True)[()]
-    #with open(os.path.join(path_smb_function_validation, 'nn_cpdd_analysis.txt'), 'rb') as nn_f:
-    #    nn_cpdd_analysis = np.load(nn_f, allow_pickle=True)[()]
+    with open(os.path.join(path_smb_function_validation, 'lasso_cpdd_analysis_all_60_soft_final.txt'), 'rb') as lasso_f:
+        lasso_cpdd_analysis = np.load(lasso_f, allow_pickle=True)[()]
+    with open(os.path.join(path_smb_function_validation, 'nn_cpdd_analysis_all_60_soft_final.txt'), 'rb') as nn_f:
+        nn_cpdd_analysis = np.load(nn_f, allow_pickle=True)[()]
     
     # Winter snowfall
     
     lasso_wsnow_analysis = copy.deepcopy(nn_area_analysis)
     nn_wsnow_analysis = copy.deepcopy(nn_area_analysis)
       
-    for wsnow in wsnow_range:
-        
-    #    import pdb; pdb.set_trace()
-        
-        wsnow_dif = (wsnow - X_nn_wsnow[:,1])/6
-        wsnow_dif_lasso = (wsnow - X_lasso_wsnow[:,1])/6
-        
-        for i in range(22,28):
-            X_nn_wsnow[:,i] = X_nn_wsnow[:,i] + wsnow_dif
-            X_lasso_wsnow[:,i] = X_lasso_wsnow[:,i] + wsnow_dif_lasso
-        
-        X_nn_wsnow[:,1] = np.repeat(wsnow, X_nn_wsnow[:,1].size)
-        X_lasso_wsnow[:,1] = np.repeat(wsnow, X_lasso_wsnow[:,1].size)
-        
-    #    lasso_prediction = lasso_single_model.predict(spatial_scaler.transform(X_lasso_wsnow))
-        lasso_prediction = ensemble_lasso_simulation(X_lasso_wsnow, CV_lasso_ensemble_members)
-        nn_prediction = ensemble_nn_simulation(X_nn_wsnow, sensitivity_ensemble)
-        
-    #    print("lasso_prediction: " + str(lasso_prediction[0]))
-    #    print("nn_prediction: " + str(nn_prediction[0]))
-        
-        lasso_wsnow_analysis['MB'].append(lasso_prediction.tolist())
-        nn_wsnow_analysis['MB'].append(nn_prediction.tolist())
-        
-    lasso_wsnow_analysis['MB'] = np.asarray(lasso_wsnow_analysis['MB'])    
-    nn_wsnow_analysis['MB'] = np.asarray(nn_wsnow_analysis['MB'])
+#    for wsnow in wsnow_range:
+#        
+#    #    import pdb; pdb.set_trace()
+#        
+#        wsnow_dif = (wsnow - X_nn_wsnow[:,1])/6
+#        wsnow_dif_lasso = (wsnow - X_lasso_wsnow[:,1])/6
+#        
+#        for i in range(22,28):
+#            X_nn_wsnow[:,i] = X_nn_wsnow[:,i] + wsnow_dif
+#            X_lasso_wsnow[:,i] = X_lasso_wsnow[:,i] + wsnow_dif_lasso
+#        
+#        X_nn_wsnow[:,1] = np.repeat(wsnow, X_nn_wsnow[:,1].size)
+#        X_lasso_wsnow[:,1] = np.repeat(wsnow, X_lasso_wsnow[:,1].size)
+#        
+#    #    lasso_prediction = lasso_single_model.predict(spatial_scaler.transform(X_lasso_wsnow))
+#        lasso_prediction = ensemble_lasso_simulation(X_lasso_wsnow, CV_lasso_ensemble_members)
+#        nn_prediction = ensemble_nn_simulation(X_nn_wsnow, sensitivity_ensemble)
+#        
+#    #    print("lasso_prediction: " + str(lasso_prediction[0]))
+#    #    print("nn_prediction: " + str(nn_prediction[0]))
+#        
+#        lasso_wsnow_analysis['MB'].append(lasso_prediction.tolist())
+#        nn_wsnow_analysis['MB'].append(nn_prediction.tolist())
+#        
+#    lasso_wsnow_analysis['MB'] = np.asarray(lasso_wsnow_analysis['MB'])    
+#    nn_wsnow_analysis['MB'] = np.asarray(nn_wsnow_analysis['MB'])
     
     ### Save analysis
-    with open(os.path.join(path_smb_function_validation, 'lasso_wsnow_analysis_32_50_hard.txt'), 'wb') as lasso_f:
-        np.save(lasso_f, lasso_wsnow_analysis)
-    with open(os.path.join(path_smb_function_validation, 'nn_wsnow_analysis_32_50_hard.txt'), 'wb') as nn_f:
-        np.save(nn_f, nn_wsnow_analysis)
+#    with open(os.path.join(path_smb_function_validation, 'lasso_wsnow_analysis_all_60_soft_final.txt'), 'wb') as lasso_f:
+#        np.save(lasso_f, lasso_wsnow_analysis)
+#    with open(os.path.join(path_smb_function_validation, 'nn_wsnow_analysis_all_60_soft_final.txt'), 'wb') as nn_f:
+#        np.save(nn_f, nn_wsnow_analysis)
         
-    #with open(os.path.join(path_smb_function_validation, 'lasso_wsnow_analysis.txt'), 'rb') as lasso_f:
-    #    lasso_wsnow_analysis = np.load(lasso_f, allow_pickle=True)[()]
-    #with open(os.path.join(path_smb_function_validation, 'nn_wsnow_analysis.txt'), 'rb') as nn_f:
-    #    nn_wsnow_analysis = np.load(nn_f, allow_pickle=True)[()]
+    with open(os.path.join(path_smb_function_validation, 'lasso_wsnow_analysis_all_60_soft_final.txt'), 'rb') as lasso_f:
+        lasso_wsnow_analysis = np.load(lasso_f, allow_pickle=True)[()]
+    with open(os.path.join(path_smb_function_validation, 'nn_wsnow_analysis_all_60_soft_final.txt'), 'rb') as nn_f:
+        nn_wsnow_analysis = np.load(nn_f, allow_pickle=True)[()]
         
         
     # Summer snowfall
@@ -521,43 +536,43 @@ if(sensitivity_analysis):
     lasso_ssnow_analysis = copy.deepcopy(nn_area_analysis)
     nn_ssnow_analysis = copy.deepcopy(nn_area_analysis)
       
-    for ssnow in ssnow_range:
-        
-    #    import pdb; pdb.set_trace()
-        
-        ssnow_dif = (ssnow - X_nn_ssnow[:,2])/6
-        ssnow_dif_lasso = (ssnow - X_lasso_ssnow[:,2])/6
-        
-        for i in range(28,34):
-            X_nn_ssnow[:,i] = X_nn_ssnow[:,i] + ssnow_dif
-            X_lasso_ssnow[:,i] = X_lasso_ssnow[:,i] + ssnow_dif_lasso
-        
-        X_nn_ssnow[:,2] = np.repeat(ssnow, X_nn_ssnow[:,2].size)
-        X_lasso_ssnow[:,2] = np.repeat(ssnow, X_lasso_ssnow[:,2].size)
-        
-    #    lasso_prediction = lasso_single_model.predict(spatial_scaler.transform(X_lasso_ssnow))
-        lasso_prediction = ensemble_lasso_simulation(X_lasso_ssnow, CV_lasso_ensemble_members)
-        nn_prediction = ensemble_nn_simulation(X_nn_ssnow, sensitivity_ensemble)
-        
-    #    print("lasso_prediction: " + str(lasso_prediction[0]))
-    #    print("nn_prediction: " + str(nn_prediction[0]))
-        
-        lasso_ssnow_analysis['MB'].append(lasso_prediction.tolist())
-        nn_ssnow_analysis['MB'].append(nn_prediction.tolist())
-        
-    lasso_ssnow_analysis['MB'] = np.asarray(lasso_ssnow_analysis['MB'])    
-    nn_ssnow_analysis['MB'] = np.asarray(nn_ssnow_analysis['MB'])
+#    for ssnow in ssnow_range:
+#        
+#    #    import pdb; pdb.set_trace()
+#        
+#        ssnow_dif = (ssnow - X_nn_ssnow[:,2])/6
+#        ssnow_dif_lasso = (ssnow - X_lasso_ssnow[:,2])/6
+#        
+#        for i in range(28,34):
+#            X_nn_ssnow[:,i] = X_nn_ssnow[:,i] + ssnow_dif
+#            X_lasso_ssnow[:,i] = X_lasso_ssnow[:,i] + ssnow_dif_lasso
+#        
+#        X_nn_ssnow[:,2] = np.repeat(ssnow, X_nn_ssnow[:,2].size)
+#        X_lasso_ssnow[:,2] = np.repeat(ssnow, X_lasso_ssnow[:,2].size)
+#        
+#    #    lasso_prediction = lasso_single_model.predict(spatial_scaler.transform(X_lasso_ssnow))
+#        lasso_prediction = ensemble_lasso_simulation(X_lasso_ssnow, CV_lasso_ensemble_members)
+#        nn_prediction = ensemble_nn_simulation(X_nn_ssnow, sensitivity_ensemble)
+#        
+#    #    print("lasso_prediction: " + str(lasso_prediction[0]))
+#    #    print("nn_prediction: " + str(nn_prediction[0]))
+#        
+#        lasso_ssnow_analysis['MB'].append(lasso_prediction.tolist())
+#        nn_ssnow_analysis['MB'].append(nn_prediction.tolist())
+#        
+#    lasso_ssnow_analysis['MB'] = np.asarray(lasso_ssnow_analysis['MB'])    
+#    nn_ssnow_analysis['MB'] = np.asarray(nn_ssnow_analysis['MB'])
     
     ##### Save analysis
-    with open(os.path.join(path_smb_function_validation, 'lasso_ssnow_analysis_32_50_hard.txt'), 'wb') as lasso_f:
-        np.save(lasso_f, lasso_ssnow_analysis)
-    with open(os.path.join(path_smb_function_validation, 'nn_ssnow_analysis_32_50_hard.txt'), 'wb') as nn_f:
-        np.save(nn_f, nn_ssnow_analysis)
+#    with open(os.path.join(path_smb_function_validation, 'lasso_ssnow_analysis_all_60_soft_final.txt'), 'wb') as lasso_f:
+#        np.save(lasso_f, lasso_ssnow_analysis)
+#    with open(os.path.join(path_smb_function_validation, 'nn_ssnow_analysis_all_60_soft_final.txt'), 'wb') as nn_f:
+#        np.save(nn_f, nn_ssnow_analysis)
         
-    #with open(os.path.join(path_smb_function_validation, 'lasso_ssnow_analysis.txt'), 'rb') as lasso_f:
-    #    lasso_ssnow_analysis = np.load(lasso_f, allow_pickle=True)[()]
-    #with open(os.path.join(path_smb_function_validation, 'nn_ssnow_analysis.txt'), 'rb') as nn_f:
-    #    nn_ssnow_analysis = np.load(nn_f, allow_pickle=True)[()]
+    with open(os.path.join(path_smb_function_validation, 'lasso_ssnow_analysis_all_60_soft_final.txt'), 'rb') as lasso_f:
+        lasso_ssnow_analysis = np.load(lasso_f, allow_pickle=True)[()]
+    with open(os.path.join(path_smb_function_validation, 'nn_ssnow_analysis_all_60_soft_final.txt'), 'rb') as nn_f:
+        nn_ssnow_analysis = np.load(nn_f, allow_pickle=True)[()]
     
     
     #for area in area_range:
@@ -618,7 +633,7 @@ y = y[data_filter]
 lasso_prediction = np.mean(SMB_lasso_members, axis=0)[data_filter]
 #lasso_prediction = SMB_lasso_members[-1]
     
-lasso_prediction_single = lasso_single_model.predict(spatial_scaler.transform(X))[data_filter]
+#lasso_prediction_single = lasso_single_model.predict(spatial_scaler.transform(X))[data_filter]
     
 nn_cv_prediction = np.mean(SMB_nn_cv_members, axis=0)[data_filter]
 #nn_cv_prediction = stacked_prediction
@@ -640,14 +655,14 @@ bias_nn = bias_nn_cv
 years = years[data_filter]
 
 print("\nLasso ensemble RMSE: " + str(math.sqrt(mean_squared_error(y, lasso_prediction))))
-print("\nLasso single RMSE: " + str(math.sqrt(mean_squared_error(y, lasso_prediction_single))))
+#print("\nLasso single RMSE: " + str(math.sqrt(mean_squared_error(y, lasso_prediction_single))))
 print("\nDeep learning CV RMSE: " + str(math.sqrt(mean_squared_error(y, nn_cv_prediction))))
 print("\nDeep learning ensemble RMSE: " + str(math.sqrt(mean_squared_error(y, nn_ensemble_prediction))))
 print("\n-------------------")
 
 print("\nObs mean value: " + str(y.mean()))
 print("\nLasso ensemble mean value: " + str(lasso_prediction.mean()))
-print("\nLasso single mean value: " + str(lasso_prediction_single.mean()))
+#print("\nLasso single mean value: " + str(lasso_prediction_single.mean()))
 print("\nNN CV mean value: " + str(nn_cv_prediction.mean()))
 print("\nNN ensemble mean value: " + str(nn_ensemble_prediction.mean()))
 
@@ -966,7 +981,7 @@ kde_nn_obs = st.gaussian_kde(SMB_nn_obs)
 fig2, ax2 = plot.subplots(ncols=1, nrows=2, axwidth=3, aspect=1.5, share=3)
 
 ax2.format(
-        abc=True, abcloc='ur', abcstyle='A',
+        abc=True, abcloc='ur', abcstyle='a',
         ygridminor=True,
         ytickloc='both', yticklabelloc='left',
         ylabel='Glacier-wide MB (m.w.e. a$^{-1}$)'
@@ -988,58 +1003,72 @@ ax2[1].set_ylim([0,1])
 
 #################################################################################
 
-fig3, ax3 = plot.subplots([[1,1],[2,3],[4,5],[6,0],[7, 7]], ref=2, ncols=2, nrows=4, axwidth=3, aspect=2, sharex=0)
+#fig3, ax3 = plot.subplots([[1,1],[2,3],[4,5],[6,0],[7, 7]], ref=2, ncols=2, nrows=4, axwidth=3, aspect=2, sharex=0)
 
-ax3.format(
-        abc=True, abcloc='ul', abcstyle='A',
-        ygridminor=True,
-        ytickloc='both', yticklabelloc='left',
-        ylabel='Bias (m.w.e. a$^{-1}$)'
-)
+#ax3.format(
+#        abc=True, abcloc='ul', abcstyle='a',
+#        ygridminor=True,
+#        ytickloc='both', yticklabelloc='left',
+#        ylabel='Bias (m.w.e. a$^{-1}$)'
+#)
 
-# Non-cumulative
+fig3, ax3 = plot.subplots(ncols=1, nrows=1, axwidth=3, aspect=1.5)
+
+ax3[0].format(xlabel='Glacier-wide MB (m.w.e. a$^{-1}$)', ylabel='Bias (m.w.e. a$^{-1}$)')
 ax3[0].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
-ax3[0].format(xlabel='Year')
-ax3[0].bar(range(1959,2016), lasso_bias_per_year, alpha=0.5)
-ax3[0].bar(range(1959,2016), nn_bias_per_year, alpha=0.5)
+ax3[0].plot(np.arange(-5,5,0.5), lasso_bias_per_MB, color='red wine', label='Lasso', legend='ur', linewidth=3)
+ax3[0].plot(np.arange(-5,5,0.5), nn_bias_per_MB, color='mud green', label='Deep learning', legend='ur', linewidth=3)
+#ax3[0].set_ylim([-2,2])
 
-ax3[1].format(xlabel='Glacier area (km$^{2}$)')
-ax3[1].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
-ax3[1].plot(np.arange(0,33,0.25), lasso_bias_per_area, color='denim')
-ax3[1].plot(np.arange(0,33,0.25), nn_bias_per_area, color='orange')
-ax3[1].set_ylim([-2,2])
-ax3[1].set_xlim([0,1])
+fig3.savefig('C:\\Jordi\\PhD\\Publications\\Third article\\Bolibar_et_al_Science_Advances\\Figures\\nonlinearity\\validation\\DL_Lasso_bias.pdf')
 
-ax3[2].format(xlabel='Glacier slope (°)')
-ax3[2].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
-ax3[2].plot(np.arange(0,50,2), lasso_bias_per_slope, color='denim')
-ax3[2].plot(np.arange(0,50,2), nn_bias_per_slope, color='orange')
-ax3[2].set_ylim([-2,2])
-ax3[2].set_xlim([6,28])
 
-ax3[3].format(xlabel='CPDD anomaly')
-ax3[3].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
-ax3[3].plot(np.arange(-1000,1000,100), lasso_bias_per_cpdd, color='denim')
-ax3[3].plot(np.arange(-1000,1000,100), nn_bias_per_cpdd, color='orange')
-ax3[3].set_ylim([-2,2])
 
-ax3[4].format(xlabel='Winter snow anomaly (mm)')
-ax3[4].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
-ax3[4].plot(np.arange(-1500,1500,100), lasso_bias_per_wsnow, color='denim')
-ax3[4].plot(np.arange(-1500,1500,100), nn_bias_per_wsnow, color='orange')
-ax3[4].set_ylim([-2,2])
+## Non-cumulative
+#ax3[0].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+#ax3[0].format(xlabel='Year')
+#ax3[0].bar(range(1959,2016), lasso_bias_per_year, alpha=0.5)
+#ax3[0].bar(range(1959,2016), nn_bias_per_year, alpha=0.5)
+#
+#ax3[1].format(xlabel='Glacier area (km$^{2}$)')
+#ax3[1].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+#ax3[1].plot(np.arange(0,33,0.25), lasso_bias_per_area, color='denim')
+#ax3[1].plot(np.arange(0,33,0.25), nn_bias_per_area, color='orange')
+#ax3[1].set_ylim([-2,2])
+#ax3[1].set_xlim([0,1])
+#
+#ax3[2].format(xlabel='Glacier slope (°)')
+#ax3[2].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+#ax3[2].plot(np.arange(0,50,2), lasso_bias_per_slope, color='denim')
+#ax3[2].plot(np.arange(0,50,2), nn_bias_per_slope, color='orange')
+#ax3[2].set_ylim([-2,2])
+#ax3[2].set_xlim([6,28])
+#
+#ax3[3].format(xlabel='CPDD anomaly')
+#ax3[3].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+#ax3[3].plot(np.arange(-1000,1000,100), lasso_bias_per_cpdd, color='denim')
+#ax3[3].plot(np.arange(-1000,1000,100), nn_bias_per_cpdd, color='orange')
+#ax3[3].set_ylim([-2,2])
+#
+#ax3[4].format(xlabel='Winter snow anomaly (mm)')
+#ax3[4].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+#ax3[4].plot(np.arange(-1500,1500,100), lasso_bias_per_wsnow, color='denim')
+#ax3[4].plot(np.arange(-1500,1500,100), nn_bias_per_wsnow, color='orange')
+#ax3[4].set_ylim([-2,2])
+#
+#ax3[5].format(xlabel='Summer snow anomaly (mm)')
+#ax3[5].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+#ax3[5].plot(np.arange(-1500,1500,50), lasso_bias_per_ssnow, color='denim')
+#ax3[5].plot(np.arange(-1500,1500,50), nn_bias_per_ssnow, color='orange')
+#ax3[5].set_ylim([-2,2])
+#
+#ax3[6].format(xlabel='Glacier-wide MB (m.w.e. a$^{-1}$)')
+#ax3[6].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+#ax3[6].plot(np.arange(-5,5,0.5), lasso_bias_per_MB, color='denim', label='Lasso', legend='ur')
+#ax3[6].plot(np.arange(-5,5,0.5), nn_bias_per_MB, color='orange', label='Deep learning', legend='ur')
+#ax3[6].set_ylim([-2,2])
 
-ax3[5].format(xlabel='Summer snow anomaly (mm)')
-ax3[5].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
-ax3[5].plot(np.arange(-1500,1500,50), lasso_bias_per_ssnow, color='denim')
-ax3[5].plot(np.arange(-1500,1500,50), nn_bias_per_ssnow, color='orange')
-ax3[5].set_ylim([-2,2])
 
-ax3[6].format(xlabel='Glacier-wide MB (m.w.e. a$^{-1}$)')
-ax3[6].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
-ax3[6].plot(np.arange(-5,5,0.5), lasso_bias_per_MB, color='denim', label='Lasso', legend='ur')
-ax3[6].plot(np.arange(-5,5,0.5), nn_bias_per_MB, color='orange', label='Deep learning', legend='ur')
-ax3[6].set_ylim([-2,2])
 
 
 ##############   RECONSTRUCTION PLOTS   ##################
@@ -1060,7 +1089,7 @@ poly_r_lasso_DL = np.asarray(p_r_lasso_DL.linspace(n=lasso_ord_SMB.size))
 fig5, ax5 = plot.subplots(ncols=3, nrows=3, axwidth=2, aspect=1, share=0)
 
 ax5.format(
-        abc=True, abcloc='ul', abcstyle='A',
+        abc=True, abcloc='ul', abcstyle='a',
         ygridminor=True,
         ytickloc='both', yticklabelloc='left',
         xlabel='Lasso', ylabel='Deep learning'
@@ -1158,7 +1187,7 @@ ax5[8].plot([-4.5, 4], [-4.5, 4], c='k')
 fig6, ax6 = plot.subplots(ncols=7, nrows=5, axwidth=1, aspect=1, sharex=0)
 
 ax6.format(
-        abc=True, abcloc='ul', abcstyle='A',
+        abc=True, abcloc='ul', abcstyle='a',
         ygridminor=True,
         ytickloc='both', yticklabelloc='left',
         ylabel='Bias (m.w.e. a$^{-1}$)'
@@ -1186,7 +1215,7 @@ for predictor_nn, predictor_lasso in zip(pred_nn['pred'], pred_lasso['pred']):
 #fig7, ax7 = plot.subplots(ncols=7, nrows=5, axwidth=1, aspect=1, share=0)
 #
 #ax7.format(
-#        abc=True, abcloc='ul', abcstyle='A',
+#        abc=True, abcloc='ul', abcstyle='a',
 #        ygridminor=True,
 #        ytickloc='both', yticklabelloc='left',
 #        suptitle='Predictors depending on glacier area'
@@ -1222,7 +1251,7 @@ for predictor_nn, predictor_lasso in zip(pred_nn['pred'], pred_lasso['pred']):
 #fig8, ax8 = plot.subplots(ncols=7, nrows=5, axwidth=1, aspect=1, share=0)
 #
 #ax8.format(
-#        abc=True, abcloc='ul', abcstyle='A',
+#        abc=True, abcloc='ul', abcstyle='a',
 #        ygridminor=True,
 #        ytickloc='both', yticklabelloc='left',
 #        suptitle='Predictors depending on glacier altitude'
@@ -1260,7 +1289,7 @@ for predictor_nn, predictor_lasso in zip(pred_nn['pred'], pred_lasso['pred']):
 #fig9, ax9 = plot.subplots(ncols=7, nrows=5, axwidth=1, aspect=1, share=0)
 #
 #ax9.format(
-#        abc=True, abcloc='ul', abcstyle='A',
+#        abc=True, abcloc='ul', abcstyle='a',
 #        ygridminor=True,
 #        ytickloc='both', yticklabelloc='left',
 #        suptitle='Regional reconstructions (N=660) - Predictor distribution for extreme positive MB (> ' + str(pos_ext_r) + ' m.w.e. a$^{-1}$)'
@@ -1297,7 +1326,7 @@ for predictor_nn, predictor_lasso in zip(pred_nn['pred'], pred_lasso['pred']):
 #fig10, ax10 = plot.subplots(ncols=7, nrows=5, axwidth=1, aspect=1, share=0)
 #
 #ax10.format(
-#        abc=True, abcloc='ul', abcstyle='A',
+#        abc=True, abcloc='ul', abcstyle='a',
 #        ygridminor=True,
 #        ytickloc='both', yticklabelloc='left',
 #        suptitle='Regional reconstructions (N=660) - Predictor distribution for extreme negative MB (< ' + str(neg_ext_r) + ' m.w.e. a$^{-1}$)'
@@ -1334,7 +1363,7 @@ for predictor_nn, predictor_lasso in zip(pred_nn['pred'], pred_lasso['pred']):
 #fig11, ax11 = plot.subplots(ncols=7, nrows=5, axwidth=1, aspect=1, share=0)
 #
 #ax11.format(
-#        abc=True, abcloc='ul', abcstyle='A',
+#        abc=True, abcloc='ul', abcstyle='a',
 #        ygridminor=True,
 #        ytickloc='both', yticklabelloc='left',
 #        suptitle='Training dataset (N=32) - Predictor distribution for extreme positive MB (> ' + str(pos_ext_t) + ' m.w.e. a$^{-1}$)'
@@ -1409,7 +1438,7 @@ for predictor_nn, predictor_lasso in zip(pred_nn['pred'], pred_lasso['pred']):
 fig13, ax13 = plot.subplots(ncols=2, nrows=3, axwidth=2, aspect=1)
 
 ax13.format(
-        abc=True, abcloc='ul', abcstyle='A',
+        abc=True, abcloc='ul', abcstyle='a',
         ygridminor=True,
         ytickloc='both', yticklabelloc='left',
         xlabel='Lasso', ylabel='Deep learning'
@@ -1488,15 +1517,16 @@ ax13[3].plot([-4.5, 4], [-4.5, 4], c='k')
 if(sensitivity_analysis):
 
 
-    fig15, ax15 = plot.subplots(ncols=2, nrows=3, axwidth=3, aspect=1.7, spany=1, spanx=1, sharex=0)
+#    fig15, ax15 = plot.subplots(ncols=2, nrows=3, axwidth=3, aspect=1.7, spany=1, spanx=1, sharex=0)
+    fig15, ax15 = plot.subplots(ncols=1, nrows=3, axwidth=3, aspect=1.7, spany=1, spanx=1, sharex=0)
     
     ax15.format(
-            abc=True, abcloc='ul', abcstyle='A',
+            abc=True, abcloc='ul', abcstyle='a',
     #        ygridminor=True,
             ytickloc='both', yticklabelloc='left',
             ylabel='Glacier-wide MB (m.w.e. a$^{-1}$)',
             rightlabels=['Response to air temperature', 'Response to winter snowfall', 'Response to summer snowfall'],
-            collabels=['Deep learning', 'Lasso']
+#            collabels=['Deep learning', 'Lasso']
     )
             
     #area_groups = df_area_analysis.groupby('area')
@@ -1507,8 +1537,8 @@ if(sensitivity_analysis):
     wsnow_labels = copy.deepcopy(wsnow_range).astype(str)
     ssnow_labels = copy.deepcopy(ssnow_range).astype(str)
     
-    for i in range(0, cpdd_range.size, 8):
-        cpdd_labels[i:i+7] = ""
+    for i in range(0, cpdd_range.size, 4):
+        cpdd_labels[i:i+3] = ""
         
     for i in range(0, wsnow_range.size, 8):   
         wsnow_labels[i:i+7] = ""
@@ -1516,50 +1546,125 @@ if(sensitivity_analysis):
     for i in range(0, ssnow_range.size, 8):   
         ssnow_labels[i:i+7] = ""
     
+#    ax15[0].format(xlabel='CPDD anomaly')
+#    ax15[0].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+#    ax15[0].axvline(x=0, color='black', linewidth=0.7, linestyle='-')
+#    #ax15[0].violinplot(np.transpose(nn_area_analysis['MB']), showmedians=True)
+#    bplot_nn_t = ax15[0].boxplot(np.transpose(nn_cpdd_analysis['MB']), labels=cpdd_labels, sym="", zorder=5)
+#    ax15[0].set_ylim([-5,5])
+#    ax15[1].format(xlabel='CPDD anomaly')
+#    ax15[1].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+#    ax15[1].axvline(x=0, color='black', linewidth=0.7, linestyle='-')
+#    #ax15[1].violinplot(np.transpose(lasso_area_analysis['MB']), showmedians=True)
+#    bplot_lasso_t = ax15[1].boxplot(np.transpose(lasso_cpdd_analysis['MB']), labels=cpdd_labels, sym="", zorder=5)
+#    #bplot_lasso_t['boxes'].set(facecolor='tomato')
+#    ax15[1].set_ylim([-5,5])
+#    
+#    ax15[2].format(xlabel='Winter snowfall anomaly (mm)')
+#    ax15[2].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+#    ax15[2].axvline(x=0, color='black', linewidth=0.7, linestyle='-')
+#    #ax15[2].violinplot(np.transpose(nn_area_analysis['MB']), showmedians=True)
+#    bplot_nn_wsnow = ax15[2].boxplot(np.transpose(nn_wsnow_analysis['MB']), labels=wsnow_labels, sym="", zorder=5)
+#    #bplot_nn_wsnow['boxes'].set(facecolor='midnightblue')
+#    ax15[2].set_ylim([-5,5])
+#    ax15[3].format(xlabel='Winter snowfall anomaly (mm)')
+#    ax15[3].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+#    ax15[3].axvline(x=0, color='black', linewidth=0.7, linestyle='-')
+#    #ax15[3].violinplot(np.transpose(lasso_area_analysis['MB']), showmedians=True)
+#    bplot_lasso_wsnow = ax15[3].boxplot(np.transpose(lasso_wsnow_analysis['MB']), labels=wsnow_labels, sym="", zorder=5)
+#    #bplot_lasso_wsnow['boxes'].set(facecolor='denim')
+#    ax15[3].set_ylim([-5,5])
+#    
+#    ax15[4].format(xlabel='Summer snowfall anomaly (mm)')
+#    ax15[4].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+#    ax15[4].axvline(x=0, color='black', linewidth=0.7, linestyle='-')
+#    #ax15[4].violinplot(np.transpose(nn_area_analysis['MB']), showmedians=True)
+#    bplot_nn_ssnow = ax15[4].boxplot(np.transpose(nn_ssnow_analysis['MB']), labels=ssnow_labels, sym="", zorder=5)
+#    #bplot_nn_ssnow['boxes'].set(facecolor='ocean blue')
+#    ax15[4].set_ylim([-5,5])
+#    ax15[5].format(xlabel='Summer snowfall anomaly (mm)')
+#    ax15[5].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
+#    ax15[5].axvline(x=0, color='black', linewidth=0.7, linestyle='-')
+#    #ax15[5].violinplot(np.transpose(lasso_area_analysis['MB']), showmedians=True)
+#    bplot_lasso_ssnow = ax15[5].boxplot(np.transpose(lasso_ssnow_analysis['MB']), labels=ssnow_labels, sym="", zorder=5)
+#    #bplot_lasso_ssnow['boxes'].set(facecolor='skyblue')
+#    ax15[5].set_ylim([-5,5])
+    
+#    import pdb; pdb.set_trace()
+    
+#    offset = 10
+        
     ax15[0].format(xlabel='CPDD anomaly')
-    ax15[0].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
-    ax15[0].axvline(x=0, color='black', linewidth=0.7, linestyle='-')
-    #ax15[0].violinplot(np.transpose(nn_area_analysis['MB']), showmedians=True)
-    bplot_nn_t = ax15[0].boxplot(np.transpose(nn_cpdd_analysis['MB']), labels=cpdd_labels, sym="", zorder=5)
-    ax15[0].set_ylim([-5,5])
-    ax15[1].format(xlabel='CPDD anomaly')
-    ax15[1].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
-    ax15[1].axvline(x=0, color='black', linewidth=0.7, linestyle='-')
-    #ax15[1].violinplot(np.transpose(lasso_area_analysis['MB']), showmedians=True)
-    bplot_lasso_t = ax15[1].boxplot(np.transpose(lasso_cpdd_analysis['MB']), labels=cpdd_labels, sym="", zorder=5)
+    ax15[0].axhline(y=0, color='black', linewidth=0.7, linestyle='-', zorder=0)
+    ax15[0].axvline(x=0, color='black', linewidth=0.7, linestyle='-', zorder=0)
+#    ax15[0].violinplot(np.transpose(nn_cpdd_analysis['MB']), showmedians=True)
+    
+#    bplot_nn_t = ax15[0].boxplot(np.transpose(nn_cpdd_analysis['MB']), labels=cpdd_labels, sym="", zorder=5, positions=np.arange(np.transpose(nn_cpdd_analysis['MB']).shape[1]+offset), manage_ticks=False)
+    
+#    ax15[0].violinplot(np.transpose(lasso_cpdd_analysis['MB']), showmedians=True)
+#    bplot_lasso_t = ax15[0].boxplot(np.transpose(lasso_cpdd_analysis['MB']), labels=cpdd_labels, sym="", zorder=5, positions=np.arange(np.transpose(nn_cpdd_analysis['MB']).shape[1]-offset), manage_ticks=False)
+    
+    median_lasso_cpdd = np.median(np.transpose(lasso_cpdd_analysis['MB']), axis=0)
+    bplot_lasso_line= ax15[0].plot(np.arange(np.transpose(lasso_cpdd_analysis['MB']).shape[1]), median_lasso_cpdd, label="Lasso", c='red wine', legend='t', zorder=2, linewidth=3)
+    std_lasso_cpdd = np.std(np.transpose(lasso_cpdd_analysis['MB']), axis=0)
+    ax15[0].fill_between(np.arange(np.transpose(lasso_cpdd_analysis['MB']).shape[1]), median_lasso_cpdd-std_lasso_cpdd, median_lasso_cpdd+std_lasso_cpdd, zorder=1, facecolor='red wine', alpha=0.2)
+    
+    median_nn_cpdd = np.median(np.transpose(nn_cpdd_analysis['MB']), axis=0)
+    bplot_nn_line= ax15[0].plot(cpdd_labels, median_nn_cpdd, label="Deep learning", c='mud green',legend='t', zorder=2, linewidth=3)
+    std_nn_cpdd = np.std(np.transpose(nn_cpdd_analysis['MB']), axis=0)
+    ax15[0].set_ylim([-5.5,3])
+    ax15[0].fill_between(cpdd_labels, median_nn_cpdd-std_nn_cpdd, median_nn_cpdd+std_nn_cpdd, zorder=1, facecolor='mud green', alpha=0.2)
+
     #bplot_lasso_t['boxes'].set(facecolor='tomato')
-    ax15[1].set_ylim([-5,5])
     
-    ax15[2].format(xlabel='Winter snowfall anomaly (mm)')
-    ax15[2].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
-    ax15[2].axvline(x=0, color='black', linewidth=0.7, linestyle='-')
-    #ax15[2].violinplot(np.transpose(nn_area_analysis['MB']), showmedians=True)
-    bplot_nn_wsnow = ax15[2].boxplot(np.transpose(nn_wsnow_analysis['MB']), labels=wsnow_labels, sym="", zorder=5)
+    ax15[1].format(xlabel='Winter snowfall anomaly (mm)')
+    ax15[1].axhline(y=0, color='black', linewidth=0.7, linestyle='-', zorder=0)
+    ax15[1].axvline(x=0, color='black', linewidth=0.7, linestyle='-', zorder=0)
+    #ax15[1].violinplot(np.transpose(nn_area_analysis['MB']), showmedians=True)
+#    bplot_nn_wsnow = ax15[1].boxplot(np.transpose(nn_wsnow_analysis['MB']), labels=wsnow_labels, sym="", zorder=5)
+    
     #bplot_nn_wsnow['boxes'].set(facecolor='midnightblue')
-    ax15[2].set_ylim([-5,5])
-    ax15[3].format(xlabel='Winter snowfall anomaly (mm)')
-    ax15[3].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
-    ax15[3].axvline(x=0, color='black', linewidth=0.7, linestyle='-')
-    #ax15[3].violinplot(np.transpose(lasso_area_analysis['MB']), showmedians=True)
-    bplot_lasso_wsnow = ax15[3].boxplot(np.transpose(lasso_wsnow_analysis['MB']), labels=wsnow_labels, sym="", zorder=5)
+    ax15[1].set_ylim([-5.5,3])
+    #ax15[1].violinplot(np.transpose(lasso_area_analysis['MB']), showmedians=True)
+#    bplot_lasso_wsnow = ax15[1].boxplot(np.transpose(lasso_wsnow_analysis['MB']), labels=wsnow_labels, sym="", zorder=5)
+    
+    median_lasso_wsnow = np.median(np.transpose(lasso_wsnow_analysis['MB']), axis=0)
+    bplot_nn_line= ax15[1].plot(wsnow_labels, median_lasso_wsnow, c='red wine',zorder=2, linewidth=3)
+    std_lasso_wsnow = np.std(np.transpose(lasso_wsnow_analysis['MB']), axis=0)
+    ax15[1].fill_between(wsnow_labels, median_lasso_wsnow-std_lasso_wsnow, median_lasso_wsnow+std_lasso_wsnow, zorder=1, facecolor='red wine', alpha=0.2)
+    
+    median_nn_wsnow = np.median(np.transpose(nn_wsnow_analysis['MB']), axis=0)
+    bplot_nn_line= ax15[1].plot(wsnow_labels, median_nn_wsnow, c='mud green',zorder=2, linewidth=3)
+    std_nn_wsnow = np.std(np.transpose(nn_wsnow_analysis['MB']), axis=0)
+    ax15[1].fill_between(wsnow_labels, median_nn_wsnow-std_nn_wsnow, median_nn_wsnow+std_nn_wsnow, zorder=1, facecolor='mud green', alpha=0.2)
+
     #bplot_lasso_wsnow['boxes'].set(facecolor='denim')
-    ax15[3].set_ylim([-5,5])
     
-    ax15[4].format(xlabel='Summer snowfall anomaly (mm)')
-    ax15[4].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
-    ax15[4].axvline(x=0, color='black', linewidth=0.7, linestyle='-')
+    ax15[2].format(xlabel='Summer snowfall anomaly (mm)')
+    ax15[2].axhline(y=0, color='black', linewidth=0.7, linestyle='-', zorder=0)
+    ax15[2].axvline(x=0, color='black', linewidth=0.7, linestyle='-', zorder=0)
     #ax15[4].violinplot(np.transpose(nn_area_analysis['MB']), showmedians=True)
-    bplot_nn_ssnow = ax15[4].boxplot(np.transpose(nn_ssnow_analysis['MB']), labels=ssnow_labels, sym="", zorder=5)
-    #bplot_nn_ssnow['boxes'].set(facecolor='ocean blue')
-    ax15[4].set_ylim([-5,5])
-    ax15[5].format(xlabel='Summer snowfall anomaly (mm)')
-    ax15[5].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
-    ax15[5].axvline(x=0, color='black', linewidth=0.7, linestyle='-')
-    #ax15[5].violinplot(np.transpose(lasso_area_analysis['MB']), showmedians=True)
-    bplot_lasso_ssnow = ax15[5].boxplot(np.transpose(lasso_ssnow_analysis['MB']), labels=ssnow_labels, sym="", zorder=5)
-    #bplot_lasso_ssnow['boxes'].set(facecolor='skyblue')
-    ax15[5].set_ylim([-5,5])
+#    bplot_nn_ssnow = ax15[2].boxplot(np.transpose(nn_ssnow_analysis['MB']), labels=ssnow_labels, sym="", zorder=5)
     
+    #bplot_nn_ssnow['boxes'].set(facecolor='ocean blue')
+    ax15[2].set_ylim([-5.5,3])
+    #ax15[5].violinplot(np.transpose(lasso_area_analysis['MB']), showmedians=True)
+#    bplot_lasso_ssnow = ax15[2].boxplot(np.transpose(lasso_ssnow_analysis['MB']), labels=ssnow_labels, sym="", zorder=5)
+    
+    median_lasso_ssnow = np.median(np.transpose(lasso_ssnow_analysis['MB']), axis=0)
+    bplot_nn_line= ax15[2].plot(ssnow_labels, median_lasso_ssnow, c='red wine',zorder=2, linewidth=3)
+    std_lasso_ssnow = np.std(np.transpose(lasso_ssnow_analysis['MB']), axis=0)
+    ax15[2].fill_between(ssnow_labels, median_lasso_ssnow-std_lasso_ssnow, median_lasso_ssnow+std_lasso_ssnow, zorder=1, facecolor='red wine', alpha=0.2)
+    
+    median_nn_ssnow = np.median(np.transpose(nn_ssnow_analysis['MB']), axis=0)
+    bplot_nn_line= ax15[2].plot(ssnow_labels, median_nn_ssnow, c='mud green',zorder=2, linewidth=3)
+    std_nn_ssnow = np.std(np.transpose(nn_ssnow_analysis['MB']), axis=0)
+    ax15[2].fill_between(ssnow_labels, median_nn_ssnow-std_nn_ssnow, median_nn_ssnow+std_nn_ssnow, zorder=1, facecolor='mud green', alpha=0.2)
+
+    #bplot_lasso_ssnow['boxes'].set(facecolor='skyblue')
+            
+#    fig15.legend(((bplot_nn_line, bplot_lasso_line)), loc='t', ncols=2, frame=True)
+#    
     #    # fill with colors
     #    colors = ['darkred', 'denim']
     #    for patch, color in zip(bplot['boxes'], colors):

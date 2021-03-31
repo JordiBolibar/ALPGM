@@ -24,11 +24,11 @@ import numpy.polynomial.polynomial as poly
 import scipy.stats as st
 
 ###### FLAGS  #########
-with_26 = True
+with_26 = False
 filter_glacier = False
-static_geometry = False
-load_dictionaries = True
-other_plots = False
+static_geometry = True
+load_dictionaries = False
+other_plots = True
 #filter_member = False
 # mer de glace
 #glacier_ID_filter = "G006934E45883N"
@@ -754,7 +754,7 @@ else:
     #### Analyzing Deep learning - Lasso runs  ######
     #################################################
     
-    ds_glacier_projections_lasso = xr.open_dataset(os.path.join(path_glacier_evolution, 'glacier_evolution_lasso_' + str(year_start) + '_2100_hard.nc'))
+    ds_glacier_projections_lasso = xr.open_dataset(os.path.join(path_glacier_evolution, 'glacier_evolution_lasso_' + str(year_start) + '_2100.nc'))
     
     path_glacier_evolution_nn = os.path.join(workspace, 'glacier_data', 'glacier_evolution')
     ds_glacier_projections = xr.open_dataset(os.path.join(path_glacier_evolution_nn, 'glacier_evolution_' + str(year_start) + '_2100.nc'))
@@ -849,6 +849,8 @@ else:
     GLIMS_ID_sel = np.asarray(GLIMS_ID_sel)
     RGI_ID_sel = np.asarray(RGI_ID_sel)
     
+#    import pdb; pdb.set_trace()
+    
     bolibar_MB_26 = ds_glacier_projections.MB.sel(RCP='26', GLIMS_ID=GLIMS_ID_sel).mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
     bolibar_MB_45 = ds_glacier_projections.MB.sel(RCP='45', GLIMS_ID=GLIMS_ID_sel).mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
     bolibar_MB_85 = ds_glacier_projections.MB.sel(RCP='85', GLIMS_ID=GLIMS_ID_sel).mean(dim=['GLIMS_ID', 'massif_ID', 'member'])
@@ -908,7 +910,7 @@ else:
     fig1, ax1 = plot.subplots([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 10, 0], [10, 10, 0]], ncols=3, nrows=5, axwidth=2, aspect=1.6, sharey=1, spany=0, spanx=0, hspace='2.1em')
 
     ax1.format(
-            abc=True, abcloc='ur', abcstyle='A',
+            abc=True, abcloc='ur', abcstyle='a',
             ygridminor=True,
             ytickloc='both', yticklabelloc='left',
             xlabel='Year',
@@ -928,14 +930,14 @@ else:
     h1 = ax1[0].plot(MB_26_lasso.year.values[:-1], poly26, c='dark blue', linewidth=4, alpha=0.5)
     # Individual RCP 2.6 members
     for member_nn_26, member_lasso_26 in zip(MB_26_nn_members, MB_26_lasso_members):
-        ax1[0].plot(MB_26_lasso.year.values, member_nn_26.values - member_lasso_26.values, c='slate blue', linewidth=0.1)
+        ax1[0].plot(MB_26_lasso.year.values, member_nn_26.values - member_lasso_26.values, c='slate blue', linewidth=0.2, alpha=0.5)
     ax1[0].set_ylim([-1,0.75])
     # Mean of RCP 4.5 members
     h2 = ax1[3].plot(MB_45_lasso.year.values, MB_45_nn.values - MB_45_lasso.values, c='sienna', linewidth=1)
     h2 = ax1[3].plot(MB_45_lasso.year.values[:-1], poly45, c='dark orange', linewidth=4, alpha=0.5)
     # Individual RCP 4.5 members
     for member_nn_45, member_lasso_45 in zip(MB_45_nn_members, MB_45_lasso_members):
-        ax1[3].plot(MB_45_lasso.year.values, member_nn_45.values - member_lasso_45.values, c='sienna', linewidth=0.1)
+        ax1[3].plot(MB_45_lasso.year.values, member_nn_45.values - member_lasso_45.values, c='sienna', linewidth=0.2, alpha=0.5)
     ax1[3].set_ylim([-1,0.75])
     ax1[3].format(ylabel = "Deep learning - Lasso ($\Delta$ m.w.e. a$^{-1}$)")
     # Mean of RCP 8.5 members
@@ -943,7 +945,7 @@ else:
     h3 = ax1[6].plot(MB_85_lasso.year.values[:-1], poly85, c='dark red', linewidth=4, alpha=0.5)
     # Individual RCP 8.5 members
     for member_nn_85, member_lasso_85 in zip(MB_85_nn_members, MB_85_lasso_members):
-        ax1[6].plot(MB_85_lasso.year.values, member_nn_85.values - member_lasso_85.values, c='light maroon', linewidth=0.1)
+        ax1[6].plot(MB_85_lasso.year.values, member_nn_85.values - member_lasso_85.values, c='light maroon', linewidth=0.2, alpha=0.55)
     ax1[6].set_ylim([-1,0.75])
 #    ax1[4].format(ylabel = "Lasso - Deep learning ($\Delta$ m.w.e. a$^{-1}$)")
     
@@ -956,28 +958,28 @@ else:
     h1 = ax1[1].plot(MB_26_lasso.year.values, np.cumsum(MB_26_nn.values - MB_26_lasso.values), c='slate blue', linewidth=4)
     # Individual RCP 2.6 members
     for member_nn_26, member_lasso_26 in zip(MB_26_nn_members, MB_26_lasso_members):
-        ax1[1].plot(MB_26_lasso.year.values, np.cumsum(member_nn_26.values - member_lasso_26.values), c='slate blue', linewidth=0.3)
-    ax1[1].set_ylim([-8,27])
+        ax1[1].plot(MB_26_lasso.year.values, np.cumsum(member_nn_26.values - member_lasso_26.values), c='slate blue', linewidth=0.3, alpha=0.7)
+    ax1[1].set_ylim([-18,10])
     # Mean of RCP 4.5 members
     h2 = ax1[4].plot(MB_45_lasso.year.values, np.cumsum(MB_45_nn.values - MB_45_lasso.values), c='sienna', linewidth=4)
     # Individual RCP 4.5 members
     for member_nn_45, member_lasso_45 in zip(MB_45_nn_members, MB_45_lasso_members):
-        ax1[4].plot(MB_45_lasso.year.values, np.cumsum(member_nn_45.values - member_lasso_45.values), c='sienna', linewidth=0.3)
-    ax1[4].set_ylim([-4,27])
+        ax1[4].plot(MB_45_lasso.year.values, np.cumsum(member_nn_45.values - member_lasso_45.values), c='sienna', linewidth=0.3, alpha=0.7)
+    ax1[4].set_ylim([-18,10])
     # Mean of RCP 8.5 members
     ax1[4].format(ylabel = "Deep learning - Lasso ($\Delta$ m.w.e.)")
     h3 = ax1[7].plot(MB_85_lasso.year.values, np.cumsum(MB_85_nn.values - MB_85_lasso.values), c='light maroon', linewidth=4)
     # Individual RCP 8.5 members
     for member_nn_85, member_lasso_85 in zip(MB_85_nn_members, MB_85_lasso_members):
-        ax1[7].plot(MB_85_lasso.year.values, np.cumsum(member_nn_85.values - member_lasso_85.values), c='light maroon', linewidth=0.3)
-    ax1[7].set_ylim([-4,27])
+        ax1[7].plot(MB_85_lasso.year.values, np.cumsum(member_nn_85.values - member_lasso_85.values), c='light maroon', linewidth=0.3, alpha=0.7)
+    ax1[7].set_ylim([-18,10])
     
     # Histograms
     bins = 'auto'
-#    kde_x_DL_26 = np.linspace(MB_26_nn.values.min(), MB_26_nn.values.max(), 301)
-#    kde_DL_26 = st.gaussian_kde(MB_26_nn.values)
-#    kde_x_lasso_26 = np.linspace(MB_26_lasso.values.min(), MB_26_lasso.values.max(), 301)
-#    kde_lasso_26 = st.gaussian_kde(MB_26_lasso.values)
+    kde_x_DL_26 = np.linspace(MB_26_nn.values.min(), MB_26_nn.values.max(), 301)
+    kde_DL_26 = st.gaussian_kde(MB_26_nn.values)
+    kde_x_lasso_26 = np.linspace(MB_26_lasso.values.min(), MB_26_lasso.values.max(), 301)
+    kde_lasso_26 = st.gaussian_kde(MB_26_lasso.values)
     kde_x_DL_45 = np.linspace(MB_45_nn.values.min(), MB_45_nn.values.max(), 301)
     kde_DL_45 = st.gaussian_kde(MB_45_nn.values)
     kde_x_lasso_45 = np.linspace(MB_45_lasso.values.min(), MB_45_lasso.values.max(), 301)
@@ -991,13 +993,13 @@ else:
     
     alpha = 0.2
     
-#    ax1[2].format(xlabel = 'MB (m.w.e. a$^{-1}$)')
-#    ax1[2].set_ylim([0,1.5])
-#    ax1[2].axvline(x=0, color='black', linewidth=0.7)
-#    ax1[2].plot(kde_x_DL_26, kde_DL_26(kde_x_DL_26), c='midnightblue', linewidth=2)
-#    ax1[2].fill_between(kde_x_DL_26, 0, kde_DL_26(kde_x_DL_26), zorder=1, facecolor='midnightblue', alpha=alpha)
-#    ax1[2].plot(kde_x_lasso_26, kde_lasso_26(kde_x_lasso_26), c='skyblue', linewidth=2, linestyle='--')
-#    ax1[2].fill_between(kde_x_lasso_26, 0, kde_lasso_26(kde_x_lasso_26), zorder=1, facecolor='skyblue', alpha=alpha)
+    ax1[2].format(xlabel = 'MB (m.w.e. a$^{-1}$)')
+    ax1[2].set_ylim([0,1.5])
+    ax1[2].axvline(x=0, color='black', linewidth=0.7)
+    ax1[2].plot(kde_x_DL_26, kde_DL_26(kde_x_DL_26), c='midnightblue', linewidth=2)
+    ax1[2].fill_between(kde_x_DL_26, 0, kde_DL_26(kde_x_DL_26), zorder=1, facecolor='midnightblue', alpha=alpha)
+    ax1[2].plot(kde_x_lasso_26, kde_lasso_26(kde_x_lasso_26), c='skyblue', linewidth=2, linestyle='--')
+    ax1[2].fill_between(kde_x_lasso_26, 0, kde_lasso_26(kde_x_lasso_26), zorder=1, facecolor='skyblue', alpha=alpha)
     
     ax1[5].format(xlabel = 'MB (m.w.e. a$^{-1}$)')
     ax1[5].set_ylim([0,1.5])
@@ -1027,6 +1029,8 @@ else:
     ax1[9].plot(MB_26_nn.year.values, np.cumsum(MB_26_nn.values), c='midnightblue', linewidth=2, label='Deep learning - RCP 2.6', legend=legend_cum, legend_kw={'ncols':1,'frame':True})
     ax1[9].plot(MB_26_nn.year.values, np.cumsum(MB_26_lasso.values), c='skyblue', linewidth=2, linestyle='--', label='Lasso - RCP 2.6', legend=legend_cum, legend_kw={'ncols':1,'frame':True})
     
+    fig1.savefig('C:\\Jordi\\PhD\\Publications\\Third article\\Bolibar_et_al_Science_Advances\\Figures\\nonlinearity\\validation\\DL_vs_Lasso.pdf')
+    
     
     ######################
     ####  ZMEAN  #########
@@ -1035,7 +1039,7 @@ else:
     fig2, ax2 = plot.subplots(ncols=1, nrows=3, axwidth=2, aspect=1.5, sharey=1, hspace='2em')
 
     ax2.format(
-            abc=True, abcloc='ul', abcstyle='A',
+            abc=True, abcloc='ul', abcstyle='a',
             ygridminor=True,
             ytickloc='both', yticklabelloc='left',
             xlabel='Year',
@@ -1057,7 +1061,7 @@ else:
     fig3, ax3 = plot.subplots(ncols=2, nrows=3, axwidth=2, aspect=1.5, sharey=1, hspace='2em')
 
     ax3.format(
-            abc=True, abcloc='ul', abcstyle='A',
+            abc=True, abcloc='ul', abcstyle='a',
             ygridminor=True,
             ytickloc='both', yticklabelloc='left',
             xlabel='Year',
@@ -1070,13 +1074,19 @@ else:
     ax3[2].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
     ax3[4].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
     
+    # RCP 2.6
     h1 = ax3[0].plot(bolibar_MB_26.year.values, bolibar_MB_26.values - zeko_avg_MB_26, c='slate blue', linewidth=1)
     h1 = ax3[0].plot(bolibar_MB_26.year.values, poly26_algpgm, c='dark blue', linewidth=4, alpha=0.5)
+    # Individual RCP 2.6 members
+    for member_nn_26, member_lasso_26 in zip(MB_26_nn_members, MB_26_lasso_members):
+        ax1[0].plot(MB_26_lasso.year.values, member_nn_26.values - member_lasso_26.values, c='slate blue', linewidth=0.1)
     ax3[0].set_ylim([-1.3,1.5])
+    # RCP 4.5
     h2 = ax3[2].plot(bolibar_MB_45.year.values, bolibar_MB_45.values - zeko_avg_MB_45, c='sienna', linewidth=1)
     h2 = ax3[2].plot(bolibar_MB_45.year.values, poly45_algpgm, c='dark orange', linewidth=4, alpha=0.5)
     ax3[2].set_ylim([-1.3,1.5])
     ax3[2].format(ylabel = "ALPGM - GloGEMflow ($\Delta$ m.w.e. a$^{-1}$)")
+    # RCP 8.5
     h3 = ax3[4].plot(bolibar_MB_85.year.values, bolibar_MB_85.values - zeko_avg_MB_85, c='light maroon', linewidth=1)
     h3 = ax3[4].plot(bolibar_MB_85.year.values, poly85_algpgm, c='dark red', linewidth=4, alpha=0.5)
     ax3[4].set_ylim([-1.3,1.5])
@@ -1087,13 +1097,13 @@ else:
     ax3[5].axhline(y=0, color='black', linewidth=0.7, linestyle='-')
     
     h1 = ax3[1].plot(bolibar_MB_26.year.values, mb_cum_diff_26, c='slate blue', linewidth=4)
-    ax3[1].set_ylim([-4,31])
+    ax3[1].set_ylim([-18,18])
 #    ax3[1].format(ylabel = "Lasso - Deep learning  ($\Delta$ m.w.e.)")
     h2 = ax3[3].plot(bolibar_MB_45.year.values, mb_cum_diff_45, c='sienna', linewidth=4)
-    ax3[3].set_ylim([-4,31])
+    ax3[3].set_ylim([-18,18])
     ax3[3].format(ylabel = "ALPGM - GloGEMflow ($\Delta$ m.w.e. a$^{-1}$)")
     h3 = ax3[5].plot(bolibar_MB_85.year.values, mb_cum_diff_85, c='light maroon', linewidth=4)
-    ax3[5].set_ylim([-4,31])
+    ax3[5].set_ylim([-18,18])
 #    ax3[5].format(ylabel = "Lasso - Deep learning ($\Delta$ m.w.e.)")
     
     ######################
@@ -1103,7 +1113,7 @@ else:
     fig4, ax4 = plot.subplots(ncols=1, nrows=3, axwidth=2, aspect=1.5, sharey=1, hspace='2em')
 
     ax4.format(
-            abc=True, abcloc='ul', abcstyle='A',
+            abc=True, abcloc='ul', abcstyle='a',
             ygridminor=True,
             ytickloc='both', yticklabelloc='left',
             xlabel='Year',
@@ -1125,7 +1135,7 @@ else:
     fig5, ax5 = plot.subplots(ncols=2, nrows=3, axwidth=2, aspect=1.5, sharey=0, sharex=3, spanx=2, spany=1, hspace='2.2em')
 
     ax5.format(
-            abc=True, abcloc='ur', abcstyle='A',
+            abc=True, abcloc='ur', abcstyle='a',
             ygridminor=True,
             ytickloc='both', yticklabelloc='left',
             xlabel='Year',
@@ -1175,7 +1185,7 @@ else:
     fig6, ax6 = plot.subplots(ncols=1, nrows=3, axwidth=2, aspect=1.5, sharey=0, sharex=3, spanx=2, spany=1, hspace='2.2em')
 
     ax6.format(
-            abc=True, abcloc='ur', abcstyle='A',
+            abc=True, abcloc='ur', abcstyle='a',
             ygridminor=True,
             ytickloc='both', yticklabelloc='left',
             xlabel='Year',
@@ -1206,7 +1216,7 @@ else:
     fig7, ax7 = plot.subplots(ncols=1, nrows=3, axwidth=2, aspect=1.5, sharey=0, sharex=3, spanx=2, spany=1, hspace='2.2em')
 
     ax7.format(
-            abc=True, abcloc='ur', abcstyle='A',
+            abc=True, abcloc='ur', abcstyle='a',
             ygridminor=True,
             ytickloc='both', yticklabelloc='left',
             xlabel='Year',
@@ -1237,7 +1247,7 @@ else:
     fig8, ax8 = plot.subplots(ncols=1, nrows=3, axwidth=2, aspect=1.5, sharey=0, sharex=3, spanx=2, spany=1, hspace='2.2em')
 
     ax8.format(
-            abc=True, abcloc='ur', abcstyle='A',
+            abc=True, abcloc='ur', abcstyle='a',
             ygridminor=True,
             ytickloc='both', yticklabelloc='left',
             xlabel='Year',
@@ -1264,7 +1274,7 @@ else:
     
     
     
-    plt.show()
+#    plt.show()
     
 if(other_plots):
         
@@ -1287,7 +1297,7 @@ if(other_plots):
     #    fig1.suptitle("Regional average French alpine glacier projections under climate change")
     
     ax1.format(
-            abc=True, abcloc='ur', abcstyle='A',
+            abc=True, abcloc='ur', abcstyle='a',
             ygridminor=True,
             ytickloc='both', yticklabelloc='left'
     )
@@ -1339,7 +1349,7 @@ if(other_plots):
     
     for ax2 in (ax21, ax22, ax23):
         ax2.format(
-                abc=True, abcloc='ul', abcstyle='A',
+                abc=True, abcloc='ul', abcstyle='a',
                 ygridminor=True,
                 ytickloc='both', yticklabelloc='left'
         )
@@ -1391,7 +1401,7 @@ if(other_plots):
     #    fig3.suptitle("French Alpine glaciers average regional climate signal evolution")
     
     axs3.format(
-            abc=True, abcloc='ul', abcstyle='A',
+            abc=True, abcloc='ul', abcstyle='a',
             ygridminor=True,
             ytickloc='both', yticklabelloc='left',
             xlabel='Year'
@@ -1499,7 +1509,7 @@ if(other_plots):
     #        fig6.suptitle("Glacier retreat topographical feedback on climate projections")
         
         axs6.format(
-                abc=True, abcloc='ul', abcstyle='A',
+                abc=True, abcloc='ul', abcstyle='a',
                 ygridminor=True,
                 ytickloc='both', yticklabelloc='left',
                 xlabel='Year'
@@ -1517,43 +1527,45 @@ if(other_plots):
             
             axs6[i].set_title(s_title, color=season_color)  
             axs6[i].format(ylabel=s_ylabel)
+            
+        alpha=0.6
         
         # CPDD
-        plot_individual_members_diff(axs6[0], RCP_member_means, RCP_means, 'CPDD', 'static_CPDD', filtered_member)
+        plot_individual_members_diff(axs6[0], RCP_member_means, RCP_means, 'CPDD', 'static_CPDD', filtered_member, alpha=alpha)
         h = plot_RCP_means_diff(axs6[0], RCP_means, 'CPDD', 'static_CPDD', with_26, legend=False, linewidth=2)
         
         # Summer CPDD
-        plot_individual_members_diff(axs6[1], RCP_member_means, RCP_means, 'summer_CPDD', 'static_summer_CPDD', filtered_member)
+        plot_individual_members_diff(axs6[1], RCP_member_means, RCP_means, 'summer_CPDD', 'static_summer_CPDD', filtered_member, alpha=alpha)
         h = plot_RCP_means_diff(axs6[1], RCP_means, 'summer_CPDD', 'static_summer_CPDD', with_26, legend=False, linewidth=2)
         
         # Winter CPDD
-        plot_individual_members_diff(axs6[2], RCP_member_means, RCP_means, 'winter_CPDD', 'static_winter_CPDD', filtered_member)
+        plot_individual_members_diff(axs6[2], RCP_member_means, RCP_means, 'winter_CPDD', 'static_winter_CPDD', filtered_member, alpha=alpha)
         h = plot_RCP_means_diff(axs6[2], RCP_means, 'winter_CPDD', 'static_winter_CPDD', with_26, legend=False, linewidth=2)
         
         # Snowfall
-        plot_individual_members_diff(axs6[3], RCP_member_means, RCP_means, 'snowfall', 'static_snowfall', filtered_member)
+        plot_individual_members_diff(axs6[3], RCP_member_means, RCP_means, 'snowfall', 'static_snowfall', filtered_member, alpha=alpha)
         h = plot_RCP_means_diff(axs6[3], RCP_means, 'snowfall', 'static_snowfall', with_26, legend=False, linewidth=2)
         axs6[3].set_ylim([0,400])
         
         # Summer Snowfall
-        plot_individual_members_diff(axs6[4], RCP_member_means, RCP_means, 'summer_snowfall', 'static_summer_snowfall', filtered_member)
+        plot_individual_members_diff(axs6[4], RCP_member_means, RCP_means, 'summer_snowfall', 'static_summer_snowfall', filtered_member, alpha=alpha)
         h = plot_RCP_means_diff(axs6[4], RCP_means, 'summer_snowfall', 'static_summer_snowfall', with_26, legend=False, linewidth=2)
         
         # Winter Snowfall
-        plot_individual_members_diff(axs6[5], RCP_member_means, RCP_means, 'winter_snowfall', 'static_winter_snowfall', filtered_member)
+        plot_individual_members_diff(axs6[5], RCP_member_means, RCP_means, 'winter_snowfall', 'static_winter_snowfall', filtered_member, alpha=alpha)
         h = plot_RCP_means_diff(axs6[5], RCP_means, 'winter_snowfall', 'static_winter_snowfall', with_26, legend=False, linewidth=2)
         
         # Rainfall
-        plot_individual_members_diff(axs6[6], RCP_member_means, RCP_means, 'rain', 'static_rain', filtered_member)
+        plot_individual_members_diff(axs6[6], RCP_member_means, RCP_means, 'rain', 'static_rain', filtered_member, alpha=alpha)
         h = plot_RCP_means_diff(axs6[6], RCP_means, 'rain', 'static_rain', with_26, legend=False, linewidth=2)
         axs6[6].set_ylim([-250,0])
         
         # Summer rainfall
-        plot_individual_members_diff(axs6[7], RCP_member_means, RCP_means, 'summer_rain', 'static_summer_rain', filtered_member)
+        plot_individual_members_diff(axs6[7], RCP_member_means, RCP_means, 'summer_rain', 'static_summer_rain', filtered_member, alpha=alpha)
         h = plot_RCP_means_diff(axs6[7], RCP_means, 'summer_rain', 'static_summer_rain', with_26, legend=False, linewidth=2)
         
         # Winter rainfall
-        plot_individual_members_diff(axs6[8], RCP_member_means, RCP_means, 'winter_rain', 'static_winter_rain', filtered_member)
+        plot_individual_members_diff(axs6[8], RCP_member_means, RCP_means, 'winter_rain', 'static_winter_rain', filtered_member, alpha=alpha)
         h = plot_RCP_means_diff(axs6[8], RCP_means, 'winter_rain', 'static_winter_rain', with_26, legend=False, linewidth=2)
         
         fig6.legend(h, loc='r', ncols=1, frame=True)
@@ -1561,6 +1573,7 @@ if(other_plots):
         # Save as PDF
         save_plot_as_pdf(fig6, header + 'static_vs_dynamical_CPDD_snowfall_rain', with_26)
         
+        print("fire in the hole")
         
         ###############     Plot the glacier-wide MB   ####################################
         fig7, (ax7) = plot.subplots(ncols=1, nrows=1, axwidth=5, aspect=4)
@@ -1573,7 +1586,7 @@ if(other_plots):
         ax7.set_xlabel('Year')
         
         # Glacier-wide MB
-        plot_individual_members_diff(ax7, RCP_member_means, RCP_means, 'MB', 'static_MB', filtered_member, alpha=0.3)
+        plot_individual_members_diff(ax7, RCP_member_means, RCP_means, 'MB', 'static_MB', filtered_member, alpha=0.6)
         h = plot_RCP_means_diff(ax7, RCP_means, 'MB', 'static_MB', with_26)
         
         # Save as PDF
