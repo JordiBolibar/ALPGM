@@ -32,7 +32,7 @@ print("-----------------------------------------------")
 #########    SETTINGS      ##############################################################################
 # projection == True -> Projections with ADAMONT for the 21st century
 # projection == False -> Historical simulations for the 1984 - 2015 period with SAFRAN
-historical_forcing, projection_forcing, simulation_type = settings.simulation_settings(projection = False)
+historical_forcing, projection_forcing, simulation_type = settings.simulation_settings(projection = True)
 
 ### Global variables  ###
 # Set the glacier index to start the simulations
@@ -46,9 +46,9 @@ imp.reload(settings)
 settings.init(historical_forcing, 
               projection_forcing, 
               simulation_type, 
-              smb_model = 'ann_no_weights',
+              smb_model = 'lasso',
               cluster = False,              # Update file paths for computing in Luke cluster
-              static_geometry_mode = False, # Keep glacier geometry static to analyse effects of climate
+              static_geometry_mode = True, # Keep glacier geometry static to analyse effects of climate
               ASTER_calibration = True)       
 
 ##########    WORKFLOW     ################################################################################
@@ -66,13 +66,14 @@ settings.glacier_parameterized_functions(compute = False,
                                        overwrite = True)
 
 ##########     SMB PROJECTION + GLACIER GEOMETRY EVOLUTION    #######
+# /!\ BEWARE OF INTERNAL SETTINGS IN GLACIER_EVOLUTION.PY /!\ #
 settings.glacier_simulation(simulation_type, counter_threshold,
                                            validate_SMB = False, # SMB model(s) validation or reconstruction
                             compute_projection_forcings = False, # Compute projection climate forcings
                                       compute_evolution = True, # Compute glacier evolution
-                                             reconstruct = True, # Reconstruct glacier-wide SMB timeseries
-                                               overwrite = False, # Erase all previous simulation files 
-                                               filter_glacier= {'flag':False, 'ID':3643}) # Simulate only a specific glacier (RGI ID)
+                                             reconstruct = False, # Reconstruct glacier-wide SMB timeseries
+                                               overwrite = True, # Erase all previous simulation files 
+                                               filter_glacier= {'flag':False, 'ID':3638}) # Simulate only a specific glacier (RGI ID)
 
 
 #############################################################################################################

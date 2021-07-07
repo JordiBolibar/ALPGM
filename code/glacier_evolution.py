@@ -225,7 +225,7 @@ def preload_ensemble_SMB_models():
     path_CV_ensemble_members = np.asarray(os.listdir(path_CV_ensemble))
     
     path_CV_lasso_ensemble = settings.path_cv_lasso
-    path_CV_lasso_ensemble_members = np.asarray(os.listdir(path_CV_lasso_ensemble))[:-2]
+    path_CV_lasso_ensemble_members = np.asarray(os.listdir(path_CV_lasso_ensemble))
     CV_lasso_ensemble_members = np.ndarray(path_CV_lasso_ensemble_members.shape, dtype=np.object)
     
     if(settings.smb_model_type == 'lasso'):
@@ -264,15 +264,15 @@ def preload_ensemble_SMB_models():
         member_idx = member_idx+1
     
 #    if(settings.simulation_type == 'historical'):
-#    member_idx = 0
-#    print("\n\nPreloading ensemble full SMB models...")
-#    for path_member in path_ensemble_members:
-#        # We retrieve the ensemble member ANN model
-#        ann_member_model = load_model(os.path.join(path_ensemble, path_member, 'ann_glacier_model.h5'), custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error}, compile=False)
-##        ensemble_members.append(ann_member_model)
-#        ensemble_members[member_idx] = ann_member_model
-#        print("|", end="", flush=True)
-#        member_idx = member_idx+1
+    member_idx = 0
+    print("\n\nPreloading ensemble full SMB models...")
+    for path_member in path_ensemble_members:
+        # We retrieve the ensemble member ANN model
+        ann_member_model = load_model(os.path.join(path_ensemble, path_member, 'ann_glacier_model.h5'), custom_objects={"r2_keras": r2_keras, "root_mean_squared_error": root_mean_squared_error}, compile=False)
+#        ensemble_members.append(ann_member_model)
+        ensemble_members[member_idx] = ann_member_model
+        print("|", end="", flush=True)
+        member_idx = member_idx+1
         
     CV_ensemble_members = np.asarray(CV_ensemble_members)
     CV_lasso_ensemble_members = np.asarray(CV_lasso_ensemble_members)
@@ -323,16 +323,17 @@ def make_ensemble_simulation(ensemble_SMB_models, smb_bias_correction, x, batch_
     
     # Depending if glacier is present in training dataset we use the CV or full model
     if(model_type == 'lasso'):
-        SMB_ensemble_members = ensemble_SMB_models['lasso']
+        SMB_ensemble_members = ensemble_SMB_models['lasso'][:-2]
         print("\nLasso ensemble models")
-    elif((not evolution or settings.simulation_type == "historical") and np.any(glims_rabatel['GLIMS_ID'] == glacier_IDs['GLIMS'].encode('utf-8'))):
+#    elif((not evolution or settings.simulation_type == "historical") and np.any(glims_rabatel['GLIMS_ID'] == glacier_IDs['GLIMS'].encode('utf-8'))):
+    elif(np.any(glims_rabatel['GLIMS_ID'] == glacier_IDs['GLIMS'].encode('utf-8'))):
         SMB_ensemble_members = ensemble_SMB_models['full']
         print("\nFull ensemble models")
     else:
         SMB_ensemble_members = ensemble_SMB_models['CV']
         CV_ensemble = True
         print("\nCross-validation ensemble models")
-    
+        
     # We iterate the previously loaded ensemble models
     for ensemble_model in SMB_ensemble_members:
         # We retrieve the ensemble member ANN model
@@ -343,6 +344,7 @@ def make_ensemble_simulation(ensemble_SMB_models, smb_bias_correction, x, batch_
             if(model_type == 'lasso'):
                 if(np.all(np.isfinite(x))):
 #                    import pdb; pdb.set_trace()
+#                    print("ensemble_model: ", ensemble_model)
                     SMB_member = ensemble_model[()].predict(x)[0]
                 else:
                     SMB_member = np.nan
@@ -1216,6 +1218,12 @@ def glacier_evolution(masked_DEM_current_glacier, masked_ID_current_glacier,
             
             print("Glacier max ice thickness: " + str(masked_ID_current_glacier_u.max()))
             
+            # Adapt delta-h function for Argentière glacier
+#            if(year >= 2050):
+#                print("Applying 2050 deta-h function \n")
+#                delta_h_DEM_current_glacier = genfromtxt(os.path.join(path_delta_h_param, glimsID + '_DEM_2050.csv'), delimiter=';')
+#                delta_h_dh_current_glacier = genfromtxt(os.path.join(path_delta_h_param, glimsID + '_dh_2050.csv'), delimiter=';')
+            
             # Bypass only if static geometry mode is activated
             if(year == year_range[0] or not settings.static_geometry):          
                 ####  RECALCULATION OF TOPOGRAPHICAL PARAMETERS  ####
@@ -1443,12 +1451,18 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
         
         # Adapt glacier projections path for static geometry mode
         if(settings.static_geometry):
-            path_glacier_evolution = os.path.join(path_glacier_evolution, 'static_geometry')
-            path_smb_simulations = os.path.join(path_smb_simulations, 'static_geometry')
-            path_smb_function_adamont = os.path.join(path_smb_function_adamont, 'static_geometry')
+            if(settings.smb_model_type == 'ann_no_weights'):
+                path_glacier_evolution = os.path.join(path_glacier_evolution, 'static_geometry')
+                path_smb_simulations = os.path.join(path_smb_simulations, 'static_geometry')
+                path_smb_function_adamont = os.path.join(path_smb_function_adamont, 'static_geometry')
+            elif(settings.smb_model_type == 'lasso'):
+                path_glacier_evolution = os.path.join(path_glacier_evolution, 'static_geometry_lasso')
+                path_smb_simulations = os.path.join(path_smb_simulations, 'static_geometry_lasso')
+                path_smb_function_adamont = os.path.join(path_smb_function_adamont, 'static_geometry_lasso')
         elif(settings.smb_model_type == 'lasso'):
             path_glacier_evolution = os.path.join(path_glacier_evolution, 'lasso')
             path_smb_simulations = os.path.join(path_smb_simulations, 'lasso')
+            
 
         # Delta h parameterization functions
         global path_delta_h_param
@@ -1669,10 +1683,6 @@ def main(compute, ensemble_SMB_models, overwrite_flag, counter_threshold, thickn
             lon = glacier.GetField('x_coord')
             
             found_glacier = True
-            
-            # Use CV SMB models for the 32 French alpine glaciers dataset
-            # /!\  Set to False for regional glacier evolution simulations
-            smb_cv = False
             
             print("Glacier: " + str(glacierName))
             

@@ -23,17 +23,23 @@ import xarray as xr
 
 ###### FLAGS  #########
 with_26 = False
-filter_glacier = False
+filter_glacier = True
 static_geometry = False
-load_dictionaries = True
+load_dictionaries = False
 save_xarray = False
 #filter_member = False
 # mer de glace
 #glacier_ID_filter = "G006934E45883N"
 # argentiere
-glacier_ID_filter = "G006985E45951N"
+#glacier_ID_filter = "G006985E45951N"
 # Tré-la-Tête
 #glacier_ID_filter = "G006784E45784N"
+# Saint Sorlin
+#glacier_ID_filter = "G006159E45160N"
+# Girose
+#glacier_ID_filter = "G006252E45009N"
+# Mont de Lans
+glacier_ID_filter = "G006226E45003N"
 
 # Member index to be filtered
 # Set to -1 to turn filtering off
@@ -295,10 +301,14 @@ def plot_RCP_means(ax, RCP_means, variable, with_26, legend=False, linewidth=2, 
         legend_pos=''
         
     h1 = ''
+    end = -1
     if(with_26):
-        h1 = ax.plot(RCP_means['26'][variable]['year'][:-1], np.asarray(RCP_means['26'][variable]['data'][:-1]), linewidth=linewidth, linestyle=linestyle, label='RCP 2.6', c='steelblue', legend=legend_pos)
-    h3 = ax.plot(RCP_means['85'][variable]['year'][:-1], np.asarray(RCP_means['85'][variable]['data'][:-1]), linewidth=linewidth, linestyle=linestyle, label='RCP 8.5', c='darkred', legend=legend_pos)
-    h2 = ax.plot(RCP_means['45'][variable]['year'][:-1], np.asarray(RCP_means['45'][variable]['data'][:-1]), linewidth=linewidth, linestyle=linestyle, label='RCP 4.5', c='brown orange', legend=legend_pos)
+        nan26 = ~np.isnan(np.asarray(RCP_means['26'][variable]['data']))
+        h1 = ax.plot(np.asarray(RCP_means['26'][variable]['year'])[nan26][:end], np.asarray(RCP_means['26'][variable]['data'])[nan26][:end], linewidth=linewidth, linestyle=linestyle, label='RCP 2.6', c='steelblue', legend=legend_pos)
+    nan85 = ~np.isnan(np.asarray(RCP_means['85'][variable]['data']))
+    h3 = ax.plot(np.asarray(RCP_means['85'][variable]['year'])[nan85][:end], np.asarray(RCP_means['85'][variable]['data'])[nan85][:end], linewidth=linewidth, linestyle=linestyle, label='RCP 8.5', c='darkred', legend=legend_pos)
+    nan45 = ~np.isnan(np.asarray(RCP_means['45'][variable]['data']))
+    h2 = ax.plot(np.asarray(RCP_means['45'][variable]['year'])[nan45][:end], np.asarray(RCP_means['45'][variable]['data'])[nan45][:end], linewidth=linewidth, linestyle=linestyle, label='RCP 4.5', c='brown orange', legend=legend_pos)
 
     
     return ((h1, h2, h3))
@@ -958,7 +968,7 @@ if(not load_dictionaries and save_xarray):
         df_glacier_projections = ds_glacier_projections.to_dataframe().dropna(how='any')
         df_glacier_projections.to_csv(os.path.join(path_glacier_evolution, 'glacier_evolution_' + str(year_start) + '_2100.csv'), sep=";")
         
-import pdb; pdb.set_trace()
+#import pdb; pdb.set_trace()
     
 ##########    PLOTS    #######################
 if(filter_glacier):
