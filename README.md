@@ -9,6 +9,9 @@
 <p>jordi.bolibar@univ-grenoble-alpes.fr</p>
 <p>Institute of Environmental Geosciences (Université Grenoble Alpes)</p>
 
+## ⚠️ Disclaimer ⚠️ 
+This project is no longer maintained. You are of course free to use the code, but there are no plans to continue nor provide support on its usage. 
+
 ## Overview
 <p>
     ALPGM is a fully parameterized glacier evolution model based on data science. Glacier-wide surface mass balance (SMB) are simulated using a deep artificial neural network (i.e. deep learning) or Lasso (i.e. regularized multilinear regression). 
